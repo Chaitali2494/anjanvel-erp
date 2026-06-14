@@ -1,0 +1,55 @@
+name: Build & Deploy Flutter Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+
+      - name: Create .env
+        working-directory: flutter_app
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+
+      - name: Install dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Generate code
+        working-directory: flutter_app
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build web
+        working-directory: flutter_app
+        run: flutter build web --release --base-href=/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web
+          path: flutter_app/build/web/
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: flutter_app/build/web
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

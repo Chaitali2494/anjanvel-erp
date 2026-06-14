@@ -1,0 +1,15 @@
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/app_widgets.dart';
+
+class HeritageWalkScreen extends StatelessWidget {
+  const HeritageWalkScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AnjAppBar(title: 'Heritage Walks'),
+      body: const Center(child: Text('Heritage Walks - Coming Soon')),
+    );
+  }
+}
