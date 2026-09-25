@@ -31,9 +31,12 @@ jobs:
           python3 -c "
           content = open('pubspec.yaml').read()
           import re
+          # Remove flutter assets/fonts section
           content = re.sub(r'(flutter:\s*\n\s*uses-material-design: true\s*\n).*', r'\1\n', content, flags=re.DOTALL)
+          # Remove flutter_dotenv dependency
+          content = re.sub(r'\s*flutter_dotenv:.*\n', '\n', content)
           open('pubspec.yaml', 'w').write(content)
-          print(open('pubspec.yaml').read()[-300:])
+          print('Done')
           "
 
       - name: Install dependencies
