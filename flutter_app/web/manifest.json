@@ -1,0 +1,12 @@
+{
+    "name": "Anjanvel ERP",
+    "short_name": "Anjanvel",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FAF7F2",
+    "theme_color": "#2E7D32",
+    "description": "Anjanvel Agro Tourism Resort ERP Platform",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": []
+}

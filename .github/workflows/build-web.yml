@@ -25,10 +25,6 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
-      - name: Enable Flutter web
-        working-directory: flutter_app
-        run: flutter create --platforms web .
-
       - name: Install dependencies
         working-directory: flutter_app
         run: flutter pub get
