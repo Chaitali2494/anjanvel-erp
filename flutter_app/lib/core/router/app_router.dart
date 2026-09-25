@@ -42,7 +42,6 @@ import '../../features/maintenance/presentation/screens/maintenance_screen.dart'
 import '../providers/auth_provider.dart';
 import '../models/user_role.dart';
 
-part 'app_router.g.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);

@@ -18,9 +18,7 @@ class BookingService {
   }) async {
     var query = _client
         .from('v_booking_summary')
-        .select()
-        .order('created_at', ascending: false)
-        .range(page * limit, (page + 1) * limit - 1);
+        .select();
 
     if (status != null) query = query.eq('status', status);
     if (from != null) query = query.gte('check_in_date', from.toIso8601String().split('T')[0]);
@@ -29,7 +27,9 @@ class BookingService {
       query = query.or('guest_name.ilike.%$search%,booking_number.ilike.%$search%,guest_phone.ilike.%$search%');
     }
 
-    final data = await query;
+    final data = await query
+        .order('created_at', ascending: false)
+        .range(page * limit, (page + 1) * limit - 1);
     return data.map((d) => BookingModel.fromJson(d)).toList();
   }
 
