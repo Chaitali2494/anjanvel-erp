@@ -65,6 +65,13 @@ jobs:
           path: flutter_app/build/web/
 
       - name: Deploy to Netlify
-        run: |
-          npm install -g netlify-cli
-          netlify deploy --dir=flutter_app/build/web --prod --site=${{ secrets.NETLIFY_SITE_ID }} --auth=${{ secrets.NETLIFY_AUTH_TOKEN }}
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: flutter_app/build/web
+          production-branch: main
+          deploy-message: "Deploy from GitHub Actions"
+          enable-commit-comment: false
+          enable-github-deployment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
