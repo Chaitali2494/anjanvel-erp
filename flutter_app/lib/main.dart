@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
+
+const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+const _supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,17 +19,10 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Load environment variables (ignore error on web if .env not bundled)
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    debugPrint('Could not load .env file: $e');
-  }
-
   // Initialize Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL'),
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? const String.fromEnvironment('SUPABASE_ANON_KEY'),
+    url: _supabaseUrl,
+    anonKey: _supabaseAnonKey,
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
       autoRefreshToken: true,
