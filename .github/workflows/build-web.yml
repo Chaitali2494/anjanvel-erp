@@ -47,7 +47,10 @@ jobs:
 
       - name: Build web
         working-directory: flutter_app
-        run: flutter build web --release --base-href=/
+        run: |
+          flutter build web --release --base-href=/ \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
