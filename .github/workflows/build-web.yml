@@ -39,6 +39,10 @@ jobs:
           print('Done')
           "
 
+      - name: Clean build cache
+        working-directory: flutter_app
+        run: flutter clean
+
       - name: Install dependencies
         working-directory: flutter_app
         run: flutter pub get
