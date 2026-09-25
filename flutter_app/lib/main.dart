@@ -17,13 +17,17 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Load environment variables
-  await dotenv.load(fileName: '.env');
+  // Load environment variables (ignore error on web if .env not bundled)
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('Could not load .env file: $e');
+  }
 
   // Initialize Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL'),
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? const String.fromEnvironment('SUPABASE_ANON_KEY'),
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
       autoRefreshToken: true,
@@ -33,11 +37,13 @@ void main() async {
     ),
   );
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
-
-  // Initialize push notifications
-  await NotificationService.initialize();
+  // Initialize Firebase (optional — skip if not configured)
+  try {
+    await Firebase.initializeApp();
+    await NotificationService.initialize();
+  } catch (e) {
+    debugPrint('Firebase not configured, skipping: $e');
+  }
 
   runApp(
     const ProviderScope(
