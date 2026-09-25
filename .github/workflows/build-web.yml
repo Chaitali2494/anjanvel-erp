@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,11 +22,10 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Create .env
+      - name: Create .env placeholder
         working-directory: flutter_app
         run: |
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
-          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+          echo "placeholder" > .env
 
       - name: Fix pubspec
         working-directory: flutter_app
@@ -31,21 +33,17 @@ jobs:
           python3 -c "
           content = open('pubspec.yaml').read()
           import re
-          # Remove flutter assets/fonts section
           content = re.sub(r'(flutter:\s*\n\s*uses-material-design: true\s*\n).*', r'\1\n', content, flags=re.DOTALL)
-          # Remove flutter_dotenv dependency
           content = re.sub(r'\s*flutter_dotenv:.*\n', '\n', content)
           open('pubspec.yaml', 'w').write(content)
           print('Done')
           "
 
-      - name: Clean build cache
+      - name: Clean and install dependencies
         working-directory: flutter_app
-        run: flutter clean
-
-      - name: Install dependencies
-        working-directory: flutter_app
-        run: flutter pub get
+        run: |
+          flutter clean
+          flutter pub get
 
       - name: Generate code
         working-directory: flutter_app
@@ -54,24 +52,12 @@ jobs:
       - name: Build web
         working-directory: flutter_app
         run: |
-          flutter build web --release --base-href=/ \
+          flutter build web --release --base-href=/anjanvel-erp/ \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: flutter-web
-          path: flutter_app/build/web/
-
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3
-        with:
-          publish-dir: flutter_app/build/web
-          production-branch: main
-          deploy-message: "Deploy from GitHub Actions"
-          enable-commit-comment: false
-          enable-github-deployment: false
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: flutter_app/build/web
