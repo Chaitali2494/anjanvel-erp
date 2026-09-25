@@ -25,16 +25,32 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
-      - name: Create asset directories and fix pubspec
+      - name: Fix pubspec and create assets
         working-directory: flutter_app
         run: |
-          mkdir -p assets/images assets/icons assets/animations assets/fonts
-          touch assets/images/.keep assets/icons/.keep assets/animations/.keep
-          # Download Poppins fonts
-          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiEyp8kv8JHgFVrJJfecg.woff2" -o assets/fonts/Poppins-Regular.ttf
-          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2" -o assets/fonts/Poppins-Medium.ttf
-          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2" -o assets/fonts/Poppins-SemiBold.ttf
-          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLCz7Z1xlFQ.woff2" -o assets/fonts/Poppins-Bold.ttf
+          # Rewrite pubspec flutter section to remove missing asset/font refs
+          python3 - <<'EOF'
+import re
+
+with open('pubspec.yaml', 'r') as f:
+    content = f.read()
+
+# Replace the entire flutter: section's assets and fonts blocks
+flutter_section = """
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+"""
+content = re.sub(r'\nflutter:.*', flutter_section, content, flags=re.DOTALL)
+
+with open('pubspec.yaml', 'w') as f:
+    f.write(content)
+
+print("pubspec.yaml rewritten successfully")
+EOF
+          cat pubspec.yaml | grep -A 20 "^flutter:"
 
       - name: Install dependencies
         working-directory: flutter_app
