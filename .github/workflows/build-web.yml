@@ -25,6 +25,17 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env
           echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
+      - name: Create asset directories and fix pubspec
+        working-directory: flutter_app
+        run: |
+          mkdir -p assets/images assets/icons assets/animations assets/fonts
+          touch assets/images/.keep assets/icons/.keep assets/animations/.keep
+          # Download Poppins fonts
+          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiEyp8kv8JHgFVrJJfecg.woff2" -o assets/fonts/Poppins-Regular.ttf
+          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2" -o assets/fonts/Poppins-Medium.ttf
+          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2" -o assets/fonts/Poppins-SemiBold.ttf
+          curl -sL "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLCz7Z1xlFQ.woff2" -o assets/fonts/Poppins-Bold.ttf
+
       - name: Install dependencies
         working-directory: flutter_app
         run: flutter pub get
