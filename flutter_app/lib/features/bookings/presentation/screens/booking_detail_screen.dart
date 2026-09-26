@@ -107,6 +107,17 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
+                // Room Assignment (show when confirmed)
+                if (b.status == 'CONFIRMED' || b.status == 'INQUIRY') ...[
+                  _RoomAssignmentCard(
+                    bookingId: b.id,
+                    checkIn: b.checkInDate,
+                    checkOut: b.checkOutDate,
+                    onAssigned: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // Confirm / Cancel actions
                 if (b.status == 'INQUIRY') ...[
                   SizedBox(
@@ -559,6 +570,205 @@ class _PaymentHistoryCard extends StatelessWidget {
                 ),
               );
             }),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Room Assignment Card ──────────────────────────────────────────────────────
+
+class _RoomAssignmentCard extends ConsumerStatefulWidget {
+  final String bookingId;
+  final String checkIn;
+  final String? checkOut;
+  final VoidCallback onAssigned;
+
+  const _RoomAssignmentCard({
+    required this.bookingId,
+    required this.checkIn,
+    this.checkOut,
+    required this.onAssigned,
+  });
+
+  @override
+  ConsumerState<_RoomAssignmentCard> createState() => _RoomAssignmentCardState();
+}
+
+class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
+  List<Map<String, dynamic>> _availableRooms = [];
+  List<Map<String, dynamic>> _assignedRooms = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final client = ref.read(supabaseClientProvider);
+    try {
+      // Get assigned rooms for this booking
+      final assigned = await client
+          .from('booking_rooms')
+          .select('room_id, rooms(room_number, room_types(name))')
+          .eq('booking_id', widget.bookingId);
+
+      // Get all available rooms
+      final available = await client
+          .from('rooms')
+          .select('id, room_number, status, room_types(name)')
+          .eq('status', 'AVAILABLE')
+          .order('room_number');
+
+      if (mounted) {
+        setState(() {
+          _assignedRooms = List<Map<String, dynamic>>.from(assigned);
+          _availableRooms = List<Map<String, dynamic>>.from(available);
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _assignRoom(String roomId, String roomNumber) async {
+    final client = ref.read(supabaseClientProvider);
+    try {
+      await client.from('booking_rooms').insert({
+        'booking_id': widget.bookingId,
+        'room_id': roomId,
+      });
+      await client.from('rooms').update({'status': 'RESERVED'}).eq('id', roomId);
+      widget.onAssigned();
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Room $roomNumber assigned & marked Reserved'), backgroundColor: AppTheme.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeRoom(String roomId, String roomNumber) async {
+    final client = ref.read(supabaseClientProvider);
+    try {
+      await client.from('booking_rooms')
+          .delete()
+          .eq('booking_id', widget.bookingId)
+          .eq('room_id', roomId);
+      await client.from('rooms').update({'status': 'AVAILABLE'}).eq('id', roomId);
+      widget.onAssigned();
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.bed_outlined, size: 16, color: AppTheme.primary),
+                  SizedBox(width: 8),
+                  Text('Room Assignment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+              IconButton(icon: const Icon(Icons.refresh, size: 18), onPressed: _load, padding: EdgeInsets.zero),
+            ],
+          ),
+          const Divider(height: 16),
+          if (_loading)
+            const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(strokeWidth: 2)))
+          else ...[
+            // Assigned rooms
+            if (_assignedRooms.isNotEmpty) ...[
+              const Text('Assigned Rooms', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+              const SizedBox(height: 6),
+              ..._assignedRooms.map((r) {
+                final room = r['rooms'] as Map<String, dynamic>? ?? {};
+                final typeName = (room['room_types'] as Map<String, dynamic>?)?['name'] ?? '';
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFE8F5E9),
+                    child: Icon(Icons.bed_rounded, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text('Room ${room['room_number'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(typeName, style: const TextStyle(fontSize: 11)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.error, size: 18),
+                    onPressed: () => _removeRoom(r['room_id'] as String, room['room_number'] as String? ?? ''),
+                  ),
+                );
+              }),
+              const Divider(height: 16),
+            ],
+
+            // Available rooms to assign
+            const Text('Available Rooms', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+            const SizedBox(height: 6),
+            if (_availableRooms.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('No available rooms', style: TextStyle(color: AppTheme.textHint)),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _availableRooms.map((r) {
+                  return GestureDetector(
+                    onTap: () => _assignRoom(r['id'] as String, r['room_number'] as String),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.statusAvailable.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.statusAvailable.withOpacity(0.4)),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            r['room_number'] as String,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.statusAvailable),
+                          ),
+                          Text(
+                            ((r['room_types'] as Map<String, dynamic>?)?['name'] ?? '').toString().split(' ').first,
+                            style: const TextStyle(fontSize: 10, color: AppTheme.textHint),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
         ],
       ),
     );
