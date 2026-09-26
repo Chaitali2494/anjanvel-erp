@@ -45935,7 +45935,7 @@ if(n==null){q=null
 s=1
 break}m=A
 s=3
-return A.p(p.a.hK("users").ue(0,"*, roles(*)").nR("id",n.a).mY(0),$async$$1)
+return A.p(p.a.hK("users").ue(0,"*").nR("id",n.a).mY(0),$async$$1)
 case 3:q=m.aYM(c)
 s=1
 break
