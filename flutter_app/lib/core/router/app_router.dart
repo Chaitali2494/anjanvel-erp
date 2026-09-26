@@ -135,9 +135,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Check-in / Check-out
+      GoRoute(path: '/checkin', builder: (_, __) => const CheckInScreen()),
       GoRoute(
         path: '/checkin/:bookingId',
-        builder: (_, state) => CheckInScreen(bookingId: state.pathParameters['bookingId']!),
+        builder: (_, state) => CheckInScreen(bookingId: state.pathParameters['bookingId']),
       ),
       GoRoute(
         path: '/checkout/:bookingId',

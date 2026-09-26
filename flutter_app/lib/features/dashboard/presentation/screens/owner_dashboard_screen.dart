@@ -542,8 +542,8 @@ class _OwnerBottomNav extends StatelessWidget {
             children: [
               _NavItem(Icons.dashboard_outlined, Icons.dashboard_rounded, 'Home', '/dashboard/owner'),
               _NavItem(Icons.calendar_month_outlined, Icons.calendar_month_rounded, 'Bookings', '/bookings'),
+              _NavItem(Icons.login_rounded, Icons.login_rounded, 'Check-in', '/checkin'),
               _NavItem(Icons.bed_outlined, Icons.bed_rounded, 'Rooms', '/rooms'),
-              _NavItem(Icons.bar_chart_outlined, Icons.bar_chart_rounded, 'Reports', '/reports'),
               _NavItem(Icons.settings_outlined, Icons.settings_rounded, 'Settings', '/settings'),
             ],
           ),
