@@ -35,18 +35,28 @@ class BookingService {
 
   // ── Get single booking ────────────────────────────────────────────────────────
   Future<BookingModel> getBookingById(String id) async {
+    // Get booking with payments only (avoids null-cast errors from optional FKs)
     final data = await _client
         .from('bookings')
-        .select('''
-          *,
-          guests:primary_guest_id(*),
-          packages:package_id(id, name, type),
-          booking_rooms(*, rooms(*, room_types(name))),
-          booking_addons(*),
-          payments(*)
-        ''')
+        .select('*, payments(*)')
         .eq('id', id)
         .single();
+
+    // Fetch guest name separately if primary_guest_id exists
+    if (data['primary_guest_id'] != null) {
+      try {
+        final guest = await _client
+            .from('guests')
+            .select('full_name, phone')
+            .eq('id', data['primary_guest_id'])
+            .maybeSingle();
+        if (guest != null) {
+          data['guest_name'] = guest['full_name'];
+          data['guest_phone'] = guest['phone'];
+        }
+      } catch (_) {}
+    }
+
     return BookingModel.fromJson(data);
   }
 

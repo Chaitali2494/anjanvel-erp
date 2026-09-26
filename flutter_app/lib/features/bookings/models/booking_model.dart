@@ -112,8 +112,8 @@ class BookingModel {
       cancelledAt: json['cancelled_at'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
       createdBy: json['created_by'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : DateTime.now(),
       guest: json['guests'] as Map<String, dynamic>?,
       package: json['packages'] as Map<String, dynamic>?,
       rooms: (json['booking_rooms'] as List<dynamic>?)
