@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 
 // ─── Status Badge ──────────────────────────────────────────────────────────────
@@ -282,11 +283,22 @@ class AnjAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).matchedLocation;
+    final isOnDashboard = location.startsWith('/dashboard');
+
     return AppBar(
       title: Text(title),
       automaticallyImplyLeading: showBack,
       leading: leading,
-      actions: actions,
+      actions: [
+        if (!isOnDashboard)
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
+        ...?actions,
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
         child: Container(height: 1, color: const Color(0xFFEEEEEE)),
