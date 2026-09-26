@@ -293,9 +293,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       await client.from('payments').insert({
         'booking_id': bookingId,
         'amount': amount,
-        'payment_method': method,
+        'method': method,
         'status': 'COMPLETED',
-        'paid_at': DateTime.now().toIso8601String(),
       });
 
       // Update booking paid_amount
@@ -526,8 +525,8 @@ class _PaymentHistoryCard extends StatelessWidget {
             )
           else
             ...payments.map((p) {
-              final paidAt = p['paid_at'] != null
-                  ? DateFormat('d MMM yyyy, h:mm a').format(DateTime.parse(p['paid_at'] as String))
+              final paidAt = p['created_at'] != null
+                  ? DateFormat('d MMM yyyy, h:mm a').format(DateTime.parse(p['created_at'] as String))
                   : '—';
               return ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -544,7 +543,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  '${(p['payment_method'] as String? ?? '').replaceAll('_', ' ')} · $paidAt',
+                  '${(p['method'] as String? ?? '').replaceAll('_', ' ')} · $paidAt',
                   style: const TextStyle(fontSize: 11),
                 ),
                 trailing: Container(
