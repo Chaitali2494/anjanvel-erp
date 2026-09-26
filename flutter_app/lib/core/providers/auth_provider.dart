@@ -10,7 +10,7 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
     if (user == null) return null;
     final data = await client
         .from('users')
-        .select('*, roles(*)')
+        .select('*')
         .eq('id', user.id)
         .single();
     return AppUser.fromJson(data);
