@@ -74,7 +74,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
 
       final booking = await ref.read(bookingServiceProvider).createBooking({
         'primary_guest_id': guestId,
-        'package_id': _selectedPackageId,
+        // Only pass package_id if it's a real UUID (not a placeholder like '1')
+        'package_id': (_selectedPackageId != null && _selectedPackageId!.contains('-'))
+            ? _selectedPackageId
+            : null,
         'check_in_date': DateFormat('yyyy-MM-dd').format(_checkInDate!),
         'check_out_date': _checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : null,
         'num_adults': _numAdults,
