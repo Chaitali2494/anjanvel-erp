@@ -161,13 +161,32 @@ class BookingFilter {
 
   const BookingFilter({this.status, this.from, this.to, this.search, this.page = 0});
 
-  BookingFilter copyWith({String? status, DateTime? from, DateTime? to, String? search, int? page}) {
+  // Use explicit sentinel to allow clearing status to null
+  BookingFilter copyWith({
+    Object? status = _keep,
+    DateTime? from,
+    DateTime? to,
+    String? search,
+    int? page,
+  }) {
     return BookingFilter(
-      status: status ?? this.status,
+      status: status == _keep ? this.status : status as String?,
       from: from ?? this.from,
       to: to ?? this.to,
       search: search ?? this.search,
       page: page ?? this.page,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is BookingFilter &&
+      other.status == status &&
+      other.search == search &&
+      other.page == page;
+
+  @override
+  int get hashCode => Object.hash(status, search, page);
 }
+
+const _keep = Object();

@@ -32,8 +32,12 @@ class _BookingListScreenState extends ConsumerState<BookingListScreen>
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        ref.read(_filterProvider.notifier).update(
-          (f) => f.copyWith(status: _tabStatuses[_tabController.index]),
+        final current = ref.read(_filterProvider);
+        ref.read(_filterProvider.notifier).state = BookingFilter(
+          status: _tabStatuses[_tabController.index],
+          search: current.search,
+          from: current.from,
+          to: current.to,
         );
       }
     });
