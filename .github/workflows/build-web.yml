@@ -46,7 +46,10 @@ jobs:
 
       - name: Build web
         working-directory: flutter_app
-        run: flutter build web --release --base-href=/anjanvel-erp/
+        run: |
+          flutter build web --release --base-href=/anjanvel-erp/ \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Inject .env into build
         run: |
