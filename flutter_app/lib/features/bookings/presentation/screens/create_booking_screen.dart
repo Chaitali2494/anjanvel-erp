@@ -70,14 +70,11 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       }
 
       final totalAmount = _basePrice * _numAdults + (_basePrice * 0.5) * _numChildren;
-      final taxAmount = totalAmount * 0.12;
+      final taxAmount = totalAmount * 0.05; // 5% GST
 
       final booking = await ref.read(bookingServiceProvider).createBooking({
         'primary_guest_id': guestId,
-        // Only pass package_id if it's a real UUID (not a placeholder like '1')
-        'package_id': (_selectedPackageId != null && _selectedPackageId!.contains('-'))
-            ? _selectedPackageId
-            : null,
+        'package_id': null, // packages stored by name; no DB UUID yet
         'check_in_date': DateFormat('yyyy-MM-dd').format(_checkInDate!),
         'check_out_date': _checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : null,
         'num_adults': _numAdults,
@@ -477,56 +474,156 @@ class _PackageStep extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: fetch from packagesProvider
     final packages = [
-      {'id': '1', 'name': 'Day Picnic', 'type': 'DAY_PICNIC', 'base_price': 1200.0},
-      {'id': '2', 'name': 'Overnight Farm Stay', 'type': 'OVERNIGHT_STAY', 'base_price': 3500.0},
-      {'id': '3', 'name': 'Heritage Walk', 'type': 'HERITAGE_PACKAGE', 'base_price': 800.0},
-      {'id': '4', 'name': 'School Camp', 'type': 'SCHOOL_CAMP', 'base_price': 2500.0},
-      {'id': '5', 'name': 'Corporate Retreat', 'type': 'CORPORATE_RETREAT', 'base_price': 5000.0},
+      {
+        'id': null,
+        'name': 'Day Trip',
+        'type': 'DAY_PICNIC',
+        'adult_price': 1100.0,
+        'kids_price': 750.0,
+        'inclusions': 'Breakfast · Lunch · Evening Tea & Snacks',
+        'timing': 'Check-in 9 AM · Check-out 5 PM',
+        'note': 'Kids 0–4 yrs: Free',
+      },
+      {
+        'id': null,
+        'name': 'Tent Stay',
+        'type': 'OVERNIGHT_STAY',
+        'adult_price': 1600.0,
+        'kids_price': 1100.0,
+        'inclusions': 'Evening Tea · Dinner · Breakfast',
+        'timing': 'Check-in 4 PM · Check-out 10 AM',
+        'note': 'Kids 0–4 yrs: Free',
+      },
+      {
+        'id': null,
+        'name': 'Dormitory Stay',
+        'type': 'OVERNIGHT_STAY',
+        'adult_price': 2400.0,
+        'kids_price': 1300.0,
+        'inclusions': 'Breakfast · Lunch · Evening Tea · Dinner',
+        'timing': 'Check-in 12 PM · Check-out 10:30 AM',
+        'note': 'Kids 0–4 yrs: Free',
+      },
+      {
+        'id': null,
+        'name': 'Anjanpushp Villa',
+        'type': 'OVERNIGHT_STAY',
+        'adult_price': 2800.0,
+        'kids_price': 1300.0,
+        'inclusions': 'Breakfast · Lunch · Evening Tea · Dinner',
+        'timing': 'Check-in 1 PM · Check-out 11 AM',
+        'note': 'Max 12 guests · Kids 0–4 yrs: Free',
+      },
+      {
+        'id': null,
+        'name': 'Deluxe / Cottage Room',
+        'type': 'OVERNIGHT_STAY',
+        'adult_price': 3500.0,
+        'kids_price': 1600.0,
+        'inclusions': 'Breakfast · Lunch · Evening Tea · Dinner',
+        'timing': 'Check-in 12 PM · Check-out 10:30 AM',
+        'note': 'Kids 0–4 yrs: Free · +5% GST',
+      },
+      {
+        'id': null,
+        'name': 'Premium Room – Tikona View',
+        'type': 'OVERNIGHT_STAY',
+        'adult_price': 3500.0,
+        'kids_price': 1700.0,
+        'inclusions': 'Breakfast · Lunch · Evening Tea · Dinner',
+        'timing': 'Check-in 12 PM · Check-out 10:30 AM',
+        'note': 'Kids 0–4 yrs: Free · +5% GST',
+      },
+      {
+        'id': null,
+        'name': 'Premium Room – Deck Bed',
+        'type': 'OVERNIGHT_STAY',
+        'adult_price': 4000.0,
+        'kids_price': 2200.0,
+        'inclusions': 'Breakfast · Lunch · Evening Tea · Dinner',
+        'timing': 'Check-in 12 PM · Check-out 10:30 AM',
+        'note': 'Kids 0–4 yrs: Free · +5% GST',
+      },
     ];
 
     return Column(
-      children: packages.map((pkg) {
-        final isSelected = selectedPackageId == pkg['id'];
-        return GestureDetector(
-          onTap: () => onPackageSelected(
-            pkg['id'] as String,
-            pkg['name'] as String,
-            pkg['base_price'] as double,
-          ),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primary.withOpacity(0.08) : const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-              border: Border.all(
-                color: isSelected ? AppTheme.primary : Colors.transparent,
-                width: 2,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '* 5% GST applicable on room stays. Booking confirmed on advance payment only.',
+          style: TextStyle(fontSize: 11, color: AppTheme.textHint),
+        ),
+        const SizedBox(height: 12),
+        ...packages.map((pkg) {
+          final isSelected = selectedPackageId != null && selectedPackageId == pkg['name'];
+          return GestureDetector(
+            onTap: () => onPackageSelected(
+              pkg['name'] as String,   // use name as key (no DB UUID yet)
+              pkg['name'] as String,
+              pkg['adult_price'] as double,
+            ),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isSelected ? AppTheme.primary.withOpacity(0.08) : const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                border: Border.all(
+                  color: isSelected ? AppTheme.primary : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                      color: isSelected ? AppTheme.primary : AppTheme.textHint,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          pkg['name'] as String,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: isSelected ? AppTheme.primary : null,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '₹${(pkg['adult_price'] as double).toStringAsFixed(0)} adult  ·  ₹${(pkg['kids_price'] as double).toStringAsFixed(0)} child (5–10)',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Text(
+                          pkg['inclusions'] as String,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.success),
+                        ),
+                        Text(
+                          pkg['timing'] as String,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textHint),
+                        ),
+                        if (pkg['note'] != null)
+                          Text(
+                            pkg['note'] as String,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.accent),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                  color: isSelected ? AppTheme.primary : AppTheme.textHint,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(pkg['name'] as String, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: isSelected ? AppTheme.primary : null)),
-                      Text('₹${(pkg['base_price'] as double).toStringAsFixed(0)} per adult', style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+          );
+        }),
+      ],
     );
   }
 }
@@ -557,7 +654,7 @@ class _SummaryStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtotal = basePrice * numAdults + (basePrice * 0.5) * numChildren;
-    final tax = subtotal * 0.12;
+    final tax = subtotal * 0.05; // 5% GST
     final total = subtotal + tax;
 
     return Column(
@@ -571,7 +668,7 @@ class _SummaryStep extends StatelessWidget {
         if (packageName != null) _SummaryRow('Package', packageName!),
         const Divider(height: 24),
         _SummaryRow('Subtotal', '₹${subtotal.toStringAsFixed(0)}'),
-        _SummaryRow('GST (12%)', '₹${tax.toStringAsFixed(0)}'),
+        _SummaryRow('GST (5%)', '₹${tax.toStringAsFixed(0)}'),
         _SummaryRow('Total', '₹${total.toStringAsFixed(0)}', isBold: true),
         const SizedBox(height: 16),
         TextFormField(
