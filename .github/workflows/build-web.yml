@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,7 +46,7 @@ jobs:
 
       - name: Build web
         working-directory: flutter_app
-        run: flutter build web --release --base-href=/
+        run: flutter build web --release --base-href=/anjanvel-erp/
 
       - name: Inject .env into build
         run: |
@@ -52,17 +55,9 @@ jobs:
             "${{ secrets.SUPABASE_URL }}" \
             "${{ secrets.SUPABASE_ANON_KEY }}" \
             > flutter_app/build/web/assets/.env
-          echo "Injected .env:"
-          cat flutter_app/build/web/assets/.env
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          publish-dir: flutter_app/build/web
-          production-branch: main
-          deploy-message: "Deploy from GitHub Actions"
-          enable-commit-comment: false
-          enable-github-deployment: false
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: flutter_app/build/web
