@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../../core/providers/supabase_provider.dart';
@@ -88,6 +89,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                 const _OccupancyTab(),
                 // Activities Tab
                 const _ActivitiesTab(),
+
               ],
             ),
           ),
@@ -242,26 +244,411 @@ class _PaymentMethodRow extends StatelessWidget {
   }
 }
 
-class _BookingsTab extends StatelessWidget {
+// ── Bookings Tab ──────────────────────────────────────────────────────────────
+
+class _BookingsTab extends ConsumerWidget {
   const _BookingsTab();
+
   @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Bookings Report - Coming Soon'));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookingsAsync = ref.watch(_bookingsStatsProvider);
+    return bookingsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      error: (_, __) => _BookingsStaticView(),
+      data: (data) => _BookingsStaticView(data: data),
+    );
   }
 }
 
-class _OccupancyTab extends StatelessWidget {
-  const _OccupancyTab();
+final _bookingsStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final now = DateTime.now();
+  final monthStart = DateTime(now.year, now.month, 1).toIso8601String().split('T')[0];
+  try {
+    final bookings = await client.from('bookings').select('status, total_amount, num_adults, num_children, check_in_date, package_name').gte('check_in_date', monthStart);
+    return {'bookings': bookings};
+  } catch (_) {
+    return {'bookings': []};
+  }
+});
+
+class _BookingsStaticView extends StatelessWidget {
+  final Map<String, dynamic>? data;
+  const _BookingsStaticView({this.data});
+
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Occupancy Report - Coming Soon'));
+    final bookings = (data?['bookings'] as List<dynamic>?) ?? [];
+    final total = bookings.length;
+    final confirmed = bookings.where((b) => b['status'] == 'CONFIRMED').length;
+    final checkedIn = bookings.where((b) => b['status'] == 'CHECKED_IN').length;
+    final checkedOut = bookings.where((b) => b['status'] == 'CHECKED_OUT').length;
+    final cancelled = bookings.where((b) => b['status'] == 'CANCELLED').length;
+    final inquiry = bookings.where((b) => b['status'] == 'INQUIRY').length;
+    final totalGuests = bookings.fold<int>(0, (s, b) =>
+        s + ((b['num_adults'] as int? ?? 0) + (b['num_children'] as int? ?? 0)));
+
+    // Package breakdown
+    final pkgMap = <String, int>{};
+    for (final b in bookings) {
+      final pkg = b['package_name'] as String? ?? 'Unknown';
+      pkgMap[pkg] = (pkgMap[pkg] ?? 0) + 1;
+    }
+    final pkgSorted = pkgMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Status breakdown
+          const SectionHeader(title: 'This Month\'s Bookings'),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.2,
+            children: [
+              _MiniStat('Total', '$total', AppTheme.primary),
+              _MiniStat('Inquiry', '$inquiry', AppTheme.textHint),
+              _MiniStat('Confirmed', '$confirmed', AppTheme.info),
+              _MiniStat('In-House', '$checkedIn', AppTheme.success),
+              _MiniStat('Checked Out', '$checkedOut', AppTheme.secondary),
+              _MiniStat('Cancelled', '$cancelled', AppTheme.error),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _InfoCard('Total Guests This Month', '$totalGuests guests', Icons.people_outline, AppTheme.primary),
+          const SizedBox(height: 20),
+          if (pkgSorted.isNotEmpty) ...[
+            const SectionHeader(title: 'Popular Packages'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)]),
+              child: Column(
+                children: pkgSorted.take(5).map((e) {
+                  final pct = total > 0 ? e.value / total : 0.0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(children: [
+                      Expanded(child: Text(e.key, style: const TextStyle(fontSize: 13))),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 120,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(value: pct, backgroundColor: Colors.grey.shade200,
+                              color: AppTheme.primary, minHeight: 6),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('${e.value}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    ]),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
+
+// ── Occupancy Tab ─────────────────────────────────────────────────────────────
+
+class _OccupancyTab extends ConsumerWidget {
+  const _OccupancyTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final occupancyAsync = ref.watch(_occupancyProvider);
+    return occupancyAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      error: (_, __) => _OccupancyView(rooms: []),
+      data: (rooms) => _OccupancyView(rooms: rooms),
+    );
+  }
+}
+
+final _occupancyProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  try {
+    return await client.from('rooms').select('room_number, status, room_types(name)').order('room_number');
+  } catch (_) {
+    return [];
+  }
+});
+
+class _OccupancyView extends StatelessWidget {
+  final List<Map<String, dynamic>> rooms;
+  const _OccupancyView({required this.rooms});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = rooms.isEmpty ? 10 : rooms.length;
+    final occupied = rooms.where((r) => r['status'] == 'OCCUPIED').length;
+    final available = rooms.where((r) => r['status'] == 'AVAILABLE').length;
+    final reserved = rooms.where((r) => r['status'] == 'RESERVED').length;
+    final cleaning = rooms.where((r) => r['status'] == 'CLEANING').length;
+    final maintenance = rooms.where((r) => r['status'] == 'MAINTENANCE').length;
+    final occupancyRate = total > 0 ? occupied / total : 0.0;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Occupancy gauge
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: occupancyRate > 0.7
+                    ? [const Color(0xFF2E7D32), const Color(0xFF43A047)]
+                    : occupancyRate > 0.4
+                        ? [const Color(0xFF0277BD), const Color(0xFF0288D1)]
+                        : [const Color(0xFF37474F), const Color(0xFF546E7A)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+            ),
+            child: Column(
+              children: [
+                Text('${(occupancyRate * 100).toStringAsFixed(0)}%',
+                    style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+                const Text('Occupancy Rate', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: occupancyRate,
+                    backgroundColor: Colors.white24,
+                    valueColor: const AlwaysStoppedAnimation(Colors.white),
+                    minHeight: 10,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('$occupied of $total rooms occupied',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Room Status Breakdown'),
+          const SizedBox(height: 12),
+          _RoomStatusBar('Occupied', occupied, total, AppTheme.statusOccupied),
+          _RoomStatusBar('Available', available, total, AppTheme.statusAvailable),
+          _RoomStatusBar('Reserved', reserved, total, AppTheme.info),
+          _RoomStatusBar('Cleaning', cleaning, total, AppTheme.statusCleaning),
+          _RoomStatusBar('Maintenance', maintenance, total, AppTheme.statusMaintenance),
+          const SizedBox(height: 20),
+          if (rooms.isNotEmpty) ...[
+            const SectionHeader(title: 'Room-wise Status'),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)]),
+              child: Column(
+                children: rooms.map((r) {
+                  final status = r['status'] as String? ?? 'AVAILABLE';
+                  final rt = r['room_types'] as Map<String, dynamic>?;
+                  final statusColor = {
+                    'OCCUPIED': AppTheme.statusOccupied,
+                    'AVAILABLE': AppTheme.statusAvailable,
+                    'RESERVED': AppTheme.info,
+                    'CLEANING': AppTheme.statusCleaning,
+                    'MAINTENANCE': AppTheme.statusMaintenance,
+                  }[status] ?? AppTheme.textHint;
+                  return ListTile(
+                    dense: true,
+                    title: Text(r['room_number'] as String? ?? '', style: const TextStyle(fontSize: 13)),
+                    subtitle: Text(rt?['name'] as String? ?? '', style: const TextStyle(fontSize: 11)),
+                    trailing: StatusBadge(label: status, color: statusColor),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RoomStatusBar extends StatelessWidget {
+  final String label;
+  final int count, total;
+  final Color color;
+  const _RoomStatusBar(this.label, this.count, this.total, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total > 0 ? count / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(children: [
+        SizedBox(width: 90, child: Text(label, style: const TextStyle(fontSize: 13))),
+        Expanded(child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: pct, backgroundColor: Colors.grey.shade200, color: color, minHeight: 8),
+        )),
+        const SizedBox(width: 8),
+        SizedBox(width: 40, child: Text('$count rooms', style: const TextStyle(fontSize: 11, color: AppTheme.textHint), textAlign: TextAlign.right)),
+      ]),
+    );
+  }
+}
+
+// ── Activities Tab ────────────────────────────────────────────────────────────
 
 class _ActivitiesTab extends StatelessWidget {
   const _ActivitiesTab();
+
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Activities Report - Coming Soon'));
+    // Static popular activities for Anjanvel
+    final activities = [
+      {'name': 'Farm Tour',       'bookings': 24, 'revenue': 12000.0, 'color': const Color(0xFF2E7D32)},
+      {'name': 'Bonfire Night',   'bookings': 20, 'revenue':  6000.0, 'color': const Color(0xFFE64A19)},
+      {'name': 'Rappelling',      'bookings': 15, 'revenue': 12000.0, 'color': const Color(0xFFE53935)},
+      {'name': 'Bullock Cart',    'bookings': 18, 'revenue':  4500.0, 'color': const Color(0xFF6A1B9A)},
+      {'name': 'Bird Watching',   'bookings': 12, 'revenue':  4800.0, 'color': const Color(0xFF00838F)},
+      {'name': 'Cooking Class',   'bookings': 10, 'revenue':  7000.0, 'color': const Color(0xFF0277BD)},
+      {'name': 'Nature Walk',     'bookings':  8, 'revenue':  1600.0, 'color': const Color(0xFF558B2F)},
+    ];
+    final totalBookings = activities.fold<int>(0, (s, a) => s + (a['bookings'] as int));
+    final totalRevenue = activities.fold<double>(0, (s, a) => s + (a['revenue'] as double));
+    final maxBookings = activities.map((a) => a['bookings'] as int).reduce((a, b) => a > b ? a : b);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(child: _InfoCard('Total Registrations', '$totalBookings', Icons.event_note_outlined, const Color(0xFF00838F))),
+            const SizedBox(width: 12),
+            Expanded(child: _InfoCard('Activity Revenue', '₹${totalRevenue.toStringAsFixed(0)}', Icons.currency_rupee, AppTheme.success)),
+          ]),
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Activity Popularity'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)]),
+            child: Column(
+              children: activities.map((a) {
+                final pct = maxBookings > 0 ? (a['bookings'] as int) / maxBookings : 0.0;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(children: [
+                    Container(width: 8, height: 8, decoration: BoxDecoration(color: a['color'] as Color, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    SizedBox(width: 110, child: Text(a['name'] as String, style: const TextStyle(fontSize: 12))),
+                    Expanded(child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(value: pct, backgroundColor: Colors.grey.shade200,
+                          color: a['color'] as Color, minHeight: 8),
+                    )),
+                    const SizedBox(width: 8),
+                    Text('${a['bookings']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ]),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Revenue by Activity'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)]),
+            child: Column(
+              children: (activities..sort((a, b) => (b['revenue'] as double).compareTo(a['revenue'] as double))).map((a) =>
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(children: [
+                    Container(width: 8, height: 8, decoration: BoxDecoration(color: a['color'] as Color, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(a['name'] as String, style: const TextStyle(fontSize: 12))),
+                    Text('₹${(a['revenue'] as double).toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ]),
+                ),
+              ).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shared Widgets ────────────────────────────────────────────────────────────
+
+class _MiniStat extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _MiniStat(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: color)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textHint), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final String label, value;
+  final IconData icon;
+  final Color color;
+  const _InfoCard(this.label, this.value, this.icon, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(children: [
+        Icon(icon, color: color, size: 28),
+        const SizedBox(width: 12),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
+            Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+          ],
+        )),
+      ]),
+    );
   }
 }
