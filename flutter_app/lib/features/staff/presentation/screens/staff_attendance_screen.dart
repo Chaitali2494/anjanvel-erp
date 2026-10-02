@@ -76,24 +76,24 @@ final attendanceSummaryProvider = FutureProvider.family<Map<String, dynamic>, St
 
 // ── Status Config ─────────────────────────────────────────────────────────────
 
-const _statusConfig = {
-  AttendanceStatus.present:  {'label': 'Present',  'color': Color(0xFF2E7D32), 'icon': Icons.check_circle_rounded},
-  AttendanceStatus.absent:   {'label': 'Absent',   'color': Color(0xFFE53935), 'icon': Icons.cancel_rounded},
-  AttendanceStatus.halfDay:  {'label': 'Half Day', 'color': Color(0xFFFFB300), 'icon': Icons.timelapse_rounded},
-  AttendanceStatus.late:     {'label': 'Late',     'color': Color(0xFF0277BD), 'icon': Icons.watch_later_outlined},
-  AttendanceStatus.leave:    {'label': 'Leave',    'color': Color(0xFF6A1B9A), 'icon': Icons.beach_access_outlined},
+final _statusConfig = <String, Map<String, dynamic>>{
+  AttendanceStatus.present:  {'label': 'Present',  'color': const Color(0xFF2E7D32), 'icon': Icons.check_circle_rounded},
+  AttendanceStatus.absent:   {'label': 'Absent',   'color': const Color(0xFFE53935), 'icon': Icons.cancel_rounded},
+  AttendanceStatus.halfDay:  {'label': 'Half Day', 'color': const Color(0xFFFFB300), 'icon': Icons.timelapse_rounded},
+  AttendanceStatus.late:     {'label': 'Late',     'color': const Color(0xFF0277BD), 'icon': Icons.watch_later_outlined},
+  AttendanceStatus.leave:    {'label': 'Leave',    'color': const Color(0xFF6A1B9A), 'icon': Icons.beach_access_outlined},
 };
 
-const _roleColors = {
-  'MANAGER':              Color(0xFF1565C0),
-  'HOUSEKEEPING':         Color(0xFF2E7D32),
-  'KITCHEN':              Color(0xFFE64A19),
-  'ACTIVITY_COORDINATOR': Color(0xFF00838F),
-  'SHOP_OPERATOR':        Color(0xFF6A1B9A),
-  'ACCOUNTANT':           Color(0xFF00796B),
-  'GUIDE':                Color(0xFF558B2F),
-  'CA':                   Color(0xFF4527A0),
-  'CONSULTANT':           Color(0xFF37474F),
+final _roleColors = <String, Color>{
+  'MANAGER':              const Color(0xFF1565C0),
+  'HOUSEKEEPING':         const Color(0xFF2E7D32),
+  'KITCHEN':              const Color(0xFFE64A19),
+  'ACTIVITY_COORDINATOR': const Color(0xFF00838F),
+  'SHOP_OPERATOR':        const Color(0xFF6A1B9A),
+  'ACCOUNTANT':           const Color(0xFF00796B),
+  'GUIDE':                const Color(0xFF558B2F),
+  'CA':                   const Color(0xFF4527A0),
+  'CONSULTANT':           const Color(0xFF37474F),
 };
 
 // ── Screen ────────────────────────────────────────────────────────────────────
