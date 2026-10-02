@@ -312,11 +312,14 @@ class _RevenueChart extends StatelessWidget {
 class _QuickActionsGrid extends StatelessWidget {
   final _actions = const [
     _Action('New Booking', Icons.add_circle_outline_rounded, '/bookings/create', AppTheme.primary),
-    _Action('Check-in', Icons.login_rounded, '/rooms', AppTheme.info),
+    _Action('Check-in', Icons.login_rounded, '/checkin', AppTheme.info),
     _Action('Room Status', Icons.bed_outlined, '/rooms', AppTheme.secondary),
     _Action('Food Orders', Icons.restaurant_menu_outlined, '/food', AppTheme.warning),
     _Action('Activities', Icons.hiking_outlined, '/activities', AppTheme.success),
+    _Action('Staff', Icons.people_rounded, '/staff', Color(0xFF1565C0)),
     _Action('Reports', Icons.bar_chart_rounded, '/reports', AppTheme.accent),
+    _Action('Inventory', Icons.inventory_2_outlined, '/inventory', Color(0xFF00796B)),
+    _Action('Leads', Icons.person_add_outlined, '/leads', Color(0xFF6A1B9A)),
   ];
 
   const _QuickActionsGrid();
@@ -544,7 +547,7 @@ class _OwnerBottomNav extends StatelessWidget {
               _NavItem(Icons.calendar_month_outlined, Icons.calendar_month_rounded, 'Bookings', '/bookings'),
               _NavItem(Icons.login_rounded, Icons.login_rounded, 'Check-in', '/checkin'),
               _NavItem(Icons.bed_outlined, Icons.bed_rounded, 'Rooms', '/rooms'),
-              _NavItem(Icons.settings_outlined, Icons.settings_rounded, 'Settings', '/settings'),
+              _NavItem(Icons.people_outlined, Icons.people_rounded, 'Staff', '/staff'),
             ],
           ),
         ),
