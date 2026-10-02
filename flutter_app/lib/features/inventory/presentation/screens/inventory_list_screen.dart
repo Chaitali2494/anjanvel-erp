@@ -9,7 +9,8 @@ import '../../../../shared/widgets/app_widgets.dart';
 final inventoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   try {
-    return await client.from('inventory_items').select().order('category').order('name');
+    final result = await client.from('inventory_items').select('id, name, category, unit, quantity, min_quantity, unit_price, supplier').order('category').order('name');
+    return result.isEmpty ? _demoInventory : result;
   } catch (_) {
     return _demoInventory;
   }
