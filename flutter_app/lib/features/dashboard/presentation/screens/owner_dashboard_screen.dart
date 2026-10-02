@@ -317,6 +317,7 @@ class _QuickActionsGrid extends StatelessWidget {
     _Action('Food Orders', Icons.restaurant_menu_outlined, '/food', AppTheme.warning),
     _Action('Activities', Icons.hiking_outlined, '/activities', AppTheme.success),
     _Action('Staff', Icons.people_rounded, '/staff', Color(0xFF1565C0)),
+    _Action('Attendance', Icons.fact_check_outlined, '/staff/attendance', Color(0xFF37474F)),
     _Action('Reports', Icons.bar_chart_rounded, '/reports', AppTheme.accent),
     _Action('Inventory', Icons.inventory_2_outlined, '/inventory', Color(0xFF00796B)),
     _Action('Leads', Icons.person_add_outlined, '/leads', Color(0xFF6A1B9A)),

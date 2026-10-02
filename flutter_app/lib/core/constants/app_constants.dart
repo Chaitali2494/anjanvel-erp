@@ -80,6 +80,7 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String profile = '/profile';
   static const String staff = '/staff';
+  static const String attendance = '/staff/attendance';
 }
 
 class UserRoles {

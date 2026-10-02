@@ -103,6 +103,11 @@ class _StaffManagementScreenState extends ConsumerState<StaffManagementScreen> {
         title: 'Staff Management',
         actions: [
           IconButton(
+            icon: const Icon(Icons.fact_check_outlined),
+            tooltip: 'Attendance',
+            onPressed: () => context.push('/staff/attendance'),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(staffListProvider),
           ),

@@ -37,6 +37,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/staff/presentation/screens/staff_management_screen.dart';
+import '../../features/staff/presentation/screens/staff_attendance_screen.dart';
 import '../../features/leads/presentation/screens/lead_list_screen.dart';
 import '../../features/leads/presentation/screens/lead_detail_screen.dart';
 import '../../features/maintenance/presentation/screens/maintenance_screen.dart';
@@ -217,7 +218,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
 
       // Staff Management
-      GoRoute(path: '/staff', builder: (_, __) => const StaffManagementScreen()),
+      GoRoute(
+        path: '/staff',
+        builder: (_, __) => const StaffManagementScreen(),
+        routes: [
+          GoRoute(path: 'attendance', builder: (_, __) => const StaffAttendanceScreen()),
+        ],
+      ),
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(
