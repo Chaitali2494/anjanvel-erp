@@ -13,8 +13,7 @@ final housekeepingTasksProvider = FutureProvider<List<Map<String, dynamic>>>((re
   try {
     return await client
         .from('housekeeping_tasks')
-        .select('*, rooms(room_number, room_type)')
-        .order('priority', ascending: false)
+        .select('*')
         .order('created_at', ascending: false);
   } catch (_) {
     return _demoTasks;
