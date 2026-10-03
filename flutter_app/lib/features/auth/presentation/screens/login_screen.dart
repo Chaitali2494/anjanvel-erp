@@ -205,12 +205,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 48),
 
-              // Footer
+              // Demo / Role Selection
               Center(
-                child: Text(
-                  '© ${DateTime.now().year} Anjanvel Agro Tourism Resort\nPowered by Anjanvel ERP',
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center,
+                child: Column(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => context.push('/role-selection'),
+                      icon: const Icon(Icons.how_to_reg_rounded, size: 18),
+                      label: const Text('Browse by Role (Demo)'),
+                      style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '© ${DateTime.now().year} Anjanvel Agro Tourism Resort\nPowered by Anjanvel ERP',
+                      style: Theme.of(context).textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ],
