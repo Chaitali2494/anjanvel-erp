@@ -40,11 +40,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           final route = _getHomeRoute(user.role);
           context.go(route);
         } else {
-          context.go(AppRoutes.login);
+          context.go('/role-selection');
         }
       },
-      loading: () => context.go(AppRoutes.login),
-      error: (_, __) => context.go(AppRoutes.login),
+      loading: () => context.go('/role-selection'),
+      error: (_, __) => context.go('/role-selection'),
     );
   }
 

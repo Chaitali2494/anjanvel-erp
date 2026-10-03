@@ -71,13 +71,33 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final isLoggedIn = authState.value != null;
-      final isAuthRoute = state.matchedLocation.startsWith('/auth') ||
-          state.matchedLocation == '/splash';
+      final loc = state.matchedLocation;
 
-      if (!isLoggedIn && !isAuthRoute) return '/auth/login';
-      if (isLoggedIn && isAuthRoute && state.matchedLocation != '/splash') {
+      // Allow splash to handle its own redirect
+      if (loc == '/splash') return null;
+
+      // Auth screens always accessible
+      if (loc.startsWith('/auth')) return null;
+
+      // These screens are accessible without login (demo / role-based access)
+      const openRoutes = [
+        '/role-selection', '/help',
+        '/dashboard/owner', '/dashboard/manager',
+        '/dashboard/kitchen', '/dashboard/housekeeping',
+        '/bookings', '/guests', '/rooms', '/checkin', '/checkout',
+        '/housekeeping', '/food', '/activities', '/heritage',
+        '/inventory', '/shop', '/maintenance', '/billing', '/payment',
+        '/feedback', '/reports', '/settings', '/notifications',
+        '/profile', '/staff', '/leads',
+      ];
+      final isOpen = openRoutes.any((r) => loc == r || loc.startsWith('$r/'));
+      if (isOpen) return null;
+
+      // If logged in and hit an auth screen, go home
+      if (isLoggedIn && loc.startsWith('/auth')) {
         return _getHomeRoute(authState.value?.role);
       }
+
       return null;
     },
     routes: [

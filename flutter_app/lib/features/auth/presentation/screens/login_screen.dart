@@ -189,6 +189,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ],
+                    if (_isPhoneMode) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => context.push('/auth/forgot-password'),
+                          child: const Text('Forgot Password?'),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _submit,
