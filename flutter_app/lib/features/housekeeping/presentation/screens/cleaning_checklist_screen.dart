@@ -215,8 +215,6 @@ class _CleaningChecklistScreenState extends ConsumerState<CleaningChecklistScree
         final client = ref.read(supabaseClientProvider);
         await client.from('housekeeping_tasks').update({
           'status': 'COMPLETED',
-          'checklist_completed': true,
-          'completed_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         }).eq('id', taskId);
       }
