@@ -13,21 +13,22 @@ final _demoTasks = <Map<String, dynamic>>[
   {'id': 'd6', 'room_number': '301', 'task_type': 'TURNDOWN',       'status': 'PENDING',    'priority': 'NORMAL', 'assigned_to': 'Priya T.',   'notes': ''},
 ];
 
-// ── StateNotifier — works in both Supabase mode and demo/offline mode ──────────
+// ── Module-level shared state ──────────────────────────────────────────────────
+// Lives outside the provider so it survives provider recreation during navigation.
+// Resets only when the browser tab is closed / page fully reloaded.
+
+List<Map<String, dynamic>> _sessionTasks = List<Map<String, dynamic>>.from(
+  _demoTasks.map((e) => Map<String, dynamic>.from(e)),
+);
+bool _sessionUseLocal = false;
+
+// ── StateNotifier ──────────────────────────────────────────────────────────────
 
 class HousekeepingTasksNotifier
     extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
   final SupabaseClient _client;
 
-  /// In-memory list used when Supabase table doesn't exist (demo mode).
-  late List<Map<String, dynamic>> _localTasks;
-  bool _useLocal = false;
-
-  HousekeepingTasksNotifier(this._client)
-      : super(const AsyncValue.loading()) {
-    _localTasks = List<Map<String, dynamic>>.from(
-      _demoTasks.map((e) => Map<String, dynamic>.from(e)),
-    );
+  HousekeepingTasksNotifier(this._client) : super(const AsyncValue.loading()) {
     _load();
   }
 
@@ -39,15 +40,16 @@ class HousekeepingTasksNotifier
           .from('housekeeping_tasks')
           .select('*')
           .order('created_at', ascending: false);
-      _useLocal = false;
-      state = AsyncValue.data(
-        (data as List).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
-      );
+      _sessionUseLocal = false;
+      final list = (data as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      _sessionTasks = list;
+      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
     } catch (_) {
-      _useLocal = true;
-      state = AsyncValue.data(
-        List<Map<String, dynamic>>.from(_localTasks),
-      );
+      // No table yet → use the shared session list (persists across navigations)
+      _sessionUseLocal = true;
+      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
     }
   }
 
@@ -56,16 +58,15 @@ class HousekeepingTasksNotifier
   // ── Add task (called from Assign Task form) ────────────────────────────────
 
   Future<void> addTask(Map<String, dynamic> task) async {
-    if (_useLocal) {
-      // Demo / offline — prepend to in-memory list so it shows instantly.
+    if (_sessionUseLocal) {
       final newTask = <String, dynamic>{
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
         ...task,
       };
-      _localTasks = <Map<String, dynamic>>[newTask, ..._localTasks];
-      state = AsyncValue.data(List<Map<String, dynamic>>.from(_localTasks));
+      _sessionTasks = <Map<String, dynamic>>[newTask, ..._sessionTasks];
+      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
     } else {
       try {
         await _client.from('housekeeping_tasks').insert(<String, dynamic>{
@@ -75,25 +76,25 @@ class HousekeepingTasksNotifier
         });
         await _load();
       } catch (_) {
-        // If live insert fails, fall back to local
-        _useLocal = true;
+        // Live insert failed — fall back to local
+        _sessionUseLocal = true;
         final newTask = <String, dynamic>{
           'id': DateTime.now().millisecondsSinceEpoch.toString(),
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
           ...task,
         };
-        _localTasks = <Map<String, dynamic>>[newTask, ..._localTasks];
-        state = AsyncValue.data(List<Map<String, dynamic>>.from(_localTasks));
+        _sessionTasks = <Map<String, dynamic>>[newTask, ..._sessionTasks];
+        state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
       }
     }
   }
 
-  // ── Update task status (called from HK task list) ──────────────────────────
+  // ── Update status (called from HK task list) ───────────────────────────────
 
   Future<void> updateStatus(String id, String status) async {
-    if (_useLocal) {
-      _localTasks = _localTasks.map((t) {
+    if (_sessionUseLocal) {
+      _sessionTasks = _sessionTasks.map((t) {
         if (t['id'] == id) {
           return <String, dynamic>{
             ...t,
@@ -103,7 +104,7 @@ class HousekeepingTasksNotifier
         }
         return t;
       }).toList();
-      state = AsyncValue.data(List<Map<String, dynamic>>.from(_localTasks));
+      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
     } else {
       try {
         await _client

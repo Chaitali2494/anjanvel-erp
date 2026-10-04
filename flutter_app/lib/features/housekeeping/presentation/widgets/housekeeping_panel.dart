@@ -94,9 +94,9 @@ class HousekeepingPanel extends ConsumerWidget {
                   else
                     ...pending3.map((task) => HKTaskRow(task: task, ref: ref)),
 
-                  // Footer link
+                  // Footer link → HK Dashboard
                   InkWell(
-                    onTap: () => context.push('/housekeeping'),
+                    onTap: () => context.go('/dashboard/housekeeping'),
                     borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 10),
