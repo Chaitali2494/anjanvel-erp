@@ -6,7 +6,7 @@ import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../dashboard/data/dashboard_provider.dart';
-import 'owner_dashboard_screen.dart' show _HousekeepingPanel;
+import '../../../housekeeping/presentation/widgets/housekeeping_panel.dart';
 
 class ManagerDashboardScreen extends ConsumerWidget {
   const ManagerDashboardScreen({super.key});
@@ -144,7 +144,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
 
                       // Housekeeping Status
                       const SizedBox(height: 20),
-                      _HousekeepingPanel(),
+                      HousekeepingPanel(),
                       const SizedBox(height: 20),
 
                       // Alerts
