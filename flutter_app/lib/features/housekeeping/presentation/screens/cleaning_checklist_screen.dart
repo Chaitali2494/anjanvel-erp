@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../../housekeeping/data/housekeeping_provider.dart';
 
 class CleaningChecklistScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? task;
@@ -212,11 +212,8 @@ class _CleaningChecklistScreenState extends ConsumerState<CleaningChecklistScree
     try {
       final taskId = widget.task?['id'] as String?;
       if (taskId != null) {
-        final client = ref.read(supabaseClientProvider);
-        await client.from('housekeeping_tasks').update({
-          'status': 'COMPLETED',
-          'updated_at': DateTime.now().toIso8601String(),
-        }).eq('id', taskId);
+        // Uses notifier — handles both local (timestamp) IDs and real Supabase UUIDs
+        await ref.read(housekeepingTasksProvider.notifier).updateStatus(taskId, 'COMPLETED');
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

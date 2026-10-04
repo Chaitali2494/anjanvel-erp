@@ -90,22 +90,24 @@ class HousekeepingTasksNotifier
     }
   }
 
-  // ── Update status (called from HK task list) ───────────────────────────────
+  // ── Update status (called from HK task list & cleaning checklist) ────────────
 
   Future<void> updateStatus(String id, String status) async {
-    if (_sessionUseLocal) {
-      _sessionTasks = _sessionTasks.map((t) {
-        if (t['id'] == id) {
-          return <String, dynamic>{
-            ...t,
-            'status': status,
-            'updated_at': DateTime.now().toIso8601String(),
-          };
-        }
-        return t;
-      }).toList();
-      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
-    } else {
+    // Always update local state immediately (works for both demo and Supabase tasks)
+    _sessionTasks = _sessionTasks.map((t) {
+      if (t['id'] == id) {
+        return <String, dynamic>{
+          ...t,
+          'status': status,
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+      }
+      return t;
+    }).toList();
+    state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
+
+    // Also persist to Supabase — but only if ID is a real UUID (not a local timestamp)
+    if (!_sessionUseLocal && _isUuid(id)) {
       try {
         await _client
             .from('housekeeping_tasks')
@@ -114,10 +116,14 @@ class HousekeepingTasksNotifier
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', id);
-        await _load();
       } catch (_) {}
     }
   }
+
+  static bool _isUuid(String id) => RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    caseSensitive: false,
+  ).hasMatch(id);
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
