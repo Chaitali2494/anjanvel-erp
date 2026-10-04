@@ -5,29 +5,9 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../data/housekeeping_provider.dart';
 
-// ── Providers ─────────────────────────────────────────────────────────────────
-
-final housekeepingTasksProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
-  try {
-    return await client
-        .from('housekeeping_tasks')
-        .select('*')
-        .order('created_at', ascending: false);
-  } catch (_) {
-    return _demoTasks;
-  }
-});
-
-const _demoTasks = [
-  {'id': '1', 'room_number': '101', 'task_type': 'CHECKOUT_CLEAN', 'status': 'PENDING',   'priority': 'HIGH',   'assigned_to': 'Savita K.',  'notes': 'Guest checked out at 11 AM', 'rooms': {'room_number': '101', 'room_type': 'Deluxe'}},
-  {'id': '2', 'room_number': '102', 'task_type': 'REGULAR_CLEAN',  'status': 'IN_PROGRESS','priority': 'NORMAL', 'assigned_to': 'Meena S.',   'notes': '', 'rooms': {'room_number': '102', 'room_type': 'Standard'}},
-  {'id': '3', 'room_number': '205', 'task_type': 'DEEP_CLEAN',     'status': 'PENDING',   'priority': 'HIGH',   'assigned_to': 'Savita K.',  'notes': 'Guest requested deep clean', 'rooms': {'room_number': '205', 'room_type': 'Suite'}},
-  {'id': '4', 'room_number': '103', 'task_type': 'LINEN_CHANGE',   'status': 'COMPLETED', 'priority': 'NORMAL', 'assigned_to': 'Meena S.',   'notes': '', 'rooms': {'room_number': '103', 'room_type': 'Standard'}},
-  {'id': '5', 'room_number': '201', 'task_type': 'REGULAR_CLEAN',  'status': 'PENDING',   'priority': 'LOW',    'assigned_to': 'Priya T.',   'notes': 'Do after 3 PM', 'rooms': {'room_number': '201', 'room_type': 'Deluxe'}},
-  {'id': '6', 'room_number': '301', 'task_type': 'TURNDOWN',       'status': 'PENDING',   'priority': 'NORMAL', 'assigned_to': 'Priya T.',   'notes': '', 'rooms': {'room_number': '301', 'room_type': 'Villa'}},
-];
+// housekeepingTasksProvider is now in housekeeping_provider.dart (shared)
 
 // ── Config ────────────────────────────────────────────────────────────────────
 

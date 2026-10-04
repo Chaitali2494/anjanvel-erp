@@ -6,6 +6,7 @@ import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../dashboard/data/dashboard_provider.dart';
+import 'owner_dashboard_screen.dart' show _HousekeepingPanel;
 
 class ManagerDashboardScreen extends ConsumerWidget {
   const ManagerDashboardScreen({super.key});
@@ -139,6 +140,11 @@ class ManagerDashboardScreen extends ConsumerWidget {
                       const SectionHeader(title: 'Staff Overview', action: 'View All'),
                       const SizedBox(height: 12),
                       _StaffOverviewCard(),
+                      const SizedBox(height: 20),
+
+                      // Housekeeping Status
+                      const SizedBox(height: 20),
+                      _HousekeepingPanel(),
                       const SizedBox(height: 20),
 
                       // Alerts
