@@ -197,6 +197,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const ActivityListScreen(),
         routes: [
           GoRoute(path: 'dashboard', builder: (_, __) => const ActivitiesDashboardScreen()),
+          // Standalone booking (e.g. from billing screen "Add" button — no pre-selected activity)
+          GoRoute(path: 'register', builder: (_, __) => const ActivityRegistrationScreen(activityId: '')),
           GoRoute(
             path: ':id',
             builder: (_, state) => ActivityDetailScreen(activityId: state.pathParameters['id']!),
@@ -251,7 +253,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Billing & Payment
       GoRoute(
         path: '/billing',
-        builder: (_, state) => BillingScreen(bookingId: state.extra is Map ? (state.extra as Map)['booking_id'] as String? : null),
+        builder: (_, state) {
+          final extra = state.extra is Map ? state.extra as Map : null;
+          return BillingScreen(
+            bookingId:  extra?['booking_id']  as String?,
+            roomNumber: extra?['room_number'] as String?,
+          );
+        },
       ),
       GoRoute(
         path: '/payment',
