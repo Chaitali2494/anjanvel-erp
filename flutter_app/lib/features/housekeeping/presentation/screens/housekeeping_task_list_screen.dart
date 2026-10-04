@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../data/housekeeping_provider.dart';
 
@@ -55,7 +54,7 @@ class _HousekeepingTaskListScreenState extends ConsumerState<HousekeepingTaskLis
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref.invalidate(housekeepingTasksProvider),
+            onPressed: () => ref.read(housekeepingTasksProvider.notifier).refresh(),
           ),
         ],
       ),
@@ -143,11 +142,7 @@ class _HousekeepingTaskListScreenState extends ConsumerState<HousekeepingTaskLis
   }
 
   Future<void> _updateStatus(String id, String status) async {
-    try {
-      final client = ref.read(supabaseClientProvider);
-      await client.from('housekeeping_tasks').update({'status': status, 'updated_at': DateTime.now().toIso8601String()}).eq('id', id);
-      ref.invalidate(housekeepingTasksProvider);
-    } catch (_) {}
+    await ref.read(housekeepingTasksProvider.notifier).updateStatus(id, status);
   }
 
   void _showAddTask(BuildContext context) {

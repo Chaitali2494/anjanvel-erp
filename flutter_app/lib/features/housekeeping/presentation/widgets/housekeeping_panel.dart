@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/providers/supabase_provider.dart';
 import '../../data/housekeeping_provider.dart';
 
 // ── Housekeeping Panel (shared by Owner & Manager dashboards) ──────────────────
@@ -232,21 +231,15 @@ class HousekeepingPanel extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: () async {
                       if (roomCtrl.text.trim().isEmpty) return;
-                      try {
-                        final client = ref.read(supabaseClientProvider);
-                        await client.from('housekeeping_tasks').insert({
-                          'room_number': roomCtrl.text.trim(),
-                          'task_type':   taskType,
-                          'priority':    priority,
-                          'status':      'PENDING',
-                          'assigned_to': assignCtrl.text.trim().isEmpty ? null : assignCtrl.text.trim(),
-                          'notes':       notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
-                          'created_at':  DateTime.now().toIso8601String(),
-                          'updated_at':  DateTime.now().toIso8601String(),
-                        });
-                        ref.invalidate(housekeepingTasksProvider);
-                      } catch (_) {}
                       if (ctx.mounted) Navigator.pop(ctx);
+                      await ref.read(housekeepingTasksProvider.notifier).addTask({
+                        'room_number': roomCtrl.text.trim(),
+                        'task_type':   taskType,
+                        'priority':    priority,
+                        'status':      'PENDING',
+                        'assigned_to': assignCtrl.text.trim().isEmpty ? null : assignCtrl.text.trim(),
+                        'notes':       notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                      });
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Task assigned to housekeeping!'), backgroundColor: Color(0xFF6A1B9A)),
