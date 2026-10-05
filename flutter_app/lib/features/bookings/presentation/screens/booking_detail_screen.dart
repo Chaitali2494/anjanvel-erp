@@ -83,8 +83,12 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status banner
-                _StatusBanner(booking: b, onStatusChange: (s) => _updateStatus(b.id, s)),
+                // Status banner — reflects local payment state
+                _StatusBanner(
+                  booking: b,
+                  extraPaid: _sessionPaidExtra(widget.bookingId),
+                  onStatusChange: (s) => _updateStatus(b.id, s),
+                ),
                 const SizedBox(height: 16),
 
                 // Booking info
@@ -152,16 +156,14 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Room Assignment — always show unless cancelled/checked-out
-                if (b.status != 'CANCELLED' && b.status != 'CHECKED_OUT') ...[
-                  _RoomAssignmentCard(
-                    bookingId: b.id,
-                    checkIn: b.checkInDate,
-                    checkOut: b.checkOutDate,
-                    onAssigned: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                // Room Assignment — always visible
+                _RoomAssignmentCard(
+                  bookingId: b.id,
+                  checkIn: b.checkInDate,
+                  checkOut: b.checkOutDate,
+                  onAssigned: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
+                ),
+                const SizedBox(height: 12),
 
                 // Confirm / Cancel actions
                 if (b.status == 'INQUIRY') ...[
@@ -402,48 +404,64 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
 class _StatusBanner extends StatelessWidget {
   final BookingModel booking;
+  final double extraPaid;
   final Function(String) onStatusChange;
-  const _StatusBanner({required this.booking, required this.onStatusChange});
+  const _StatusBanner({required this.booking, this.extraPaid = 0, required this.onStatusChange});
 
   Color get _color {
     switch (booking.status) {
-      case 'CONFIRMED': return AppTheme.success;
-      case 'CHECKED_IN': return AppTheme.info;
+      case 'CONFIRMED':   return AppTheme.success;
+      case 'CHECKED_IN':  return AppTheme.info;
       case 'CHECKED_OUT': return AppTheme.textHint;
-      case 'CANCELLED': return AppTheme.error;
-      default: return AppTheme.warning;
+      case 'CANCELLED':   return AppTheme.error;
+      default:            return AppTheme.warning;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final effectivePaid   = booking.paidAmount + extraPaid;
+    final balance         = (booking.totalAmount - effectivePaid).clamp(0.0, double.infinity);
+    final effectivePayStatus = balance <= 0 ? 'PAID' : (effectivePaid > 0 ? 'PARTIAL' : booking.paymentStatus);
+    final payColor = effectivePayStatus == 'PAID'
+        ? AppTheme.success
+        : (effectivePayStatus == 'PARTIAL' ? AppTheme.warning : AppTheme.error);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.1),
+        color: _color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(AppTheme.radiusMD),
         border: Border.all(color: _color.withOpacity(0.3)),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 10, height: 10,
-            decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(booking.status.replaceAll('_', ' '),
-                    style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 15)),
-                Text('Payment: ${booking.paymentStatus.replaceAll('_', ' ')}',
-                    style: TextStyle(color: _color.withOpacity(0.8), fontSize: 12)),
-              ],
+      child: Row(children: [
+        Container(width: 10, height: 10,
+            decoration: BoxDecoration(color: _color, shape: BoxShape.circle)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(booking.status.replaceAll('_', ' '),
+              style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 15)),
+          Row(children: [
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: payColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Payment: $effectivePayStatus',
+                style: TextStyle(color: payColor, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-        ],
-      ),
+            if (balance > 0) ...[
+              const SizedBox(width: 8),
+              Text('Balance ₹${balance.toStringAsFixed(0)}',
+                  style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+            ],
+          ]),
+        ])),
+      ]),
     );
   }
 }
