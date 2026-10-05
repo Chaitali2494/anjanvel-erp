@@ -152,8 +152,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Room Assignment (show when confirmed)
-                if (b.status == 'CONFIRMED' || b.status == 'INQUIRY') ...[
+                // Room Assignment — always show unless cancelled/checked-out
+                if (b.status != 'CANCELLED' && b.status != 'CHECKED_OUT') ...[
                   _RoomAssignmentCard(
                     bookingId: b.id,
                     checkIn: b.checkInDate,
