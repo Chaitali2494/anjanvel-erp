@@ -40,7 +40,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   Future<void> _loadOrder() async {
     try {
       final client = ref.read(supabaseClientProvider);
-      final data = await client.from('food_orders').select('*, menu_items(name, price)').eq('id', widget.orderId).single();
+      final data = await client.from('food_orders').select('*, menu_items(name, price)').eq('id', widget.orderId).maybeSingle();
       if (mounted) setState(() { _order = data; _isLoading = false; });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);

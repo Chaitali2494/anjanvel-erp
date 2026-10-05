@@ -43,7 +43,7 @@ final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
 
   try {
     // Fetch from v_todays_dashboard view
-    final dashData = await client.from('v_todays_dashboard').select().single();
+    final dashData = await client.from('v_todays_dashboard').select().maybeSingle() ?? {};
     final todayCheckins = await client
         .from('v_booking_summary')
         .select()

@@ -45,7 +45,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
   Future<void> _loadTicket() async {
     try {
       final client = ref.read(supabaseClientProvider);
-      final data = await client.from('maintenance_tickets').select().eq('id', widget.ticketId).single();
+      final data = await client.from('maintenance_tickets').select().eq('id', widget.ticketId).maybeSingle();
       if (mounted) setState(() { _ticket = data; _isLoading = false; });
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
