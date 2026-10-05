@@ -9,6 +9,12 @@ import '../../../../core/providers/supabase_provider.dart';
 import '../../data/booking_service.dart';
 import '../../models/booking_model.dart';
 
+// Module-level session payments — persists across rebuilds, keyed by booking id
+final _sessionPayments = <String, List<Map<String, dynamic>>>{};
+double _sessionPaidExtra(String bookingId) =>
+    (_sessionPayments[bookingId] ?? [])
+        .fold(0.0, (s, p) => s + ((p['amount'] as num?)?.toDouble() ?? 0.0));
+
 class BookingDetailScreen extends ConsumerStatefulWidget {
   final String bookingId;
   const BookingDetailScreen({super.key, required this.bookingId});
@@ -80,13 +86,19 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Payment summary
-                _PaymentSummaryCard(booking: b),
+                // Payment summary (add local session payments to paid)
+                _PaymentSummaryCard(
+                  booking: b,
+                  extraPaid: _sessionPaidExtra(widget.bookingId),
+                ),
                 const SizedBox(height: 12),
 
-                // Record Payment button (show if balance > 0)
-                if ((b.balanceAmount ?? b.totalAmount - b.paidAmount) > 0)
-                  SizedBox(
+                // Record Payment button
+                Builder(builder: (ctx) {
+                  final effectivePaid = b.paidAmount + _sessionPaidExtra(widget.bookingId);
+                  final balance = b.totalAmount - effectivePaid;
+                  if (balance <= 0) return const SizedBox.shrink();
+                  return SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () => _showPaymentDialog(b),
@@ -97,12 +109,16 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                         minimumSize: const Size(double.infinity, 48),
                       ),
                     ),
-                  ),
+                  );
+                }),
                 const SizedBox(height: 12),
 
-                // Payment history
+                // Payment history — merge Supabase + local session
                 _PaymentHistoryCard(
-                  payments: b.payments ?? [],
+                  payments: [
+                    ...(b.payments ?? []),
+                    ...(_sessionPayments[widget.bookingId] ?? []),
+                  ],
                   onRefresh: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
                 ),
                 const SizedBox(height: 12),
@@ -303,6 +319,15 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       final newBalance = totalAmount - newPaid;
       final newPaymentStatus = newBalance <= 0 ? 'PAID' : 'PARTIAL';
 
+      // Always save to local session list so payment history shows immediately
+      _sessionPayments.putIfAbsent(bookingId, () => []);
+      _sessionPayments[bookingId]!.insert(0, {
+        'amount': amount,
+        'method': method,
+        'status': 'COMPLETED',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
       // Try Supabase — silently ignore RLS/auth errors (demo mode)
       try {
         await client.from('payments').insert({
@@ -316,11 +341,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
           'balance_amount': newBalance < 0 ? 0 : newBalance,
           'payment_status': newPaymentStatus,
         }).eq('id', bookingId);
+        ref.invalidate(bookingDetailProvider(bookingId));
       } catch (_) {
-        // RLS or no auth — record locally only
+        // RLS or no auth — local only, trigger rebuild via setState
       }
-
-      ref.invalidate(bookingDetailProvider(bookingId));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -454,12 +478,14 @@ class _InfoRow extends StatelessWidget {
 
 class _PaymentSummaryCard extends StatelessWidget {
   final BookingModel booking;
-  const _PaymentSummaryCard({required this.booking});
+  final double extraPaid;
+  const _PaymentSummaryCard({required this.booking, this.extraPaid = 0});
 
   @override
   Widget build(BuildContext context) {
-    final balance = booking.balanceAmount ?? (booking.totalAmount - booking.paidAmount);
-    final paidPct = booking.totalAmount > 0 ? (booking.paidAmount / booking.totalAmount).clamp(0.0, 1.0) : 0.0;
+    final effectivePaid = booking.paidAmount + extraPaid;
+    final balance = (booking.totalAmount - effectivePaid).clamp(0.0, double.infinity);
+    final paidPct = booking.totalAmount > 0 ? (effectivePaid / booking.totalAmount).clamp(0.0, 1.0) : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -480,7 +506,7 @@ class _PaymentSummaryCard extends StatelessWidget {
           ),
           const Divider(height: 16),
           _InfoRow('Total Amount', '₹${booking.totalAmount.toStringAsFixed(0)}'),
-          _InfoRow('Paid', '₹${booking.paidAmount.toStringAsFixed(0)}'),
+          _InfoRow('Paid', '₹${effectivePaid.toStringAsFixed(0)}'),
           _InfoRow('Balance', '₹${balance.toStringAsFixed(0)}'),
           const SizedBox(height: 12),
           ClipRRect(
