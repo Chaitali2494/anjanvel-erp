@@ -51737,9 +51737,10 @@ p=m.a.d
 o=a.p1
 k=A.a([new A.abS(a,n),B.a_,new A.Rb("Booking Info",B.TZ,k,n),B.Y,new A.Rb("Guest",B.eI,q,n),B.Y,new A.a8I(a,r,n),B.Y,new A.em(new A.aKE(m,a),n),B.Y,new A.a8H(A.bBG(p,o==null?A.a([],t.Y):o),n),B.Y],s)
 r=a.f
-if(r==="CONFIRMED"||r==="INQUIRY")B.b.G(k,A.a([new A.QT(a.a,new A.aKF(m),n),B.Y],s))
+q=r!=="CANCELLED"
+if(q&&r!=="CHECKED_OUT")B.b.G(k,A.a([new A.QT(a.a,new A.aKF(m),n),B.Y],s))
 if(r==="INQUIRY")B.b.G(k,A.a([A.bD(A.nc(B.VI,B.ajt,new A.aKG(m,a),A.dz(n,n,n,n,n,n,n,n,n,n,n,B.cE,n,n,n,n,n,n,n)),n,1/0),B.X],s))
-if(r!=="CANCELLED"&&r!=="CHECKED_OUT")k.push(A.bD(A.Bw(B.Xg,B.ajm,new A.aKH(m,a),A.nB(n,n,n,n,n,n,n,n,n,n,n,B.cE,n,n,n,B.nb,n,n,n,n)),n,1/0))
+if(q&&r!=="CHECKED_OUT")k.push(A.bD(A.Bw(B.Xg,B.ajm,new A.aKH(m,a),A.nB(n,n,n,n,n,n,n,n,n,n,n,B.cE,n,n,n,B.nb,n,n,n,n)),n,1/0))
 k.push(B.qp)
 return new A.wz(l,A.e7(A.T(k,B.q,n,B.e,B.f),n,B.o,B.C,n,n,B.F),n)},
 $S:671}
