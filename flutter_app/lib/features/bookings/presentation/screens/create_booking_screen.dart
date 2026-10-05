@@ -108,13 +108,29 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Booking ${booking.bookingNumber} created successfully!'),
-            backgroundColor: AppTheme.success,
+        // Show success dialog (snackbar disappears too fast with navigation)
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Row(children: [
+              Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 28),
+              SizedBox(width: 10),
+              Text('Booking Created'),
+            ]),
+            content: Text(
+              'Booking ${booking.bookingNumber} has been created successfully!',
+              style: const TextStyle(fontSize: 15),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('View Booking'),
+              ),
+            ],
           ),
         );
-        context.go('/bookings/${booking.id}');
+        if (mounted) context.go('/bookings/${booking.id}');
       }
     } catch (e) {
       _showError(e.toString());
@@ -138,25 +154,39 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         isLoading: _isLoading,
         child: Stepper(
             currentStep: _currentStep,
-            onStepContinue: () {
-              if (_currentStep < 3) setState(() => _currentStep++);
-              else _createBooking();
-            },
-            onStepCancel: () {
-              if (_currentStep > 0) setState(() => _currentStep--);
-              else context.pop();
+            onStepTapped: (step) {
+              // Allow tapping completed steps to go back
+              if (step < _currentStep) setState(() => _currentStep = step);
             },
             controlsBuilder: (context, details) {
               return Row(
                 children: [
                   ElevatedButton(
-                    onPressed: details.onStepContinue,
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            if (_currentStep < 3) {
+                              setState(() => _currentStep++);
+                            } else {
+                              _createBooking();
+                            }
+                          },
                     style: ElevatedButton.styleFrom(minimumSize: const Size(120, 44)),
-                    child: Text(_currentStep < 3 ? 'Next' : 'Create Booking'),
+                    child: _isLoading && _currentStep == 3
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(_currentStep < 3 ? 'Next' : 'Create Booking'),
                   ),
                   const SizedBox(width: 12),
                   OutlinedButton(
-                    onPressed: details.onStepCancel,
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            if (_currentStep > 0) setState(() => _currentStep--);
+                            else context.pop();
+                          },
                     style: OutlinedButton.styleFrom(minimumSize: const Size(80, 44)),
                     child: Text(_currentStep > 0 ? 'Back' : 'Cancel'),
                   ),
