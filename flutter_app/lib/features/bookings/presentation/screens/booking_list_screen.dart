@@ -43,6 +43,14 @@ class _BookingListScreenState extends ConsumerState<BookingListScreen>
     });
   }
 
+  // Invalidate provider when screen becomes active so newly-created bookings appear
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final filter = ref.read(_filterProvider);
+    ref.invalidate(bookingsProvider(filter));
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -122,10 +130,17 @@ class _BookingListScreenState extends ConsumerState<BookingListScreen>
               onButtonTap: () => context.push(AppRoutes.createBooking),
             );
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: bookings.length,
-            itemBuilder: (_, i) => BookingCard(booking: bookings[i]),
+          return RefreshIndicator(
+            color: AppTheme.primary,
+            onRefresh: () async {
+              ref.invalidate(bookingsProvider(filter));
+              await ref.read(bookingsProvider(filter).future);
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: bookings.length,
+              itemBuilder: (_, i) => BookingCard(booking: bookings[i]),
+            ),
           );
         },
       ),

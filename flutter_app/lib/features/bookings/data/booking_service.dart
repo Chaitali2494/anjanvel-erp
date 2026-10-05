@@ -7,6 +7,10 @@ import '../models/booking_model.dart';
 // Populated when a booking is created locally (RLS blocks Supabase insert)
 final _sessionBookingGuests = <String, Map<String, dynamic>>{};
 
+// Session-scoped list of locally-created bookings (not in Supabase)
+// Merged into getBookings() so they appear in the booking list
+final _sessionLocalBookings = <BookingModel>[];
+
 class BookingService {
   final SupabaseClient _client;
   BookingService(this._client);
@@ -20,21 +24,36 @@ class BookingService {
     int page = 0,
     int limit = 20,
   }) async {
-    var query = _client
-        .from('v_booking_summary')
-        .select();
+    // Filter local session bookings to match the same filters
+    final localMatches = _sessionLocalBookings.where((b) {
+      if (status != null && b.status != status) return false;
+      if (search != null && search.isNotEmpty) {
+        final q = search.toLowerCase();
+        final nameMatch  = (b.guestName  ?? '').toLowerCase().contains(q);
+        final phoneMatch = (b.guestPhone ?? '').toLowerCase().contains(q);
+        final numMatch   = b.bookingNumber.toLowerCase().contains(q);
+        if (!nameMatch && !phoneMatch && !numMatch) return false;
+      }
+      return true;
+    }).toList();
 
-    if (status != null) query = query.eq('status', status);
-    if (from != null) query = query.gte('check_in_date', from.toIso8601String().split('T')[0]);
-    if (to != null) query = query.lte('check_in_date', to.toIso8601String().split('T')[0]);
-    if (search != null && search.isNotEmpty) {
-      query = query.or('guest_name.ilike.%$search%,booking_number.ilike.%$search%,guest_phone.ilike.%$search%');
-    }
+    List<BookingModel> supaResults = [];
+    try {
+      var query = _client.from('v_booking_summary').select();
+      if (status != null) query = query.eq('status', status);
+      if (from != null) query = query.gte('check_in_date', from.toIso8601String().split('T')[0]);
+      if (to != null) query = query.lte('check_in_date', to.toIso8601String().split('T')[0]);
+      if (search != null && search.isNotEmpty) {
+        query = query.or('guest_name.ilike.%$search%,booking_number.ilike.%$search%,guest_phone.ilike.%$search%');
+      }
+      final data = await query
+          .order('created_at', ascending: false)
+          .range(page * limit, (page + 1) * limit - 1);
+      supaResults = data.map((d) => BookingModel.fromJson(d)).toList();
+    } catch (_) {}
 
-    final data = await query
-        .order('created_at', ascending: false)
-        .range(page * limit, (page + 1) * limit - 1);
-    return data.map((d) => BookingModel.fromJson(d)).toList();
+    // Local bookings first (newest at top), then Supabase results
+    return [...localMatches.reversed, ...supaResults];
   }
 
   // ── Get single booking ────────────────────────────────────────────────────────
@@ -159,10 +178,10 @@ class BookingService {
         'phone': guestPhoneHint ?? '',
       };
     }
-    return BookingModel.fromJson({
+    final localBooking = BookingModel.fromJson({
       'id': localId,
       'booking_number': 'ANJ-${now.millisecondsSinceEpoch.toString().substring(7)}',
-      'status': 'CONFIRMED',
+      'status': 'INQUIRY',
       'payment_status': 'PENDING',
       'paid_amount': 0,
       'payments': [],
@@ -170,6 +189,9 @@ class BookingService {
       'guest_phone': guestPhoneHint,
       ...cleanData,
     });
+    // Store in session list so it shows in the booking list screen
+    _sessionLocalBookings.insert(0, localBooking);
+    return localBooking;
   }
 
   // ── Update booking ────────────────────────────────────────────────────────────
