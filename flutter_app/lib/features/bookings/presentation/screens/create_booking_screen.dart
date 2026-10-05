@@ -74,6 +74,9 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
 
       final booking = await ref.read(bookingServiceProvider).createBooking({
         'primary_guest_id': guestId,
+        // Extra fields used by local fallback to show guest name/phone in booking detail
+        '_guest_name': _nameController.text.trim(),
+        '_guest_phone': _phoneController.text.trim(),
         'package_id': null, // packages stored by name; no DB UUID yet
         'check_in_date': DateFormat('yyyy-MM-dd').format(_checkInDate!),
         'check_out_date': _checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : null,

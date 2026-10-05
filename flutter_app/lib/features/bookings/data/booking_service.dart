@@ -3,6 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/providers/supabase_provider.dart';
 import '../models/booking_model.dart';
 
+// Session-scoped guest data keyed by local booking ID
+// Populated when a booking is created locally (RLS blocks Supabase insert)
+final _sessionBookingGuests = <String, Map<String, dynamic>>{};
+
 class BookingService {
   final SupabaseClient _client;
   BookingService(this._client);
@@ -47,6 +51,7 @@ class BookingService {
       data = null;
     }
     // Demo fallback so the screen never crashes
+    final cachedGuest = _sessionBookingGuests[id];
     data ??= {
       'id': id,
       'booking_number': 'ANJ-DEMO-001',
@@ -60,10 +65,14 @@ class BookingService {
       'source': 'DIRECT',
       'primary_guest_id': null,
       'payments': [],
+      // Use cached guest data from local booking creation, or a demo default
+      'guest_name':  cachedGuest?['name']  ?? 'Demo Guest',
+      'guest_phone': cachedGuest?['phone'] ?? '+91 98765 43210',
     };
 
-    // Fetch guest name separately if primary_guest_id exists
-    if (data['primary_guest_id'] != null) {
+    // Fetch guest name separately if primary_guest_id exists in Supabase data
+    if (data['primary_guest_id'] != null &&
+        !data['primary_guest_id'].toString().startsWith('local_')) {
       try {
         final guest = await _client
             .from('guests')
@@ -77,27 +86,71 @@ class BookingService {
       } catch (_) {}
     }
 
+    // If still no guest_name, check session cache by primary_guest_id
+    if ((data['guest_name'] == null || data['guest_name'] == 'Demo Guest') &&
+        data['primary_guest_id'] != null) {
+      final pid = data['primary_guest_id'];
+      Map<String, dynamic>? guestById;
+      for (final g in _sessionBookingGuests.values) {
+        if (g['id'] == pid) { guestById = g; break; }
+      }
+      if (guestById != null) {
+        data['guest_name']  = guestById['name'];
+        data['guest_phone'] = guestById['phone'];
+      }
+    }
+
     return BookingModel.fromJson(data);
   }
 
   // ── Create booking ────────────────────────────────────────────────────────────
   Future<BookingModel> createBooking(Map<String, dynamic> data) async {
+    // Extract our internal guest hint fields (not real Supabase columns)
+    final guestNameHint  = data['_guest_name']  as String?;
+    final guestPhoneHint = data['_guest_phone'] as String?;
+    final guestIdHint    = data['primary_guest_id'] as String?;
+    final cleanData = Map<String, dynamic>.from(data)
+      ..remove('_guest_name')
+      ..remove('_guest_phone');
+
     try {
-      final response = await _client.from('bookings').insert(data).select().maybeSingle();
-      if (response != null) return BookingModel.fromJson(response);
+      final response = await _client.from('bookings').insert(cleanData).select().maybeSingle();
+      if (response != null) {
+        final booking = BookingModel.fromJson(response);
+        // Cache guest data for later retrieval in getBookingById
+        if (guestNameHint != null) {
+          _sessionBookingGuests[booking.id] = {
+            'id': guestIdHint,
+            'name': guestNameHint,
+            'phone': guestPhoneHint ?? '',
+          };
+        }
+        return booking;
+      }
     } catch (_) {
       // RLS / no auth — create a local demo booking so the flow completes
     }
     // Local fallback booking
     final now = DateTime.now();
+    final localId = 'local_${now.millisecondsSinceEpoch}';
+    // Cache guest data so getBookingById can show name/phone
+    if (guestNameHint != null) {
+      _sessionBookingGuests[localId] = {
+        'id': guestIdHint,
+        'name': guestNameHint,
+        'phone': guestPhoneHint ?? '',
+      };
+    }
     return BookingModel.fromJson({
-      'id': 'local_${now.millisecondsSinceEpoch}',
+      'id': localId,
       'booking_number': 'ANJ-${now.millisecondsSinceEpoch.toString().substring(7)}',
       'status': 'CONFIRMED',
       'payment_status': 'PENDING',
       'paid_amount': 0,
       'payments': [],
-      ...data,
+      'guest_name':  guestNameHint,
+      'guest_phone': guestPhoneHint,
+      ...cleanData,
     });
   }
 
