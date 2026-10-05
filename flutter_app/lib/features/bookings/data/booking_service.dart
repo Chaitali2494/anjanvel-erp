@@ -39,25 +39,74 @@ class BookingService {
 
   // ── Get single booking ────────────────────────────────────────────────────────
   Future<BookingModel> getBookingById(String id) async {
-    // Use maybeSingle — avoids PGRST116 when row not found
     Map<String, dynamic>? data;
-    try {
-      data = await _client
-          .from('bookings')
-          .select('*, payments(*)')
-          .eq('id', id)
-          .maybeSingle();
-    } catch (_) {
-      data = null;
+
+    // 1. Try the summary view first — already has guest_name / guest_phone joined
+    if (!id.startsWith('local_')) {
+      try {
+        data = await _client
+            .from('v_booking_summary')
+            .select()
+            .eq('id', id)
+            .maybeSingle();
+      } catch (_) {}
+
+      // Augment with payments (view may not include them)
+      if (data != null) {
+        try {
+          final payments = await _client
+              .from('payments')
+              .select()
+              .eq('booking_id', id);
+          data['payments'] = payments;
+        } catch (_) {
+          data['payments'] = [];
+        }
+      }
     }
-    // Demo fallback so the screen never crashes
+
+    // 2. If view returned nothing, fall back to raw table
+    if (data == null && !id.startsWith('local_')) {
+      try {
+        data = await _client
+            .from('bookings')
+            .select('*, payments(*)')
+            .eq('id', id)
+            .maybeSingle();
+      } catch (_) {}
+
+      // Fetch guest name separately
+      if (data != null && data['primary_guest_id'] != null) {
+        try {
+          final guest = await _client
+              .from('guests')
+              .select('full_name, phone')
+              .eq('id', data['primary_guest_id'])
+              .maybeSingle();
+          if (guest != null) {
+            data['guest_name']  = guest['full_name'];
+            data['guest_phone'] = guest['phone'];
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 3. If data still has no guest info, check session cache (covers local bookings)
     final cachedGuest = _sessionBookingGuests[id];
+    if (data != null && cachedGuest != null &&
+        (data['guest_name'] == null || (data['guest_name']?.toString() ?? '').isEmpty)) {
+      data['guest_name']  = cachedGuest['name'];
+      data['guest_phone'] = cachedGuest['phone'];
+    }
+
+    // 4. Full demo fallback — used for local_xxx IDs or when Supabase has nothing
     data ??= {
       'id': id,
       'booking_number': 'ANJ-DEMO-001',
       'status': 'CONFIRMED',
       'check_in_date': DateTime.now().toIso8601String().split('T')[0],
-      'check_out_date': DateTime.now().add(const Duration(days: 2)).toIso8601String().split('T')[0],
+      'check_out_date':
+          DateTime.now().add(const Duration(days: 2)).toIso8601String().split('T')[0],
       'num_adults': 2,
       'num_children': 0,
       'total_amount': 7000,
@@ -65,40 +114,9 @@ class BookingService {
       'source': 'DIRECT',
       'primary_guest_id': null,
       'payments': [],
-      // Use cached guest data from local booking creation, or a demo default
       'guest_name':  cachedGuest?['name']  ?? 'Demo Guest',
       'guest_phone': cachedGuest?['phone'] ?? '+91 98765 43210',
     };
-
-    // Fetch guest name separately if primary_guest_id exists in Supabase data
-    if (data['primary_guest_id'] != null &&
-        !data['primary_guest_id'].toString().startsWith('local_')) {
-      try {
-        final guest = await _client
-            .from('guests')
-            .select('full_name, phone')
-            .eq('id', data['primary_guest_id'])
-            .maybeSingle();
-        if (guest != null) {
-          data['guest_name'] = guest['full_name'];
-          data['guest_phone'] = guest['phone'];
-        }
-      } catch (_) {}
-    }
-
-    // If still no guest_name, check session cache by primary_guest_id
-    if ((data['guest_name'] == null || data['guest_name'] == 'Demo Guest') &&
-        data['primary_guest_id'] != null) {
-      final pid = data['primary_guest_id'];
-      Map<String, dynamic>? guestById;
-      for (final g in _sessionBookingGuests.values) {
-        if (g['id'] == pid) { guestById = g; break; }
-      }
-      if (guestById != null) {
-        data['guest_name']  = guestById['name'];
-        data['guest_phone'] = guestById['phone'];
-      }
-    }
 
     return BookingModel.fromJson(data);
   }
