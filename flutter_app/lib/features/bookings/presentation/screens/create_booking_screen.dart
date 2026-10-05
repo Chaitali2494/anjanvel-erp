@@ -16,7 +16,6 @@ class CreateBookingScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
-  final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
   bool _isLoading = false;
 
@@ -49,9 +48,24 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
   }
 
   Future<void> _createBooking() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Inline validation with clear error messages (avoids silent failures from
+    // collapsed Stepper steps where form field errors aren't visible to user)
+    final name  = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    if (name.isEmpty) {
+      _showError('Please enter guest name (Step 1)');
+      setState(() => _currentStep = 0);
+      return;
+    }
+    if (phone.length != 10) {
+      _showError('Please enter a valid 10-digit mobile number (Step 1)');
+      setState(() => _currentStep = 0);
+      return;
+    }
     if (_checkInDate == null) {
-      _showError('Please select check-in date');
+      _showError('Please select a check-in date (Step 2)');
+      setState(() => _currentStep = 1);
       return;
     }
 
@@ -62,8 +76,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       if (guestId.isEmpty) {
         final guestService = ref.read(guestServiceProvider);
         final guest = await guestService.findOrCreateGuest(
-          name: _nameController.text.trim(),
-          phone: _phoneController.text.trim(),
+          name: name,
+          phone: phone,
           email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
         );
         guestId = guest['id'] as String;
@@ -75,8 +89,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       final booking = await ref.read(bookingServiceProvider).createBooking({
         'primary_guest_id': guestId,
         // Extra fields used by local fallback to show guest name/phone in booking detail
-        '_guest_name': _nameController.text.trim(),
-        '_guest_phone': _phoneController.text.trim(),
+        '_guest_name': name,
+        '_guest_phone': phone,
         'package_id': null, // packages stored by name; no DB UUID yet
         'check_in_date': DateFormat('yyyy-MM-dd').format(_checkInDate!),
         'check_out_date': _checkOutDate != null ? DateFormat('yyyy-MM-dd').format(_checkOutDate!) : null,
@@ -122,9 +136,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       appBar: AnjAppBar(title: 'New Booking'),
       body: LoadingOverlay(
         isLoading: _isLoading,
-        child: Form(
-          key: _formKey,
-          child: Stepper(
+        child: Stepper(
             currentStep: _currentStep,
             onStepContinue: () {
               if (_currentStep < 3) setState(() => _currentStep++);
@@ -215,7 +227,6 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 }
