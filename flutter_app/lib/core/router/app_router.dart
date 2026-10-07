@@ -229,9 +229,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Shop
       GoRoute(
         path: '/shop',
-        builder: (_, __) => const ShopProductListScreen(),
+        builder: (_, __) => const ShopDashboardScreen(),
         routes: [
-          GoRoute(path: 'dashboard', builder: (_, __) => const ShopDashboardScreen()),
+          GoRoute(path: 'products', builder: (_, __) => const ShopProductListScreen()),
           GoRoute(path: 'cart',      builder: (_, __) => const ShopCartScreen()),
           GoRoute(path: 'checkout',  builder: (_, __) => const ShopCheckoutScreen()),
           GoRoute(path: ':id',       builder: (_, state) => ProductDetailScreen(productId: state.pathParameters['id']!, initialData: state.extra as Map<String, dynamic>?)),
