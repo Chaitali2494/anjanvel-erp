@@ -323,15 +323,7 @@ class _RevenueChart extends StatelessWidget {
                     isCurved: true,
                     color: Colors.white,
                     barWidth: 3,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
-                        radius: 3,
-                        color: Colors.white,
-                        strokeColor: const Color(0xFF2E7D32),
-                        strokeWidth: 2,
-                      ),
-                    ),
+                    dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
                       gradient: LinearGradient(
