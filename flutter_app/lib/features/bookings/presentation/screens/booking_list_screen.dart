@@ -228,14 +228,14 @@ class BookingCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           booking.guestName ?? 'Guest',
-                          style: Theme.of(context).textTheme.titleMedium,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Text(
                         '${booking.totalGuests ?? booking.numAdults} guests',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
                       ),
                     ],
                   ),
@@ -246,13 +246,13 @@ class BookingCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         _formatDate(booking.checkInDate),
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                       ),
                       if (booking.checkOutDate != null) ...[
                         const Text(' → ', style: TextStyle(color: AppTheme.textPrimary)),
                         Text(
                           _formatDate(booking.checkOutDate!),
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                         ),
                       ],
                     ],
@@ -263,7 +263,8 @@ class BookingCard extends StatelessWidget {
                       children: [
                         const Icon(Icons.spa_outlined, size: 16, color: AppTheme.textPrimary),
                         const SizedBox(width: 8),
-                        Text(booking.packageName!, style: Theme.of(context).textTheme.bodySmall),
+                        Text(booking.packageName!,
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
                       ],
                     ),
                   ],
@@ -274,17 +275,21 @@ class BookingCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Total', style: Theme.of(context).textTheme.bodySmall),
-                          RupeeAmount(amount: booking.totalAmount, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          const Text('Total',
+                              style: TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
+                          RupeeAmount(amount: booking.totalAmount,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                         ],
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('Balance', style: Theme.of(context).textTheme.bodySmall),
+                          const Text('Balance',
+                              style: TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
                           RupeeAmount(
                             amount: booking.balanceAmount ?? (booking.totalAmount - booking.paidAmount),
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            style: TextStyle(
+                              fontSize: 13,
                               color: (booking.balanceAmount ?? 0) > 0 ? AppTheme.error : AppTheme.success,
                               fontWeight: FontWeight.w600,
                             ),

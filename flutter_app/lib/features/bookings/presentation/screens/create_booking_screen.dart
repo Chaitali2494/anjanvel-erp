@@ -299,10 +299,13 @@ class _GuestInfoStep extends StatelessWidget {
       children: [
         TextFormField(
           controller: nameController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Full Name *',
-            prefixIcon: Icon(Icons.person_outline),
+            labelStyle: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+            floatingLabelStyle: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+            prefixIcon: const Icon(Icons.person_outline, color: AppTheme.textSecondary),
           ),
+          style: const TextStyle(color: AppTheme.textPrimary),
           validator: (v) => v == null || v.isEmpty ? 'Required' : null,
           textCapitalization: TextCapitalization.words,
         ),
@@ -311,21 +314,28 @@ class _GuestInfoStep extends StatelessWidget {
           controller: phoneController,
           keyboardType: TextInputType.phone,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Mobile Number *',
-            prefixIcon: Icon(Icons.phone_outlined),
+            labelStyle: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+            floatingLabelStyle: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+            prefixIcon: const Icon(Icons.phone_outlined, color: AppTheme.textSecondary),
             prefixText: '+91  ',
+            prefixStyle: const TextStyle(color: AppTheme.textPrimary),
           ),
+          style: const TextStyle(color: AppTheme.textPrimary),
           validator: (v) => v == null || v.length != 10 ? 'Enter valid phone' : null,
         ),
         const SizedBox(height: 12),
         TextFormField(
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Email (optional)',
-            prefixIcon: Icon(Icons.email_outlined),
+            labelStyle: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+            floatingLabelStyle: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+            prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textSecondary),
           ),
+          style: const TextStyle(color: AppTheme.textPrimary),
         ),
       ],
     );
@@ -459,12 +469,20 @@ class _BookingDetailsStep extends StatelessWidget {
         // Source
         DropdownButtonFormField<String>(
           value: source,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Lead Source',
-            prefixIcon: Icon(Icons.source_outlined),
+            labelStyle: const TextStyle(color: AppTheme.textPrimary),
+            floatingLabelStyle: const TextStyle(color: AppTheme.textSecondary),
+            prefixIcon: const Icon(Icons.source_outlined, color: AppTheme.textSecondary),
           ),
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+          dropdownColor: Colors.white,
           items: ['PHONE', 'WEBSITE', 'INSTAGRAM', 'WHATSAPP', 'GOOGLE', 'WALK_IN', 'REFERRAL']
-              .map((s) => DropdownMenuItem(value: s, child: Text(s.replaceAll('_', ' '))))
+              .map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s.replaceAll('_', ' '),
+                        style: const TextStyle(color: AppTheme.textPrimary)),
+                  ))
               .toList(),
           onChanged: (v) => v != null ? onSourceChanged(v) : null,
         ),
@@ -491,7 +509,7 @@ class _CounterField extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -507,7 +525,7 @@ class _CounterField extends StatelessWidget {
                   child: Icon(Icons.remove, size: 16, color: value > min ? AppTheme.primary : AppTheme.textHint),
                 ),
               ),
-              Text('$value', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
               GestureDetector(
                 onTap: () => onChanged(value + 1),
                 child: Container(
@@ -685,28 +703,29 @@ class _PackageStep extends ConsumerWidget {
                       children: [
                         Text(
                           pkg['name'] as String,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: isSelected ? AppTheme.primary : null,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isSelected ? AppTheme.primary : AppTheme.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '₹${(pkg['adult_price'] as double).toStringAsFixed(0)} adult  ·  ₹${(pkg['kids_price'] as double).toStringAsFixed(0)} child (5–10)',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
                         ),
                         Text(
                           pkg['inclusions'] as String,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.success),
+                          style: const TextStyle(fontSize: 12, color: AppTheme.success),
                         ),
                         Text(
                           pkg['timing'] as String,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textPrimary),
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
                         ),
                         if (pkg['note'] != null)
                           Text(
                             pkg['note'] as String,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.accent),
+                            style: const TextStyle(fontSize: 11, color: AppTheme.accent),
                           ),
                       ],
                     ),
@@ -767,11 +786,15 @@ class _SummaryStep extends StatelessWidget {
         TextFormField(
           controller: specialRequestsController,
           maxLines: 3,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Special Requests',
+            labelStyle: const TextStyle(color: AppTheme.textPrimary),
+            floatingLabelStyle: const TextStyle(color: AppTheme.textSecondary),
             hintText: 'Any dietary requirements, accessibility needs, etc.',
-            prefixIcon: Icon(Icons.notes_outlined),
+            hintStyle: const TextStyle(color: AppTheme.textHint),
+            prefixIcon: const Icon(Icons.notes_outlined, color: AppTheme.textSecondary),
           ),
+          style: const TextStyle(color: AppTheme.textPrimary),
         ),
       ],
     );
@@ -792,12 +815,12 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
           Text(
             value,
             style: isBold
-                ? Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.bold)
-                : Theme.of(context).textTheme.titleSmall,
+                ? const TextStyle(fontSize: 15, color: AppTheme.primary, fontWeight: FontWeight.bold)
+                : const TextStyle(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
           ),
         ],
       ),
