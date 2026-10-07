@@ -94,7 +94,7 @@ class _RoleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(role.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(role.label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: role.color)),
                   const SizedBox(height: 2),
                   Text(role.description, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                 ],
