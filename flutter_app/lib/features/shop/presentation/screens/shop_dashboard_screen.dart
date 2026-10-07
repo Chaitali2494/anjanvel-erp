@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../shop/data/shop_room_charges_provider.dart';
+import '../../../shop/data/shop_cart_provider.dart';
 
 // ── Session-level sales state ──────────────────────────────────────────────────
 
@@ -83,6 +84,8 @@ class ShopDashboardScreen extends ConsumerWidget {
     final notifier    = ref.read(shopNotifierProvider.notifier);
     final todaySales  = notifier.todaySales;
     final todayOrders = notifier.todayOrders;
+    final cartItems   = ref.watch(shopCartProvider);
+    final cartCount   = ref.read(shopCartProvider.notifier).itemCount;
 
     // Low stock products (qty < 15)
     final lowStock = _kProducts.where((p) => p.stock < 15).toList();
@@ -277,7 +280,7 @@ class ShopDashboardScreen extends ConsumerWidget {
                         ]),
                       ),
                       // Product rows
-                      ...catProducts.map((p) => _ProductRow(product: p, catColor: cat.color, onSell: () => _showSaleSheet(context, ref, product: p))),
+                      ...catProducts.map((p) => _ProductRow(product: p, catColor: cat.color, onSell: () {})),
                     ],
                   ),
                 ),
@@ -329,11 +332,28 @@ class ShopDashboardScreen extends ConsumerWidget {
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showSaleSheet(context, ref),
-        backgroundColor: const Color(0xFF558B2F),
-        icon: const Icon(Icons.point_of_sale_rounded),
-        label: const Text('New Sale'),
+      floatingActionButton: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: () => context.push('/shop/cart'),
+            backgroundColor: const Color(0xFF1565C0),
+            icon: const Icon(Icons.shopping_cart_rounded, color: Colors.white),
+            label: Text(
+              cartCount > 0 ? 'Cart  •  ₹${ref.read(shopCartProvider.notifier).subtotal.toStringAsFixed(0)}' : 'Cart',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (cartCount > 0)
+            Positioned(
+              top: -6, right: -6,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: const BoxDecoration(color: AppTheme.error, shape: BoxShape.circle),
+                child: Text('$cartCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -588,15 +608,19 @@ class _CategoryCard extends StatelessWidget {
   );
 }
 
-class _ProductRow extends StatelessWidget {
+class _ProductRow extends ConsumerWidget {
   final _Product product;
   final Color catColor;
   final VoidCallback onSell;
   const _ProductRow({required this.product, required this.catColor, required this.onSell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isLow = product.stock < 15;
+    final cartItems = ref.watch(shopCartProvider);
+    final inCart = cartItems.firstWhere((c) => c.name == product.name, orElse: () => CartItem(name: '', emoji: '', category: '', unit: '', price: 0));
+    final qtyInCart = inCart.name.isNotEmpty ? inCart.qty : 0;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
@@ -621,17 +645,60 @@ class _ProductRow extends StatelessWidget {
             ),
           ]),
         ])),
-        GestureDetector(
-          onTap: onSell,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF558B2F),
-              borderRadius: BorderRadius.circular(8),
+        // Add to Cart controls
+        if (qtyInCart == 0)
+          GestureDetector(
+            onTap: () {
+              ref.read(shopCartProvider.notifier).addItem(
+                name: product.name,
+                emoji: product.emoji,
+                category: product.category,
+                unit: product.unit,
+                price: product.price,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${product.name} added to cart'),
+                  backgroundColor: const Color(0xFF558B2F),
+                  duration: const Duration(seconds: 1),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF558B2F), borderRadius: BorderRadius.circular(8)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.add_shopping_cart_rounded, color: Colors.white, size: 13),
+                SizedBox(width: 4),
+                Text('Add', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+              ]),
             ),
-            child: const Text('Sell', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-          ),
-        ),
+          )
+        else
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            GestureDetector(
+              onTap: () => ref.read(shopCartProvider.notifier).decrement(product.name),
+              child: Container(
+                width: 26, height: 26,
+                decoration: BoxDecoration(color: AppTheme.error.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                child: const Icon(Icons.remove_rounded, size: 14, color: AppTheme.error),
+              ),
+            ),
+            Container(
+              width: 28,
+              alignment: Alignment.center,
+              child: Text('$qtyInCart', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
+            ),
+            GestureDetector(
+              onTap: () => ref.read(shopCartProvider.notifier).increment(product.name),
+              child: Container(
+                width: 26, height: 26,
+                decoration: BoxDecoration(color: const Color(0xFF558B2F).withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+                child: const Icon(Icons.add_rounded, size: 14, color: Color(0xFF558B2F)),
+              ),
+            ),
+          ]),
       ]),
     );
   }
