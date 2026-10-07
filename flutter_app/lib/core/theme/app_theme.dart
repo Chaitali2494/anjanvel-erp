@@ -72,6 +72,14 @@ class AppTheme {
         background: background,
         surface: surface,
         error: error,
+      ).copyWith(
+        // Force ALL text-on-surface colors to near-black so no widget shows gray text
+        onSurface: textPrimary,
+        onSurfaceVariant: textSecondary,
+        onBackground: textPrimary,
+        onSecondaryContainer: textPrimary,
+        outline: const Color(0xFF424242),
+        outlineVariant: const Color(0xFF616161),
       ),
       scaffoldBackgroundColor: background,
       textTheme: GoogleFonts.poppinsTextTheme().copyWith(
