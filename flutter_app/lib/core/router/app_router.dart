@@ -28,6 +28,7 @@ import '../../features/food/presentation/screens/meal_planning_screen.dart';
 import '../../features/activities/presentation/screens/activity_registration_screen.dart';
 import '../../features/activities/presentation/screens/activities_dashboard_screen.dart';
 import '../../features/activities/presentation/screens/activity_tracker_screen.dart';
+import '../../features/dashboard/presentation/screens/activity_coordinator_dashboard_screen.dart';
 import '../../features/heritage/presentation/screens/heritage_walk_screen.dart';
 import '../../features/heritage/presentation/screens/guide_dashboard_screen.dart';
 import '../../features/heritage/presentation/screens/guide_assignment_screen.dart';
@@ -91,7 +92,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/inventory', '/shop', '/maintenance', '/billing', '/payment',
         '/feedback', '/reports', '/settings', '/notifications',
         '/profile', '/staff', '/leads', '/staff/portal', '/staff/access', '/staff/leaves',
-        '/activities/tracker',
+        '/activities/tracker', '/dashboard/activity-coordinator',
       ];
       final isOpen = openRoutes.any((r) => loc == r || loc.startsWith('$r/'));
       if (isOpen) return null;
@@ -122,10 +123,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/role-selection', builder: (_, __) => const RoleSelectionScreen()),
 
       // Dashboard Routes (role-based)
-      GoRoute(path: '/dashboard/owner',         builder: (_, __) => const OwnerDashboardScreen()),
-      GoRoute(path: '/dashboard/manager',       builder: (_, __) => const ManagerDashboardScreen()),
-      GoRoute(path: '/dashboard/kitchen',       builder: (_, __) => const KitchenDashboardScreen()),
-      GoRoute(path: '/dashboard/housekeeping',  builder: (_, __) => const HousekeepingDashboardScreen()),
+      GoRoute(path: '/dashboard/owner',                builder: (_, __) => const OwnerDashboardScreen()),
+      GoRoute(path: '/dashboard/manager',             builder: (_, __) => const ManagerDashboardScreen()),
+      GoRoute(path: '/dashboard/kitchen',             builder: (_, __) => const KitchenDashboardScreen()),
+      GoRoute(path: '/dashboard/housekeeping',        builder: (_, __) => const HousekeepingDashboardScreen()),
+      GoRoute(path: '/dashboard/activity-coordinator',builder: (_, __) => const ActivityCoordinatorDashboardScreen()),
 
       // CRM Routes
       GoRoute(
@@ -319,8 +321,8 @@ String _getHomeRoute(String? role) {
     case 'MANAGER':       return '/dashboard/manager';
     case 'KITCHEN':       return '/dashboard/kitchen';
     case 'HOUSEKEEPING':  return '/dashboard/housekeeping';
-    case 'GUIDE':
-    case 'ACTIVITY_COORDINATOR': return '/activities';
+    case 'GUIDE':               return '/activities';
+    case 'ACTIVITY_COORDINATOR': return '/dashboard/activity-coordinator';
     case 'SHOP_OPERATOR': return '/shop';
     case 'ACCOUNTANT':    return '/reports';
     default:              return '/dashboard/manager';

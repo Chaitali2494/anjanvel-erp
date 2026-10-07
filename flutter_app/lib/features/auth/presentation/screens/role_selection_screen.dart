@@ -10,7 +10,7 @@ class RoleSelectionScreen extends StatelessWidget {
     _RoleItem('Manager',             'Operations & staff coordination',    Icons.manage_accounts_rounded,  Color(0xFF1565C0), '/dashboard/manager'),
     _RoleItem('Housekeeping',        'Room cleaning & task management',    Icons.cleaning_services_rounded, Color(0xFF6A1B9A), '/dashboard/housekeeping'),
     _RoleItem('Kitchen',             'Food orders & meal planning',        Icons.restaurant_rounded,       Color(0xFFE64A19), '/dashboard/kitchen'),
-    _RoleItem('Activity Coordinator','Schedule & manage activities',       Icons.hiking_rounded,           Color(0xFF00838F), '/activities'),
+    _RoleItem('Activity Coordinator','Schedule & manage activities',       Icons.hiking_rounded,           Color(0xFF00838F), '/dashboard/activity-coordinator'),
     _RoleItem('Shop Operator',       'Manage products & sales',            Icons.storefront_rounded,       Color(0xFF558B2F), '/shop'),
     _RoleItem('Accountant',          'Reports & financial management',     Icons.account_balance_rounded,  Color(0xFF00796B), '/reports'),
     _RoleItem('Guide',               'Heritage walks & guest tours',       Icons.map_rounded,              Color(0xFF4527A0), '/heritage/guide'),
