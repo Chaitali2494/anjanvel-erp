@@ -196,7 +196,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
             steps: [
               // Step 1: Guest Info
               Step(
-                title: const Text('Guest Info'),
+                title: Text('Guest Info',
+                    style: TextStyle(
+                        color: _currentStep >= 0 ? AppTheme.textPrimary : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w600)),
                 isActive: _currentStep >= 0,
                 state: _currentStep > 0 ? StepState.complete : StepState.indexed,
                 content: _GuestInfoStep(
@@ -208,7 +211,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
               ),
               // Step 2: Booking Details
               Step(
-                title: const Text('Booking Details'),
+                title: Text('Booking Details',
+                    style: TextStyle(
+                        color: _currentStep >= 1 ? AppTheme.textPrimary : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w600)),
                 isActive: _currentStep >= 1,
                 state: _currentStep > 1 ? StepState.complete : StepState.indexed,
                 content: _BookingDetailsStep(
@@ -226,7 +232,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
               ),
               // Step 3: Package
               Step(
-                title: const Text('Package'),
+                title: Text('Package',
+                    style: TextStyle(
+                        color: _currentStep >= 2 ? AppTheme.textPrimary : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w600)),
                 isActive: _currentStep >= 2,
                 state: _currentStep > 2 ? StepState.complete : StepState.indexed,
                 content: _PackageStep(
@@ -245,7 +254,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
               ),
               // Step 4: Summary
               Step(
-                title: const Text('Summary'),
+                title: Text('Summary',
+                    style: TextStyle(
+                        color: _currentStep >= 3 ? AppTheme.textPrimary : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w600)),
                 isActive: _currentStep >= 3,
                 content: _SummaryStep(
                   guestName: _nameController.text,

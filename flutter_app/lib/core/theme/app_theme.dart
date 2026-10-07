@@ -155,7 +155,23 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: spaceMD, vertical: spaceMD),
         hintStyle: GoogleFonts.poppins(color: textHint, fontSize: 14),
+        // Label at rest — near-black
         labelStyle: GoogleFonts.poppins(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+        // Label when it floats above the field (focused or has value) — keep near-black, not gray
+        floatingLabelStyle: GoogleFonts.poppins(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+        // Icon inside fields
+        prefixIconColor: textSecondary,
+        suffixIconColor: textSecondary,
+      ),
+      // ListTile: force title + subtitle to near-black so ListTile subtitles aren't gray
+      listTileTheme: const ListTileThemeData(
+        textColor: textPrimary,
+        iconColor: textSecondary,
+        subtitleTextStyle: TextStyle(color: textSecondary, fontSize: 12),
+      ),
+      // Dropdown items
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: GoogleFonts.poppins(color: textPrimary, fontSize: 14),
       ),
       cardTheme: CardTheme(
         elevation: elevationSM,
