@@ -8,6 +8,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../data/dashboard_provider.dart';
 import '../../../housekeeping/presentation/widgets/housekeeping_panel.dart';
+import '../../../billing/data/billing_state_provider.dart';
+import '../../../activities/data/activity_bookings_provider.dart';
 
 class OwnerDashboardScreen extends ConsumerWidget {
   const OwnerDashboardScreen({super.key});
@@ -113,6 +115,12 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       const SectionHeader(title: 'Quick Actions'),
                       const SizedBox(height: AppTheme.spaceMD),
                       _QuickActionsGrid(),
+                      const SizedBox(height: AppTheme.spaceLG),
+
+                      // ── Bill Card ──────────────────────────────────────
+                      const SectionHeader(title: 'Current Bills'),
+                      const SizedBox(height: AppTheme.spaceMD),
+                      const _DashboardBillCard(),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // Room Status Overview
@@ -352,6 +360,7 @@ class _QuickActionsGrid extends StatelessWidget {
     _Action('Room Status', Icons.bed_outlined, '/rooms', AppTheme.secondary),
     _Action('Food Orders', Icons.restaurant_menu_outlined, '/food', AppTheme.warning),
     _Action('Activities', Icons.hiking_outlined, '/activities', AppTheme.success),
+    _Action('Bill', Icons.receipt_long_rounded, '/billing', Color(0xFF00838F)),
     _Action('Staff', Icons.people_rounded, '/staff', Color(0xFF1565C0)),
     _Action('Housekeeping', Icons.cleaning_services_rounded, '/dashboard/housekeeping', Color(0xFF6A1B9A)),
     _Action('Attendance', Icons.fact_check_outlined, '/staff/attendance', Color(0xFF37474F)),
@@ -679,6 +688,131 @@ class _DashboardSkeleton extends StatelessWidget {
           )),
         ),
       ],
+    );
+  }
+}
+
+// ── Dashboard Bill Card ────────────────────────────────────────────────────────
+
+class _DashboardBillCard extends ConsumerWidget {
+  const _DashboardBillCard();
+
+  static const _statusColors = {
+    'CHECKED_IN':    Color(0xFF2E7D32),
+    'BOOKED':        Color(0xFF1565C0),
+    'ADVANCE_PAID':  Color(0xFFE65100),
+  };
+
+  static const _statusLabels = {
+    'CHECKED_IN':   'Checked In',
+    'BOOKED':       'Booked',
+    'ADVANCE_PAID': 'Advance Paid',
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final billingState    = ref.watch(billingStateProvider);
+    final activityAsync   = ref.watch(activityBookingsProvider);
+
+    final allBookings = activityAsync.maybeWhen(
+      data: (d) => d, orElse: () => <Map<String, dynamic>>[],
+    );
+
+    final paidCount = kBillableRooms
+        .where((r) => billingState[r['room_number']]?['is_paid'] == true)
+        .length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+      ),
+      child: Column(children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Row(children: [
+            const Icon(Icons.receipt_long_rounded, color: Color(0xFF00838F), size: 20),
+            const SizedBox(width: 8),
+            const Text('Active Rooms',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Spacer(),
+            if (paidCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text('$paidCount/${kBillableRooms.length} Paid',
+                    style: const TextStyle(
+                        color: AppTheme.success, fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+          ]),
+        ),
+        const Divider(height: 0),
+
+        // Room rows
+        ...kBillableRooms.map((room) {
+          final rno      = room['room_number'] as String;
+          final isPaid   = billingState[rno]?['is_paid'] == true;
+          final total    = calcRoomTotal(rno, allBookings);
+          final status   = room['status'] as String;
+          final stColor  = _statusColors[status] ?? AppTheme.textPrimary;
+          final stLabel  = _statusLabels[status] ?? status;
+
+          return InkWell(
+            onTap: () => context.push('/billing', extra: {'room_number': rno}),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              child: Row(children: [
+                // Room badge
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: stColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(rno,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            color: stColor)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Guest + status
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(room['guest_name'] as String,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text('${room['room_type']} · $stLabel',
+                      style: TextStyle(fontSize: 11, color: stColor)),
+                ])),
+                // Amount + paid
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text('₹${total.toStringAsFixed(0)}',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isPaid ? AppTheme.success : AppTheme.textPrimary)),
+                  Text(isPaid ? 'PAID ✓' : 'Pending',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: isPaid ? AppTheme.success : AppTheme.warning)),
+                ]),
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right_rounded,
+                    size: 18,
+                    color: isPaid ? AppTheme.success : AppTheme.textPrimary),
+              ]),
+            ),
+          );
+        }),
+        const SizedBox(height: 4),
+      ]),
     );
   }
 }
