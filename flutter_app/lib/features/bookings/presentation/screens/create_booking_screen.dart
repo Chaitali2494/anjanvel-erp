@@ -236,6 +236,11 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     _selectedPackageName = name;
                     _basePrice = price;
                   }),
+                  onPackageCleared: () => setState(() {
+                    _selectedPackageId = null;
+                    _selectedPackageName = null;
+                    _basePrice = 0;
+                  }),
                 ),
               ),
               // Step 4: Summary
@@ -513,8 +518,13 @@ class _CounterField extends StatelessWidget {
 class _PackageStep extends ConsumerWidget {
   final String? selectedPackageId;
   final Function(String, String, double) onPackageSelected;
+  final VoidCallback onPackageCleared;
 
-  const _PackageStep({required this.selectedPackageId, required this.onPackageSelected});
+  const _PackageStep({
+    required this.selectedPackageId,
+    required this.onPackageSelected,
+    required this.onPackageCleared,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -598,15 +608,42 @@ class _PackageStep extends ConsumerWidget {
           '* 5% GST applicable on room stays. Booking confirmed on advance payment only.',
           style: TextStyle(fontSize: 11, color: AppTheme.textHint),
         ),
+        if (selectedPackageId != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Selected: $selectedPackageId',
+                  style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onPackageCleared,
+                icon: const Icon(Icons.cancel_outlined, size: 16),
+                label: const Text('Clear'),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.error, padding: EdgeInsets.zero),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 12),
         ...packages.map((pkg) {
           final isSelected = selectedPackageId != null && selectedPackageId == pkg['name'];
           return GestureDetector(
-            onTap: () => onPackageSelected(
-              pkg['name'] as String,   // use name as key (no DB UUID yet)
-              pkg['name'] as String,
-              pkg['adult_price'] as double,
-            ),
+            onTap: () {
+              if (isSelected) {
+                onPackageCleared();   // tap again → deselect
+              } else {
+                onPackageSelected(
+                  pkg['name'] as String,
+                  pkg['name'] as String,
+                  pkg['adult_price'] as double,
+                );
+              }
+            },
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
