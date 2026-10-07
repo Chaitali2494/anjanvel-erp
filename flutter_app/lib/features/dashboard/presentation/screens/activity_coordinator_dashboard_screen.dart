@@ -56,6 +56,11 @@ class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
+                      onPressed: () => context.go('/role-selection'),
+                      icon: const Icon(Icons.home_rounded, color: Colors.white),
+                      tooltip: 'Home',
+                    ),
+                    IconButton(
                       onPressed: () => context.push('/notifications'),
                       icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                     ),
@@ -130,8 +135,7 @@ class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Quick Actions',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
                   const SizedBox(height: 12),
                   Row(children: [
                     _QuickAction(
@@ -160,8 +164,7 @@ class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("Today's Assignments",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
                   TextButton(
                     onPressed: () => context.push('/activities/tracker'),
                     child: const Text('See All'),
@@ -314,9 +317,10 @@ class _QuickAction extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 4),
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-              border: Border.all(color: color.withOpacity(0.2)),
+              border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+              boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 2))],
             ),
             child: Column(children: [
               Icon(icon, color: color, size: 28),
