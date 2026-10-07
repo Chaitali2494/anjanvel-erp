@@ -21,9 +21,9 @@ class AppTheme {
   static const Color info = Color(0xFF0288D1);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF424242);   // darker – was 0xFF616161
-  static const Color textHint = Color(0xFF757575);        // darker – was 0xFF9E9E9E
+  static const Color textPrimary   = Color(0xFF0D0D0D);   // near-black – maximum readability
+  static const Color textSecondary = Color(0xFF212121);   // very dark gray – still readable
+  static const Color textHint      = Color(0xFF616161);   // medium gray – for placeholders only
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // Status Colors
@@ -86,7 +86,7 @@ class AppTheme {
         titleSmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary),
         bodyLarge: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.normal, color: textPrimary),
         bodyMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.normal, color: textPrimary),
-        bodySmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.normal, color: textSecondary),
+        bodySmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondary),
         labelLarge: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: textOnPrimary),
         labelMedium: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary),
         labelSmall: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500, color: textPrimary),
