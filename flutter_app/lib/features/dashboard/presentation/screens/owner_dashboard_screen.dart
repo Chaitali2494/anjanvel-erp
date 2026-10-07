@@ -361,21 +361,14 @@ class _RevenueChart extends StatelessWidget {
 class _QuickActionsGrid extends StatelessWidget {
   final _actions = const [
     _Action('New Booking', Icons.add_circle_outline_rounded, '/bookings/create', AppTheme.primary),
-    _Action('Check-in', Icons.login_rounded, '/checkin', AppTheme.info),
-    _Action('Room Status', Icons.bed_outlined, '/rooms', AppTheme.secondary),
-    _Action('Food Orders', Icons.restaurant_menu_outlined, '/food', AppTheme.warning),
-    _Action('Activities', Icons.hiking_outlined, '/activities', AppTheme.success),
-    _Action('Act. Tracker', Icons.track_changes_rounded, '/activities/tracker', Color(0xFF00695C)),
-    _Action('Bill', Icons.receipt_long_rounded, '/billing', Color(0xFF00838F)),
-    _Action('Staff', Icons.people_rounded, '/staff', Color(0xFF1565C0)),
-    _Action('Staff Access', Icons.manage_accounts_rounded, '/staff/access', Color(0xFF880E4F)),
-    _Action('Staff Portal', Icons.badge_rounded, '/staff/portal', Color(0xFF00695C)),
-    _Action('Leave Mgmt', Icons.beach_access_rounded, '/staff/leaves', Color(0xFF6A1B9A)),
-    _Action('Housekeeping', Icons.cleaning_services_rounded, '/dashboard/housekeeping', Color(0xFF6A1B9A)),
-    _Action('Attendance', Icons.fact_check_outlined, '/staff/attendance', Color(0xFF37474F)),
-    _Action('Reports', Icons.bar_chart_rounded, '/reports', AppTheme.accent),
-    _Action('Inventory', Icons.inventory_2_outlined, '/inventory', Color(0xFF00796B)),
-    _Action('Leads', Icons.person_add_outlined, '/leads', Color(0xFF558B2F)),
+    _Action('Check-in',    Icons.login_rounded,              '/checkin',           AppTheme.info),
+    _Action('Rooms',       Icons.bed_outlined,               '/rooms',             AppTheme.secondary),
+    _Action('Food Orders', Icons.restaurant_menu_outlined,   '/food',              AppTheme.warning),
+    _Action('Activities',  Icons.hiking_outlined,            '/activities/tracker',Color(0xFF00695C)),
+    _Action('Billing',     Icons.receipt_long_rounded,       '/billing',           Color(0xFF00838F)),
+    _Action('Staff',       Icons.people_rounded,             '/staff',             Color(0xFF1565C0)),
+    _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent),
+    _Action('Inventory',   Icons.inventory_2_outlined,       '/inventory',         Color(0xFF00796B)),
   ];
 
   const _QuickActionsGrid();
