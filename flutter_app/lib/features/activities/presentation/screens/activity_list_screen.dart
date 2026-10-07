@@ -181,44 +181,10 @@ class _ActivityListScreenState extends ConsumerState<ActivityListScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddActivitySheet(),
+        onPressed: () => context.push('/activities/register'),
         icon: const Icon(Icons.add),
-        label: const Text('Schedule Activity'),
+        label: const Text('Book Activity'),
         backgroundColor: const Color(0xFF00838F),
-      ),
-    );
-  }
-
-  void _showAddActivitySheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          left: 24, right: 24, top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Schedule Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            const Text('Select an activity from the Activities tab and tap to schedule it for guests.',
-                style: TextStyle(color: AppTheme.textPrimary)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00838F),
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
       ),
     );
   }

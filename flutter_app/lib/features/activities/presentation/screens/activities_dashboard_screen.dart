@@ -123,13 +123,13 @@ class ActivitiesDashboardScreen extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                   child: ElevatedButton.icon(
-                    onPressed: () => context.push('/activities'),
+                    onPressed: () => context.push('/activities/register'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00838F),
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
-                    label: const Text('View All & Register', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    label: const Text('Book an Activity', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ),
