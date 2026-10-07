@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../data/staff_access_provider.dart' as sap;
 
 // ── Models ────────────────────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -161,8 +162,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen>
           unselectedLabelColor: Colors.white60,
           indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'Mark Attendance', icon: Icon(Icons.fact_check_outlined, size: 18)),
+            Tab(text: 'Mark', icon: Icon(Icons.fact_check_outlined, size: 18)),
             Tab(text: 'Summary', icon: Icon(Icons.bar_chart_rounded, size: 18)),
+            Tab(text: 'Live', icon: Icon(Icons.sensors_rounded, size: 18)),
           ],
         ),
       ),
@@ -237,6 +239,9 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen>
             error: (e, _) => Center(child: Text('Error: $e')),
             data: (staff) => _SummaryTab(staff: staff),
           ),
+
+          // ── Live Sign-in Tab ──────────────────────────────────────────
+          _LiveAttendanceTab(),
         ],
       ),
     );
@@ -771,4 +776,166 @@ class _SumBadge extends StatelessWidget {
       ]),
     );
   }
+}
+
+// ── Live Attendance Tab (session-based sign-in/out) ────────────────────────────
+
+class _LiveAttendanceTab extends ConsumerWidget {
+  const _LiveAttendanceTab();
+
+  static const _deptColors = <String, Color>{
+    'Housekeeping': Color(0xFF6A1B9A),
+    'Kitchen':      Color(0xFFE64A19),
+    'Reception':    Color(0xFF1565C0),
+    'Activities':   Color(0xFF00838F),
+    'Tour Guide':   Color(0xFF2E7D32),
+    'Security':     Color(0xFF37474F),
+    'Maintenance':  Color(0xFFF57C00),
+    'Shop':         Color(0xFF558B2F),
+    'Management':   Color(0xFF880E4F),
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final staffList  = ref.watch(sap.staffAccessProvider);
+    final leaveList  = ref.watch(sap.leaveProvider);
+    final today      = DateTime.now().toIso8601String().substring(0, 10);
+
+    final signedIn   = staffList.where((s) => s['is_signed_in'] == true).length;
+    final onLeave    = leaveList.where((l) =>
+        l['date'] == today && l['status'] == 'APPROVED').length;
+    final absent     = staffList.where((s) =>
+        s['is_active'] == true && s['is_signed_in'] == false).length - onLeave;
+
+    return Column(children: [
+      // Stats bar
+      Container(
+        color: AppTheme.surface,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(children: [
+          _LiveStat('Signed In',  '$signedIn',     AppTheme.success),
+          _LiveStat('Absent',     '${absent < 0 ? 0 : absent}', AppTheme.error),
+          _LiveStat('On Leave',   '$onLeave',      const Color(0xFF6A1B9A)),
+          _LiveStat('Total',      '${staffList.where((s) => s['is_active'] == true).length}', AppTheme.primary),
+        ]),
+      ),
+      const Divider(height: 0),
+
+      // Staff list
+      Expanded(
+        child: staffList.isEmpty
+            ? const Center(child: Text('No staff added yet.\nGo to Staff Access to add staff.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.textPrimary)))
+            : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: staffList.where((s) => s['is_active'] == true).length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) {
+                  final active = staffList.where((s) => s['is_active'] == true).toList();
+                  final s = active[i];
+                  final isSignedIn   = s['is_signed_in'] as bool;
+                  final dept         = s['department'] as String;
+                  final dColor       = _deptColors[dept] ?? AppTheme.primary;
+                  final signInTime   = s['sign_in_time']  as String?;
+                  final signOutTime  = s['sign_out_time'] as String?;
+                  final hasLeave     = leaveList.any((l) =>
+                      l['staff_id'] == s['id'] &&
+                      l['date'] == today &&
+                      l['status'] == 'APPROVED');
+
+                  Color statusColor;
+                  String statusLabel;
+                  IconData statusIcon;
+
+                  if (hasLeave) {
+                    statusColor = const Color(0xFF6A1B9A);
+                    statusLabel = 'On Leave';
+                    statusIcon  = Icons.beach_access_outlined;
+                  } else if (isSignedIn) {
+                    statusColor = AppTheme.success;
+                    statusLabel = 'Present';
+                    statusIcon  = Icons.check_circle_rounded;
+                  } else if (signOutTime != null) {
+                    statusColor = AppTheme.info;
+                    statusLabel = 'Signed Out';
+                    statusIcon  = Icons.logout_rounded;
+                  } else {
+                    statusColor = AppTheme.error;
+                    statusLabel = 'Absent';
+                    statusIcon  = Icons.cancel_outlined;
+                  }
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                      boxShadow: [BoxShadow(
+                          color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Row(children: [
+                        // Avatar
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: dColor.withOpacity(0.12),
+                          child: Text(
+                            (s['name'] as String).substring(0, 1).toUpperCase(),
+                            style: TextStyle(color: dColor,
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Name + dept
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(s['name'] as String,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(dept,
+                              style: TextStyle(fontSize: 11, color: dColor)),
+                          if (signInTime != null)
+                            Text('In: $signInTime${signOutTime != null ? '  Out: $signOutTime' : ''}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppTheme.textPrimary)),
+                        ])),
+                        // Status badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(statusIcon, size: 12, color: statusColor),
+                            const SizedBox(width: 4),
+                            Text(statusLabel,
+                                style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold)),
+                          ]),
+                        ),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+      ),
+    ]);
+  }
+}
+
+class _LiveStat extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _LiveStat(this.label, this.value, this.color);
+  @override
+  Widget build(_) => Expanded(
+    child: Column(children: [
+      Text(value, style: TextStyle(
+          fontWeight: FontWeight.bold, fontSize: 20, color: color)),
+      Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
+    ]),
+  );
 }

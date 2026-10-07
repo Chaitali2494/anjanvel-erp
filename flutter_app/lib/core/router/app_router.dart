@@ -55,6 +55,9 @@ import '../../features/notifications/presentation/screens/notifications_screen.d
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/staff/presentation/screens/staff_management_screen.dart';
 import '../../features/staff/presentation/screens/staff_attendance_screen.dart';
+import '../../features/staff/presentation/screens/staff_access_screen.dart';
+import '../../features/staff/presentation/screens/staff_portal_screen.dart';
+import '../../features/staff/presentation/screens/leave_management_screen.dart';
 import '../../features/leads/presentation/screens/lead_list_screen.dart';
 import '../../features/leads/presentation/screens/lead_detail_screen.dart';
 import '../providers/auth_provider.dart';
@@ -86,7 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/housekeeping', '/food', '/activities', '/heritage',
         '/inventory', '/shop', '/maintenance', '/billing', '/payment',
         '/feedback', '/reports', '/settings', '/notifications',
-        '/profile', '/staff', '/leads',
+        '/profile', '/staff', '/leads', '/staff/portal', '/staff/access', '/staff/leaves',
       ];
       final isOpen = openRoutes.any((r) => loc == r || loc.startsWith('$r/'));
       if (isOpen) return null;
@@ -295,6 +298,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const StaffManagementScreen(),
         routes: [
           GoRoute(path: 'attendance', builder: (_, __) => const StaffAttendanceScreen()),
+          GoRoute(path: 'access',    builder: (_, __) => const StaffAccessScreen()),
+          GoRoute(path: 'portal',    builder: (_, __) => const StaffPortalScreen()),
+          GoRoute(path: 'leaves',    builder: (_, __) => const LeaveManagementScreen()),
         ],
       ),
     ],
