@@ -8,6 +8,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../data/dashboard_provider.dart';
 import '../../../housekeeping/presentation/widgets/housekeeping_panel.dart';
+import '../../../activities/presentation/widgets/activities_panel.dart';
 import '../../../billing/data/billing_state_provider.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
 import 'package:intl/intl.dart';
@@ -135,14 +136,8 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       HousekeepingPanel(),
                       const SizedBox(height: AppTheme.spaceLG),
 
-                      // ── Today's Activities ────────────────────────────────
-                      SectionHeader(
-                        title: "Today's Activities",
-                        action: 'Tracker',
-                        onActionTap: () => context.push('/activities/tracker'),
-                      ),
-                      const SizedBox(height: AppTheme.spaceMD),
-                      const _TodayActivitiesCard(),
+                      // ── Activities Panel ──────────────────────────────────
+                      const ActivitiesPanel(),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // Today's Check-ins
