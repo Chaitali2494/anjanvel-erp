@@ -20,13 +20,15 @@ class _ActivityRegistrationScreenState
     extends ConsumerState<ActivityRegistrationScreen> {
   static const _accent = Color(0xFF00838F);
 
-  Map<String, dynamic>? _selectedActivity;
+  // Top fields
   final _roomCtrl  = TextEditingController();
   final _guestCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
+
+  // Selected activity + per-activity state
+  Map<String, dynamic>? _selectedActivity;
   int _persons = 1;
-  DateTime _date = DateTime.now();
   TimeOfDay _time = const TimeOfDay(hour: 9, minute: 0);
+
   bool _isSaving = false;
 
   @override
@@ -44,7 +46,6 @@ class _ActivityRegistrationScreenState
   void dispose() {
     _roomCtrl.dispose();
     _guestCtrl.dispose();
-    _notesCtrl.dispose();
     super.dispose();
   }
 
@@ -57,145 +58,24 @@ class _ActivityRegistrationScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AnjAppBar(title: 'Book Activity'),
+      appBar: const AnjAppBar(title: 'Book Activity'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header summary card ────────────────────────────────────────
-            _HeaderCard(
-              activity: _selectedActivity,
-              persons: _persons,
-              total: _total,
-            ),
-            const SizedBox(height: 20),
-
-            // ── 1. Select Activity ─────────────────────────────────────────
-            _Label('1. Select Activity *'),
-            const SizedBox(height: 8),
-            ...kActivityCatalogue.map((a) => _ActivityCard(
-              activity: a,
-              isSelected: _selectedActivity?['id'] == a['id'],
-              onTap: () => setState(() {
-                _selectedActivity =
-                    _selectedActivity?['id'] == a['id'] ? null : a;
-              }),
-            )),
-            const SizedBox(height: 20),
-
-            // ── 2. Number of Persons ───────────────────────────────────────
-            _Label('2. Number of Persons *'),
-            const SizedBox(height: 8),
-            _SurfaceCard(
-              child: Row(children: [
-                const Icon(Icons.group_rounded, color: _accent, size: 22),
-                const SizedBox(width: 12),
-                const Text('Persons',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                const Spacer(),
-                // Decrease
-                _CircleBtn(
-                  icon: Icons.remove_rounded,
-                  enabled: _persons > 1,
-                  onTap: () => setState(() => _persons--),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('$_persons',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
-                          color: _accent)),
-                ),
-                // Increase
-                _CircleBtn(
-                  icon: Icons.add_rounded,
-                  enabled: _persons < 30,
-                  onTap: () => setState(() => _persons++),
-                ),
-                if (_price > 0) ...[
-                  const SizedBox(width: 12),
-                  Text('₹${_total.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                          color: _accent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14)),
-                ],
-              ]),
-            ),
-            const SizedBox(height: 16),
-
-            // ── 3. Date & Time ─────────────────────────────────────────────
-            _Label('3. Date & Time *'),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: _pickDate,
-                  child: _SurfaceCard(
-                    child: Row(children: [
-                      const Icon(Icons.calendar_today_rounded,
-                          color: _accent, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          DateFormat('d MMM yyyy').format(_date),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                      ),
-                    ]),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: _pickTime,
-                  child: _SurfaceCard(
-                    child: Row(children: [
-                      const Icon(Icons.access_time_rounded,
-                          color: _accent, size: 20),
-                      const SizedBox(width: 10),
-                      Text(
-                        _time.format(context),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14),
-                      ),
-                    ]),
-                  ),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 16),
-
-            // ── 4. Room Number ─────────────────────────────────────────────
-            _Label('4. Room Number *'),
-            const SizedBox(height: 8),
-            _SurfaceCard(
-              child: TextField(
-                controller: _roomCtrl,
-                keyboardType: TextInputType.text,
-                inputFormatters: [LengthLimitingTextInputFormatter(10)],
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 15),
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  prefixIcon: Icon(Icons.bed_outlined, color: _accent, size: 20),
-                  hintText: 'e.g. 101, 205, Tent-3',
-                  hintStyle: TextStyle(
-                      fontWeight: FontWeight.normal,
-                      fontSize: 14,
-                      color: Color(0xFF9E9E9E)),
-                ),
-              ),
+            // ── Room Number ────────────────────────────────────────────────
+            _sectionLabel('Room Number'),
+            const SizedBox(height: 6),
+            _Field(
+              controller: _roomCtrl,
+              icon: Icons.bed_outlined,
+              hint: 'e.g. 101, 205, Tent-3',
+              onChanged: (_) => setState(() {}),
+              inputFormatters: [LengthLimitingTextInputFormatter(10)],
             ),
             const SizedBox(height: 8),
-            // Quick room chips from checked-in list
+            // Quick room chips
             Wrap(
               spacing: 8,
               runSpacing: 6,
@@ -203,22 +83,16 @@ class _ActivityRegistrationScreenState
                 final rno = r['room_number'] as String;
                 final isActive = _roomCtrl.text.trim() == rno;
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _roomCtrl.text = rno;
-                      if (_guestCtrl.text.isEmpty) {
-                        _guestCtrl.text =
-                            r['guest_name'] as String? ?? '';
-                      }
-                    });
-                  },
+                  onTap: () => setState(() {
+                    _roomCtrl.text = rno;
+                    if (_guestCtrl.text.isEmpty) {
+                      _guestCtrl.text = r['guest_name'] as String? ?? '';
+                    }
+                  }),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isActive
-                          ? _accent
-                          : _accent.withOpacity(0.08),
+                      color: isActive ? _accent : _accent.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -235,49 +109,52 @@ class _ActivityRegistrationScreenState
             ),
             const SizedBox(height: 16),
 
-            // ── 5. Guest Name ──────────────────────────────────────────────
-            _Label('5. Guest Name'),
-            const SizedBox(height: 8),
-            _SurfaceCard(
-              child: TextField(
-                controller: _guestCtrl,
-                textCapitalization: TextCapitalization.words,
-                style: const TextStyle(fontSize: 14),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  prefixIcon: Icon(Icons.person_outline_rounded,
-                      color: _accent, size: 20),
-                  hintText: 'Auto-filled when selecting a room above',
-                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF9E9E9E)),
-                ),
-              ),
+            // ── Guest Name ─────────────────────────────────────────────────
+            _sectionLabel('Guest Name'),
+            const SizedBox(height: 6),
+            _Field(
+              controller: _guestCtrl,
+              icon: Icons.person_outline_rounded,
+              hint: 'Auto-filled when selecting room above',
+              capitalize: true,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // ── 6. Special Notes ───────────────────────────────────────────
-            _Label('6. Special Notes'),
+            // ── Select Activity ────────────────────────────────────────────
+            _sectionLabel('Select Activity'),
             const SizedBox(height: 8),
-            _SurfaceCard(
-              child: TextField(
-                controller: _notesCtrl,
-                maxLines: 2,
-                style: const TextStyle(fontSize: 14),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.only(bottom: 24),
-                    child: Icon(Icons.notes_rounded, color: _accent, size: 20),
-                  ),
-                  hintText: 'Any special requirements...',
-                  hintStyle: TextStyle(fontSize: 13, color: Color(0xFF9E9E9E)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
+            ...kActivityCatalogue.map((a) {
+              final isSelected = _selectedActivity?['id'] == a['id'];
+              return _ActivityTile(
+                activity: a,
+                isSelected: isSelected,
+                persons: isSelected ? _persons : 1,
+                time: isSelected ? _time : const TimeOfDay(hour: 9, minute: 0),
+                onTap: () => setState(() {
+                  if (isSelected) {
+                    _selectedActivity = null;
+                  } else {
+                    _selectedActivity = a;
+                    _persons = 1;
+                    _time = const TimeOfDay(hour: 9, minute: 0);
+                  }
+                }),
+                onPersonsChanged: (v) => setState(() => _persons = v),
+                onTimePick: () async {
+                  final t = await showTimePicker(
+                    context: context,
+                    initialTime: _time,
+                    builder: (ctx, child) => Theme(
+                      data: Theme.of(ctx).copyWith(
+                          colorScheme: const ColorScheme.light(primary: _accent)),
+                      child: child!,
+                    ),
+                  );
+                  if (t != null) setState(() => _time = t);
+                },
+              );
+            }),
+            const SizedBox(height: 24),
 
             // ── Bill summary ───────────────────────────────────────────────
             if (_selectedActivity != null) ...[
@@ -288,61 +165,37 @@ class _ActivityRegistrationScreenState
                   borderRadius: BorderRadius.circular(AppTheme.radiusLG),
                   border: Border.all(color: _accent.withOpacity(0.25)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                child: Column(children: [
+                  _BillRow('Activity',       _selectedActivity!['name'] as String),
+                  _BillRow('Duration',       _selectedActivity!['duration'] as String),
+                  _BillRow('Rate',           '₹${_price.toStringAsFixed(0)} / person'),
+                  _BillRow('Persons',        '$_persons'),
+                  const Divider(height: 16),
+                  Row(children: [
+                    const Text('Total',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const Spacer(),
+                    Text('₹${_total.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 22, color: _accent)),
+                  ]),
+                  if (_roomCtrl.text.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
                     Row(children: [
-                      const Icon(Icons.receipt_long_rounded,
-                          color: _accent, size: 18),
-                      const SizedBox(width: 8),
-                      const Text('Bill Summary',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: _accent)),
+                      const Icon(Icons.add_circle_outline_rounded, size: 14, color: _accent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Will be added to Room ${_roomCtrl.text.trim()} bill',
+                        style: const TextStyle(color: _accent, fontSize: 12),
+                      ),
                     ]),
-                    const Divider(height: 16),
-                    _BillRow('Activity',
-                        _selectedActivity!['name'] as String),
-                    _BillRow('Category',
-                        _selectedActivity!['category'] as String),
-                    _BillRow('Duration',
-                        _selectedActivity!['duration'] as String),
-                    _BillRow('Price / Person',
-                        '₹${_price.toStringAsFixed(0)}'),
-                    _BillRow('Persons', '$_persons'),
-                    const Divider(height: 16),
-                    Row(children: [
-                      const Text('Total Amount',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15)),
-                      const Spacer(),
-                      Text('₹${_total.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: _accent)),
-                    ]),
-                    if (_roomCtrl.text.trim().isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Row(children: [
-                        const Icon(Icons.add_circle_outline_rounded,
-                            size: 14, color: _accent),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Will be added to Room ${_roomCtrl.text.trim()} bill',
-                          style: const TextStyle(
-                              color: _accent, fontSize: 12),
-                        ),
-                      ]),
-                    ],
                   ],
-                ),
+                ]),
               ),
               const SizedBox(height: 20),
             ],
 
-            // ── Confirm button ─────────────────────────────────────────────
+            // ── Add to Bill button ─────────────────────────────────────────
             ElevatedButton(
               onPressed: _canSubmit && !_isSaving ? _submit : null,
               style: ElevatedButton.styleFrom(
@@ -354,17 +207,20 @@ class _ActivityRegistrationScreenState
               ),
               child: _isSaving
                   ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Confirm & Add to Bill',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.white)),
+                      width: 22, height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        _selectedActivity != null
+                            ? 'Add to Bill  ·  ₹${_total.toStringAsFixed(0)}'
+                            : 'Add to Bill',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      ),
+                    ]),
             ),
-
             if (!_canSubmit)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -372,8 +228,7 @@ class _ActivityRegistrationScreenState
                   _selectedActivity == null
                       ? 'Please select an activity above'
                       : 'Please enter a room number',
-                  style: const TextStyle(
-                      color: AppTheme.error, fontSize: 12),
+                  style: const TextStyle(color: AppTheme.error, fontSize: 12),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -383,33 +238,11 @@ class _ActivityRegistrationScreenState
     );
   }
 
-  Future<void> _pickDate() async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 90)),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx)
-            .copyWith(colorScheme: const ColorScheme.light(primary: _accent)),
-        child: child!,
-      ),
-    );
-    if (d != null) setState(() => _date = d);
-  }
-
-  Future<void> _pickTime() async {
-    final t = await showTimePicker(
-      context: context,
-      initialTime: _time,
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx)
-            .copyWith(colorScheme: const ColorScheme.light(primary: _accent)),
-        child: child!,
-      ),
-    );
-    if (t != null) setState(() => _time = t);
-  }
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+            fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
+      );
 
   Future<void> _submit() async {
     setState(() => _isSaving = true);
@@ -418,8 +251,7 @@ class _ActivityRegistrationScreenState
         ? (kCheckedInRooms
                 .where((r) => r['room_number'] == roomNo)
                 .map((r) => r['guest_name'] as String? ?? '')
-                .firstOrNull ??
-            'Guest')
+                .firstOrNull ?? 'Guest')
         : _guestCtrl.text.trim();
 
     try {
@@ -433,9 +265,9 @@ class _ActivityRegistrationScreenState
         'persons':          _persons,
         'price_per_person': _price,
         'total_amount':     _total,
-        'date':             DateFormat('yyyy-MM-dd').format(_date),
+        'date':             DateFormat('yyyy-MM-dd').format(DateTime.now()),
         'time':             _time.format(context),
-        'notes':            _notesCtrl.text.trim(),
+        'notes':            '',
       });
 
       if (mounted) {
@@ -443,8 +275,7 @@ class _ActivityRegistrationScreenState
           context: context,
           barrierDismissible: false,
           builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(children: [
               Icon(Icons.check_circle_rounded, color: _accent, size: 28),
               SizedBox(width: 10),
@@ -456,15 +287,13 @@ class _ActivityRegistrationScreenState
               children: [
                 Text(
                   '${_selectedActivity!['emoji']}  ${_selectedActivity!['name']}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text('Persons: $_persons'),
-                Text(
-                    'Date: ${DateFormat('d MMM yyyy').format(_date)} at ${_time.format(context)}'),
+                Text('Time: ${_time.format(context)}'),
                 Text('Room: $roomNo'),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -472,15 +301,12 @@ class _ActivityRegistrationScreenState
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(children: [
-                    const Icon(Icons.receipt_rounded,
-                        color: _accent, size: 16),
+                    const Icon(Icons.receipt_rounded, color: _accent, size: 16),
                     const SizedBox(width: 8),
                     Text(
                       '₹${_total.toStringAsFixed(0)} added to Room $roomNo bill',
                       style: const TextStyle(
-                          color: _accent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13),
+                          color: _accent, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ]),
                 ),
@@ -490,28 +316,23 @@ class _ActivityRegistrationScreenState
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  // Reset form for another booking
                   setState(() {
                     _selectedActivity = null;
                     _persons = 1;
                     _roomCtrl.clear();
                     _guestCtrl.clear();
-                    _notesCtrl.clear();
-                    _date = DateTime.now();
                     _time = const TimeOfDay(hour: 9, minute: 0);
                   });
                 },
                 child: const Text('Add Another'),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent),
+                style: ElevatedButton.styleFrom(backgroundColor: _accent),
                 onPressed: () {
                   Navigator.of(context).pop();
                   context.pop();
                 },
-                child: const Text('Done',
-                    style: TextStyle(color: Colors.white)),
+                child: const Text('Done', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -519,9 +340,8 @@ class _ActivityRegistrationScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppTheme.error));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -529,191 +349,236 @@ class _ActivityRegistrationScreenState
   }
 }
 
-// ── Header card ───────────────────────────────────────────────────────────────
+// ── Activity Tile with inline expansion ───────────────────────────────────────
 
-class _HeaderCard extends StatelessWidget {
-  final Map<String, dynamic>? activity;
-  final int persons;
-  final double total;
-  const _HeaderCard(
-      {required this.activity, required this.persons, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF006064), Color(0xFF00838F), Color(0xFF00ACC1)],
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
-      ),
-      child: Row(children: [
-        Text(
-          activity?['emoji'] as String? ?? '🎯',
-          style: const TextStyle(fontSize: 36),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              activity?['name'] as String? ?? 'Select an activity below',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16),
-            ),
-            if (activity != null)
-              Text(
-                '${activity!['category']} · ${activity!['duration']} · ₹${(activity!['price'] as num).toStringAsFixed(0)}/person',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              )
-            else
-              const Text(
-                'Tap a card below to choose',
-                style: TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-          ]),
-        ),
-        if (total > 0)
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            const Text('Total',
-                style: TextStyle(color: Colors.white60, fontSize: 11)),
-            Text('₹${total.toStringAsFixed(0)}',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22)),
-          ]),
-      ]),
-    );
-  }
-}
-
-// ── Activity selection card ────────────────────────────────────────────────────
-
-class _ActivityCard extends StatelessWidget {
+class _ActivityTile extends StatelessWidget {
   final Map<String, dynamic> activity;
   final bool isSelected;
+  final int persons;
+  final TimeOfDay time;
   final VoidCallback onTap;
-  const _ActivityCard(
-      {required this.activity, required this.isSelected, required this.onTap});
+  final ValueChanged<int> onPersonsChanged;
+  final VoidCallback onTimePick;
+
+  const _ActivityTile({
+    required this.activity,
+    required this.isSelected,
+    required this.persons,
+    required this.time,
+    required this.onTap,
+    required this.onPersonsChanged,
+    required this.onTimePick,
+  });
 
   static const _accent = Color(0xFF00838F);
 
   @override
   Widget build(BuildContext context) {
+    final price = (activity['price'] as num).toDouble();
+    final total = price * persons;
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? _accent.withOpacity(0.08) : AppTheme.surface,
+          color: isSelected ? _accent.withOpacity(0.07) : Colors.white,
           borderRadius: BorderRadius.circular(AppTheme.radiusMD),
           border: Border.all(
             color: isSelected ? _accent : Colors.grey.shade200,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected
-              ? [BoxShadow(color: _accent.withOpacity(0.15), blurRadius: 8)]
-              : [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.04), blurRadius: 4)
-                ],
-        ),
-        child: Row(children: [
-          // Emoji icon
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
               color: isSelected
-                  ? _accent.withOpacity(0.15)
-                  : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
+                  ? _accent.withOpacity(0.12)
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: isSelected ? 8 : 4,
             ),
-            child: Center(
-              child: Text(
-                activity['emoji'] as String,
-                style: const TextStyle(fontSize: 22),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Name + details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity['name'] as String,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: isSelected ? _accent : AppTheme.textPrimary,
+          ],
+        ),
+        child: Column(
+          children: [
+            // ── Main row ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                // Emoji
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                    color: isSelected ? _accent.withOpacity(0.15) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text(activity['emoji'] as String,
+                        style: const TextStyle(fontSize: 22)),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${activity['category']} · ${activity['duration']}',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textPrimary),
+                const SizedBox(width: 12),
+                // Name + info
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(
+                      activity['name'] as String,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: isSelected ? _accent : AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${activity['category']} · ${activity['duration']}',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+                    ),
+                  ]),
                 ),
-              ],
+                // Price
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text(
+                    '₹${price.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: isSelected ? _accent : AppTheme.textPrimary,
+                    ),
+                  ),
+                  const Text('/person',
+                      style: TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
+                ]),
+                const SizedBox(width: 8),
+                Icon(
+                  isSelected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: isSelected ? _accent : Colors.grey.shade400,
+                  size: 22,
+                ),
+              ]),
             ),
-          ),
-          // Price + check
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(
-              '₹${(activity['price'] as num).toStringAsFixed(0)}',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: isSelected ? _accent : AppTheme.textPrimary),
-            ),
-            const Text('/person',
-                style: TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
-          ]),
-          const SizedBox(width: 10),
-          Icon(
-            isSelected
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            color: isSelected ? _accent : Colors.grey.shade400,
-            size: 22,
-          ),
-        ]),
+
+            // ── Inline expansion: persons + time ─────────────────────────
+            if (isSelected) ...[
+              Divider(height: 0, color: _accent.withOpacity(0.2)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(children: [
+                  // Persons row
+                  Row(children: [
+                    const Icon(Icons.group_rounded, color: _accent, size: 18),
+                    const SizedBox(width: 8),
+                    const Text('Persons',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const Spacer(),
+                    // Decrease
+                    _CircleBtn(
+                      icon: Icons.remove_rounded,
+                      enabled: persons > 1,
+                      onTap: () => onPersonsChanged(persons - 1),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('$persons',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 22, color: _accent)),
+                    ),
+                    // Increase
+                    _CircleBtn(
+                      icon: Icons.add_rounded,
+                      enabled: persons < 30,
+                      onTap: () => onPersonsChanged(persons + 1),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '= ₹${total.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                          color: _accent, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ]),
+                  const SizedBox(height: 10),
+
+                  // Time slot row
+                  GestureDetector(
+                    onTap: onTimePick,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _accent.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _accent.withOpacity(0.2)),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.access_time_rounded, color: _accent, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('Time Slot',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Spacer(),
+                        Text(
+                          time.format(context),
+                          style: const TextStyle(
+                              color: _accent, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.edit_rounded, color: _accent, size: 14),
+                      ]),
+                    ),
+                  ),
+                ]),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Small reusable widgets ─────────────────────────────────────────────────────
+// ── Small helpers ─────────────────────────────────────────────────────────────
 
-class _Label extends StatelessWidget {
-  final String text;
-  const _Label(this.text);
-  @override
-  Widget build(_) => Text(text,
-      style: const TextStyle(
-          fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary));
-}
+class _Field extends StatelessWidget {
+  final TextEditingController controller;
+  final IconData icon;
+  final String hint;
+  final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool capitalize;
 
-class _SurfaceCard extends StatelessWidget {
-  final Widget child;
-  const _SurfaceCard({required this.child});
+  const _Field({
+    required this.controller,
+    required this.icon,
+    required this.hint,
+    this.onChanged,
+    this.inputFormatters,
+    this.capitalize = false,
+  });
+
   @override
-  Widget build(_) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
     decoration: BoxDecoration(
-      color: AppTheme.surface,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)
-      ],
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
     ),
-    child: child,
+    child: TextField(
+      controller: controller,
+      onChanged: onChanged,
+      inputFormatters: inputFormatters,
+      textCapitalization:
+          capitalize ? TextCapitalization.words : TextCapitalization.none,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        prefixIcon: Icon(icon, color: const Color(0xFF00838F), size: 20),
+        hintText: hint,
+        hintStyle: const TextStyle(
+            fontWeight: FontWeight.normal, fontSize: 14, color: Color(0xFF9E9E9E)),
+      ),
+    ),
   );
 }
 
@@ -721,23 +586,22 @@ class _CircleBtn extends StatelessWidget {
   final IconData icon;
   final bool enabled;
   final VoidCallback onTap;
-  const _CircleBtn(
-      {required this.icon, required this.enabled, required this.onTap});
-
-  static const _accent = Color(0xFF00838F);
+  const _CircleBtn({required this.icon, required this.enabled, required this.onTap});
 
   @override
   Widget build(_) => GestureDetector(
     onTap: enabled ? onTap : null,
     child: Container(
-      width: 36,
-      height: 36,
+      width: 34, height: 34,
       decoration: BoxDecoration(
-        color: enabled ? _accent.withOpacity(0.12) : Colors.grey.shade100,
+        color: enabled
+            ? const Color(0xFF00838F).withOpacity(0.12)
+            : Colors.grey.shade100,
         shape: BoxShape.circle,
       ),
       child: Icon(icon,
-          size: 20, color: enabled ? _accent : Colors.grey.shade400),
+          size: 18,
+          color: enabled ? const Color(0xFF00838F) : Colors.grey.shade400),
     ),
   );
 }
@@ -753,8 +617,7 @@ class _BillRow extends StatelessWidget {
           style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
       const Spacer(),
       Text(value,
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600)),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
     ]),
   );
 }

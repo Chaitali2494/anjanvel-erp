@@ -25,8 +25,6 @@ import '../../features/food/presentation/screens/food_orders_screen.dart';
 import '../../features/food/presentation/screens/food_dashboard_screen.dart';
 import '../../features/food/presentation/screens/order_detail_screen.dart';
 import '../../features/food/presentation/screens/meal_planning_screen.dart';
-import '../../features/activities/presentation/screens/activity_list_screen.dart';
-import '../../features/activities/presentation/screens/activity_detail_screen.dart';
 import '../../features/activities/presentation/screens/activity_registration_screen.dart';
 import '../../features/activities/presentation/screens/activities_dashboard_screen.dart';
 import '../../features/heritage/presentation/screens/heritage_walk_screen.dart';
@@ -191,21 +189,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // Activities
+      // Activities — go straight to booking form
       GoRoute(
         path: '/activities',
-        builder: (_, __) => const ActivityListScreen(),
+        builder: (_, __) => const ActivityRegistrationScreen(activityId: ''),
         routes: [
           GoRoute(path: 'dashboard', builder: (_, __) => const ActivitiesDashboardScreen()),
-          // Standalone booking (e.g. from billing screen "Add" button — no pre-selected activity)
           GoRoute(path: 'register', builder: (_, __) => const ActivityRegistrationScreen(activityId: '')),
-          GoRoute(
-            path: ':id',
-            builder: (_, state) => ActivityDetailScreen(activityId: state.pathParameters['id']!),
-            routes: [
-              GoRoute(path: 'register', builder: (_, state) => ActivityRegistrationScreen(activityId: state.pathParameters['id']!)),
-            ],
-          ),
         ],
       ),
 
