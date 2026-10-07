@@ -236,7 +236,7 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.title);
   @override Widget build(_) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textHint, letterSpacing: 0.5)),
+    child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary, letterSpacing: 0.5)),
   );
 }
 
@@ -254,9 +254,9 @@ class _SettingsTile extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          Text(subtitle, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+          Text(subtitle, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
         ])),
-        const Icon(Icons.chevron_right_rounded, color: AppTheme.textHint, size: 20),
+        const Icon(Icons.chevron_right_rounded, color: AppTheme.textPrimary, size: 20),
       ]),
     ),
   );
@@ -274,7 +274,7 @@ class _SwitchTile extends StatelessWidget {
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        Text(subtitle, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+        Text(subtitle, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
       ])),
       Switch(value: value, onChanged: onChanged, activeColor: color),
     ]),

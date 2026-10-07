@@ -82,7 +82,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
                   hintText: 'Search by name, email or role...',
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textHint),
+                  prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textPrimary),
                   filled: true, fillColor: AppTheme.surface,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMD), borderSide: BorderSide(color: Colors.grey.shade200)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMD), borderSide: BorderSide(color: Colors.grey.shade200)),
@@ -144,7 +144,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             const SizedBox(width: 12),
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              Text(email, style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                              Text(email, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                               Row(children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -154,7 +154,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               ]),
                             ])),
                             PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textHint, size: 20),
+                              icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textPrimary, size: 20),
                               onSelected: (action) => _handleAction(context, action, u),
                               itemBuilder: (_) => [
                                 const PopupMenuItem(value: 'edit',   child: Row(children: [Icon(Icons.edit_outlined, size: 18), SizedBox(width: 8), Text('Edit')])),

@@ -483,10 +483,10 @@ class _StaffCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   if (member.email != null)
-                    Text(member.email!, style: const TextStyle(color: AppTheme.textHint, fontSize: 12),
+                    Text(member.email!, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (member.phone != null)
-                    Text('+91 ${member.phone}', style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                    Text('+91 ${member.phone}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                   if (member.employeeId != null || member.joinDate != null) ...[
                     const SizedBox(height: 4),
                     Row(
@@ -513,7 +513,7 @@ class _StaffCard extends StatelessWidget {
                   tooltip: 'Call',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.info_outline_rounded, size: 18, color: AppTheme.textHint),
+                  icon: const Icon(Icons.info_outline_rounded, size: 18, color: AppTheme.textPrimary),
                   onPressed: () => _showDetailSheet(context, member, color),
                   tooltip: 'Details',
                 ),
@@ -538,7 +538,7 @@ class _StaffCard extends StatelessWidget {
           children: [
             Text(m.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Text(m.role.replaceAll('_', ' '),
-                style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
             const SizedBox(height: 20),
             if (m.phone != null)
               _ContactRow(Icons.phone_rounded, 'Phone', '+91 ${m.phone!}'),
@@ -587,7 +587,7 @@ class _StaffCard extends StatelessWidget {
                         Text(m.fullName,
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         Text(m.role.replaceAll('_', ' '),
-                            style: const TextStyle(color: AppTheme.textHint)),
+                            style: const TextStyle(color: AppTheme.textPrimary)),
                       ],
                     ),
                   ),
@@ -665,7 +665,7 @@ class _ContactRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+              Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
               Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
             ],
           ),
@@ -687,7 +687,7 @@ class _DetailRow extends StatelessWidget {
         children: [
           SizedBox(
               width: 110,
-              child: Text(label, style: const TextStyle(color: AppTheme.textHint, fontSize: 13))),
+              child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
           Expanded(
               child: Text(value,
                   style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),

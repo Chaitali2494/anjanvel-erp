@@ -129,7 +129,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             const SizedBox(height: 16),
             const Text('Payment Confirmed!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 8),
-            Text('₹${widget.amount.toStringAsFixed(0)} received via $_method', style: const TextStyle(color: AppTheme.textHint, fontSize: 13), textAlign: TextAlign.center),
+            Text('₹${widget.amount.toStringAsFixed(0)} received via $_method', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13), textAlign: TextAlign.center),
           ]),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
@@ -160,7 +160,7 @@ class _UpiSection extends StatelessWidget {
       const SizedBox(height: 12),
       const Text('Scan QR to Pay', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
       const SizedBox(height: 4),
-      const Text('UPI ID: anjanvel@upi', style: TextStyle(color: AppTheme.textHint, fontSize: 12)),
+      const Text('UPI ID: anjanvel@upi', style: TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
     ]),
   );
 }
@@ -215,7 +215,7 @@ class _CardSection extends StatelessWidget {
       SizedBox(height: 8),
       Text('Swipe/Tap Card on POS Machine', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
       SizedBox(height: 4),
-      Text('Connect POS terminal and confirm', style: TextStyle(color: AppTheme.textHint, fontSize: 12)),
+      Text('Connect POS terminal and confirm', style: TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
     ]),
   );
 }
@@ -237,7 +237,7 @@ class _BR extends StatelessWidget {
   @override Widget build(_) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(children: [
-      SizedBox(width: 110, child: Text('$l:', style: const TextStyle(color: AppTheme.textHint, fontSize: 13))),
+      SizedBox(width: 110, child: Text('$l:', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
       Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
     ]),
   );

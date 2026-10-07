@@ -207,7 +207,7 @@ class _ActivityListScreenState extends ConsumerState<ActivityListScreen>
             const Text('Schedule Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             const Text('Select an activity from the Activities tab and tap to schedule it for guests.',
-                style: TextStyle(color: AppTheme.textHint)),
+                style: TextStyle(color: AppTheme.textPrimary)),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
@@ -376,7 +376,7 @@ class _ActivityCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(activity['description'] as String? ?? '',
-                      style: const TextStyle(color: AppTheme.textHint, fontSize: 12),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 8),
                   Row(
@@ -406,9 +406,9 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 12, color: AppTheme.textHint),
+      Icon(icon, size: 12, color: AppTheme.textPrimary),
       const SizedBox(width: 3),
-      Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+      Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
     ],
   );
 }
@@ -455,9 +455,9 @@ class _RegistrationTile extends StatelessWidget {
                 Text(activity['name'] as String? ?? 'Activity',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 Text(guest['full_name'] as String? ?? 'Guest',
-                    style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                 Text('${booking['booking_number'] ?? ''} • $date',
-                    style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
               ],
             ),
           ),

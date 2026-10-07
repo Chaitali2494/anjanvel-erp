@@ -417,7 +417,7 @@ class _InfoRow extends StatelessWidget {
               width: 110,
               child: Text(label,
                   style: const TextStyle(
-                      color: AppTheme.textHint, fontSize: 13))),
+                      color: AppTheme.textPrimary, fontSize: 13))),
           Expanded(
             child: Text(value,
                 style: TextStyle(
@@ -453,7 +453,7 @@ class _ActionRow extends StatelessWidget {
                 child: Text(label,
                     style: const TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w500))),
-            const Icon(Icons.chevron_right, color: AppTheme.textHint),
+            const Icon(Icons.chevron_right, color: AppTheme.textPrimary),
           ],
         ),
       ),

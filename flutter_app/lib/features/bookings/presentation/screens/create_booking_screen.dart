@@ -373,7 +373,7 @@ class _BookingDetailsStep extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Check-in Date *', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+                    const Text('Check-in Date *', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
                     Text(
                       checkInDate != null ? DateFormat('d MMMM yyyy').format(checkInDate!) : 'Select date',
                       style: const TextStyle(fontWeight: FontWeight.w500),
@@ -409,7 +409,7 @@ class _BookingDetailsStep extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Check-out Date', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+                    const Text('Check-out Date', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
                     Text(
                       checkOutDate != null ? DateFormat('d MMMM yyyy').format(checkOutDate!) : 'Day visit / Select date',
                       style: const TextStyle(fontWeight: FontWeight.w500),
@@ -606,7 +606,7 @@ class _PackageStep extends ConsumerWidget {
       children: [
         const Text(
           '* 5% GST applicable on room stays. Booking confirmed on advance payment only.',
-          style: TextStyle(fontSize: 11, color: AppTheme.textHint),
+          style: TextStyle(fontSize: 11, color: AppTheme.textPrimary),
         ),
         if (selectedPackageId != null) ...[
           const SizedBox(height: 8),
@@ -689,7 +689,7 @@ class _PackageStep extends ConsumerWidget {
                         ),
                         Text(
                           pkg['timing'] as String,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textHint),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textPrimary),
                         ),
                         if (pkg['note'] != null)
                           Text(

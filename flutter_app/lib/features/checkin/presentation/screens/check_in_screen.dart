@@ -356,13 +356,13 @@ class _BookingTab extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(emptyIcon, size: 56, color: AppTheme.textHint.withOpacity(0.3)),
+                    Icon(emptyIcon, size: 56, color: AppTheme.textPrimary.withOpacity(0.3)),
                     const SizedBox(height: 12),
                     Text(emptyMessage,
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     const SizedBox(height: 4),
                     Text(emptySub,
-                        style: const TextStyle(color: AppTheme.textHint, fontSize: 12),
+                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
                         textAlign: TextAlign.center),
                   ],
                 ),
@@ -450,7 +450,7 @@ class _FrontDeskCard extends StatelessWidget {
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           if (phone.isNotEmpty)
                             Text('+91 $phone',
-                                style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                         ],
                       ),
                     ),
@@ -510,12 +510,12 @@ class _FrontDeskCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.info_outline, size: 14, color: AppTheme.textHint),
+                      const Icon(Icons.info_outline, size: 14, color: AppTheme.textPrimary),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text('Reason: $cancelReason',
                             style: const TextStyle(
-                                color: AppTheme.textHint, fontSize: 12)),
+                                color: AppTheme.textPrimary, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -567,10 +567,10 @@ class _MiniStat extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 12, color: AppTheme.textHint),
+            Icon(icon, size: 12, color: AppTheme.textPrimary),
             const SizedBox(width: 4),
             Text(label,
-                style: const TextStyle(fontSize: 10, color: AppTheme.textHint)),
+                style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
           ],
         ),
         const SizedBox(height: 3),
@@ -646,7 +646,7 @@ class _ActionSheetState extends ConsumerState<_ActionSheet> {
                               fontSize: 18, fontWeight: FontWeight.bold)),
                       Text(widget.subtitle,
                           style: const TextStyle(
-                              color: AppTheme.textHint, fontSize: 12)),
+                              color: AppTheme.textPrimary, fontSize: 12)),
                     ],
                   ),
                 ),

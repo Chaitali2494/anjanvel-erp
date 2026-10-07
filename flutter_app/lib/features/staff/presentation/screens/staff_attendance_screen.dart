@@ -333,7 +333,7 @@ class _DatePickerBar extends StatelessWidget {
                   ),
                   Text(
                     DateFormat('d MMMM yyyy').format(selectedDate),
-                    style: const TextStyle(color: AppTheme.textHint, fontSize: 12),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
                   ),
                 ],
               ),
@@ -386,7 +386,7 @@ class _DS extends StatelessWidget {
   const _DS(this.l, this.v, this.c);
   @override Widget build(_) => Expanded(child: Column(children: [
     Text(v, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: c)),
-    Text(l, style: const TextStyle(fontSize: 10, color: AppTheme.textHint)),
+    Text(l, style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
   ]));
 }
 class _DD extends StatelessWidget {
@@ -469,7 +469,7 @@ class _StaffAttendanceList extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(staff['full_name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(role.replaceAll('_', ' '), style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                    Text(role.replaceAll('_', ' '), style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                   ],
                 )),
               ]),
@@ -606,10 +606,10 @@ class _AttendanceTile extends StatelessWidget {
                   Text(staff['full_name'] as String? ?? '',
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                   Text(role.replaceAll('_', ' '),
-                      style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                   if (status != null && checkIn != null)
                     Text('In: $checkIn${checkOut != null ? '  Out: $checkOut' : ''}',
-                        style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                 ],
               ),
             ),
@@ -705,7 +705,7 @@ class _SummaryTile extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(staffMember['full_name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-              Text(role.replaceAll('_', ' '), style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+              Text(role.replaceAll('_', ' '), style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
             ])),
             summaryAsync.when(
               loading: () => const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),

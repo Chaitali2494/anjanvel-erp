@@ -70,7 +70,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search help articles...',
                     filled: true, fillColor: Colors.white,
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textHint),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textPrimary),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMD), borderSide: BorderSide.none),
                   ),
@@ -96,10 +96,10 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(children: [
-              const Icon(Icons.quiz_outlined, size: 18, color: AppTheme.textHint),
+              const Icon(Icons.quiz_outlined, size: 18, color: AppTheme.textPrimary),
               const SizedBox(width: 6),
               Text(_search.isEmpty ? 'Frequently Asked Questions' : '${filtered.length} result(s)',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textSecondary)),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
             ]),
           ),
 
@@ -131,7 +131,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             children: [
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                child: Text(faq.a, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.5)),
+                                child: Text(faq.a, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, height: 1.5)),
                               ),
                             ],
                           ),
@@ -194,7 +194,7 @@ class _QuickLink extends StatelessWidget {
           child: Column(children: [
             Icon(icon, color: AppTheme.primary, size: 22),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textSecondary), textAlign: TextAlign.center),
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textPrimary), textAlign: TextAlign.center),
           ]),
         ),
       ),
@@ -218,7 +218,7 @@ class _ContactRow extends StatelessWidget {
       const SizedBox(width: 12),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-        Text(value, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+        Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
       ]),
     ]);
   }

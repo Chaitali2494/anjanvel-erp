@@ -223,7 +223,7 @@ class BookingCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.person_outline, size: 18, color: AppTheme.textHint),
+                      const Icon(Icons.person_outline, size: 18, color: AppTheme.textPrimary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -242,14 +242,14 @@ class BookingCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.textHint),
+                      const Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.textPrimary),
                       const SizedBox(width: 8),
                       Text(
                         _formatDate(booking.checkInDate),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       if (booking.checkOutDate != null) ...[
-                        const Text(' → ', style: TextStyle(color: AppTheme.textHint)),
+                        const Text(' → ', style: TextStyle(color: AppTheme.textPrimary)),
                         Text(
                           _formatDate(booking.checkOutDate!),
                           style: Theme.of(context).textTheme.bodyMedium,
@@ -261,7 +261,7 @@ class BookingCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.spa_outlined, size: 16, color: AppTheme.textHint),
+                        const Icon(Icons.spa_outlined, size: 16, color: AppTheme.textPrimary),
                         const SizedBox(width: 8),
                         Text(booking.packageName!, style: Theme.of(context).textTheme.bodySmall),
                       ],

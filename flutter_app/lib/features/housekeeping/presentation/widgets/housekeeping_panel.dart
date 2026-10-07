@@ -88,7 +88,7 @@ class HousekeepingPanel extends ConsumerWidget {
                       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Icon(Icons.check_circle_outline_rounded, color: Color(0xFF2E7D32), size: 20),
                         SizedBox(width: 8),
-                        Text('All rooms clean — no pending tasks!', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+                        Text('All rooms clean — no pending tasks!', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
                       ]),
                     )
                   else
@@ -150,7 +150,7 @@ class HousekeepingPanel extends ConsumerWidget {
                 const SizedBox(height: 20),
 
                 // Room
-                const Text('Room Number *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                const Text('Room Number *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: roomCtrl,
@@ -160,7 +160,7 @@ class HousekeepingPanel extends ConsumerWidget {
                 const SizedBox(height: 14),
 
                 // Task Type
-                const Text('Task Type *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                const Text('Task Type *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: taskType,
@@ -178,7 +178,7 @@ class HousekeepingPanel extends ConsumerWidget {
                 const SizedBox(height: 14),
 
                 // Priority
-                const Text('Priority', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                const Text('Priority', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
                 const SizedBox(height: 6),
                 Row(children: [
                   for (final p in ['HIGH', 'NORMAL', 'LOW']) ...[
@@ -208,7 +208,7 @@ class HousekeepingPanel extends ConsumerWidget {
                 const SizedBox(height: 14),
 
                 // Assigned To
-                const Text('Assign To', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                const Text('Assign To', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: assignCtrl,
@@ -217,7 +217,7 @@ class HousekeepingPanel extends ConsumerWidget {
                 const SizedBox(height: 14),
 
                 // Notes
-                const Text('Notes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                const Text('Notes', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
                 const SizedBox(height: 6),
                 TextField(
                   controller: notesCtrl,
@@ -307,7 +307,7 @@ class HKTaskRow extends StatelessWidget {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(type.split(' ').map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1).toLowerCase() : '').join(' '),
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          Text(assigned, style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+          Text(assigned, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
         ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Container(

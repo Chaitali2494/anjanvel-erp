@@ -159,7 +159,7 @@ class HousekeepingDashboardScreen extends ConsumerWidget {
                         SizedBox(height: 8),
                         Text('All rooms are clean! 🎉', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         SizedBox(height: 4),
-                        Text('Great work today!', style: TextStyle(color: AppTheme.textHint)),
+                        Text('Great work today!', style: TextStyle(color: AppTheme.textPrimary)),
                       ]),
                     ),
                   ),
@@ -223,7 +223,7 @@ class _StatTile extends StatelessWidget {
         child: Column(children: [
           Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 9, color: AppTheme.textHint), textAlign: TextAlign.center),
+          Text(label, style: const TextStyle(fontSize: 9, color: AppTheme.textPrimary), textAlign: TextAlign.center),
         ]),
       ),
     );
@@ -302,7 +302,7 @@ class _TaskTile extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Room $room — $typeLabel', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 2),
-            Text(assigned, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+            Text(assigned, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
           ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Container(

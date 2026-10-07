@@ -219,7 +219,7 @@ class _TaskCard extends StatelessWidget {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Room $room — $typeLabel', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               Text(roomType.isNotEmpty ? '$roomType · $assigned' : assigned,
-                  style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
             ])),
             // Priority dot
             Container(
@@ -229,7 +229,7 @@ class _TaskCard extends StatelessWidget {
           ]),
           if (notes.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(notes, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontStyle: FontStyle.italic)),
+            Text(notes, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontStyle: FontStyle.italic)),
           ],
           const SizedBox(height: 10),
           Row(children: [

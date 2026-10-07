@@ -306,7 +306,7 @@ class _ActivityRegistrationScreenState
                   ]),
                   const SizedBox(height: 4),
                   Text('(will appear in Room ${_selectedRoom?['room_number'] ?? '—'} checkout bill)',
-                      style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                 ]),
               ),
 
@@ -418,7 +418,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(text, style: const TextStyle(
-        fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+        fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
   );
 }
 
@@ -448,7 +448,7 @@ class _PriceRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(children: [
-      Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+      Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
       const Spacer(),
       Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
     ]),

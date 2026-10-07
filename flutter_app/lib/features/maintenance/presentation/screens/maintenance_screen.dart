@@ -201,14 +201,14 @@ class _TicketCard extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            const Icon(Icons.location_on_outlined, size: 13, color: AppTheme.textHint),
+            const Icon(Icons.location_on_outlined, size: 13, color: AppTheme.textPrimary),
             const SizedBox(width: 3),
-            Text(location, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+            Text(location, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
             if (assigned.isNotEmpty) ...[
               const SizedBox(width: 12),
-              const Icon(Icons.person_outline_rounded, size: 13, color: AppTheme.textHint),
+              const Icon(Icons.person_outline_rounded, size: 13, color: AppTheme.textPrimary),
               const SizedBox(width: 3),
-              Text(assigned, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+              Text(assigned, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
             ],
             const Spacer(),
             Container(

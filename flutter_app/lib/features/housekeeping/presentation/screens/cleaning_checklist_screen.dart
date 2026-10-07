@@ -114,7 +114,7 @@ class _CleaningChecklistScreenState extends ConsumerState<CleaningChecklistScree
                           ),
                           child: item.checked
                               ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
-                              : Icon(item.icon, color: Colors.grey.shade400, size: 14),
+                              : Icon(item.icon, color: AppTheme.textPrimary, size: 14),
                         ),
                         const SizedBox(width: 12),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -123,7 +123,7 @@ class _CleaningChecklistScreenState extends ConsumerState<CleaningChecklistScree
                             decoration: item.checked ? TextDecoration.lineThrough : null,
                             color: item.checked ? AppTheme.textHint : AppTheme.textPrimary,
                           )),
-                          Text(item.description, style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                          Text(item.description, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                         ])),
                       ]),
                     ),
@@ -144,7 +144,7 @@ class _CleaningChecklistScreenState extends ConsumerState<CleaningChecklistScree
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Row(children: [
-                        Icon(Icons.camera_alt_outlined, size: 18, color: AppTheme.textHint),
+                        Icon(Icons.camera_alt_outlined, size: 18, color: AppTheme.textPrimary),
                         SizedBox(width: 8),
                         Text('Photo Verification', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       ]),
@@ -269,7 +269,7 @@ class _PhotoUploadBox extends StatelessWidget {
           if (uploaded)
             Text(note!, style: TextStyle(fontSize: 10, color: color)),
           if (!uploaded)
-            Text('Tap to upload', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+            Text('Tap to upload', style: TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
         ]),
       ),
     );

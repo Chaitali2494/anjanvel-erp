@@ -107,9 +107,9 @@ class _RoomDashboardScreenState extends ConsumerState<RoomDashboardScreen> {
                         padding: const EdgeInsets.all(32),
                         child: Column(
                           children: [
-                            Icon(Icons.bed_outlined, size: 48, color: AppTheme.textHint),
+                            Icon(Icons.bed_outlined, size: 48, color: AppTheme.textPrimary),
                             const SizedBox(height: 8),
-                            Text('No rooms in this status', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textHint)),
+                            Text('No rooms in this status', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary)),
                           ],
                         ),
                       ),
@@ -341,7 +341,7 @@ class _RoomCard extends StatelessWidget {
               typeName.toString().length > 20
                   ? '${typeName.toString().substring(0, 18)}…'
                   : typeName.toString(),
-              style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary),
               maxLines: 1,
             ),
             const Spacer(),
@@ -360,12 +360,12 @@ class _RoomCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.person_outline, size: 12, color: AppTheme.textHint),
+                  const Icon(Icons.person_outline, size: 12, color: AppTheme.textPrimary),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       guestName,
-                      style: const TextStyle(fontSize: 10, color: AppTheme.textHint),
+                      style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

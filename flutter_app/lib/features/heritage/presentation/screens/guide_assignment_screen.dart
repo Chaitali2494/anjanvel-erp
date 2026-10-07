@@ -96,7 +96,7 @@ class _GuideAssignmentScreenState extends ConsumerState<GuideAssignmentScreen> {
                             ]),
                           ]),
                           const SizedBox(height: 4),
-                          Text(g['languages'] as String, style: const TextStyle(color: AppTheme.textHint, fontSize: 9)),
+                          Text(g['languages'] as String, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 9)),
                         ]),
                       );
                     },
@@ -151,13 +151,13 @@ class _GuideAssignmentScreenState extends ConsumerState<GuideAssignmentScreen> {
                       ]),
                       const SizedBox(height: 8),
                       Row(children: [
-                        Icon(Icons.calendar_today_outlined, size: 12, color: AppTheme.textHint),
+                        Icon(Icons.calendar_today_outlined, size: 12, color: AppTheme.textPrimary),
                         const SizedBox(width: 4),
-                        Text('${walk['date']} at ${walk['time']}', style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                        Text('${walk['date']} at ${walk['time']}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                         const Spacer(),
-                        Icon(Icons.people_outline_rounded, size: 12, color: AppTheme.textHint),
+                        Icon(Icons.people_outline_rounded, size: 12, color: AppTheme.textPrimary),
                         const SizedBox(width: 4),
-                        Text('${walk['registered']}/${walk['capacity']}', style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                        Text('${walk['registered']}/${walk['capacity']}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                       ]),
                       if (hasGuide) ...[
                         const SizedBox(height: 8),

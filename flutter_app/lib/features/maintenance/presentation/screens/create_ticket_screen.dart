@@ -119,7 +119,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
 
   InputDecoration _dec(String hint, IconData icon) => InputDecoration(
     hintText: hint,
-    prefixIcon: Icon(icon, size: 20, color: AppTheme.textHint),
+    prefixIcon: Icon(icon, size: 20, color: AppTheme.textPrimary),
     filled: true, fillColor: AppTheme.surface,
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMD), borderSide: BorderSide(color: Colors.grey.shade200)),
     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMD), borderSide: BorderSide(color: Colors.grey.shade200)),
@@ -161,6 +161,6 @@ class _Label extends StatelessWidget {
   const _Label(this.text);
   @override Widget build(_) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
-    child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+    child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
   );
 }

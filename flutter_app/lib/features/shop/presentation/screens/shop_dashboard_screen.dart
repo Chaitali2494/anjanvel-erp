@@ -105,7 +105,7 @@ class ShopDashboardScreen extends ConsumerWidget {
                     children: [
                       Row(children: [
                         Expanded(child: Text(p['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-                        Text('${p['sold']} sold', style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                        Text('${p['sold']} sold', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                         const SizedBox(width: 12),
                         Text('₹${p['revenue']}', style: const TextStyle(color: Color(0xFF558B2F), fontWeight: FontWeight.bold, fontSize: 13)),
                       ]),

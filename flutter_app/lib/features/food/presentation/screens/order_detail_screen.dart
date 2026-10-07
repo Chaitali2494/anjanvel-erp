@@ -104,7 +104,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 Text(statusLabel, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 15)),
                 const Spacer(),
                 if (formattedTime != null)
-                  Text(formattedTime, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                  Text(formattedTime, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
               ]),
             ),
             const SizedBox(height: 20),
@@ -129,7 +129,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               child: items.isEmpty
                   ? const Padding(
                       padding: EdgeInsets.all(16),
-                      child: Text('No items listed', style: TextStyle(color: AppTheme.textHint)),
+                      child: Text('No items listed', style: TextStyle(color: AppTheme.textPrimary)),
                     )
                   : Column(
                       children: List.generate(items.length, (i) {
@@ -149,7 +149,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                             const SizedBox(width: 10),
                             Expanded(child: Text(name.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
                             if (price.toString().isNotEmpty)
-                              Text('₹$price', style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+                              Text('₹$price', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
                           ]),
                         );
                       }),
@@ -171,7 +171,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 child: Row(children: [
                   const Icon(Icons.sticky_note_2_outlined, color: Color(0xFFFFB300), size: 18),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(notes, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4))),
+                  Expanded(child: Text(notes, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, height: 1.4))),
                 ]),
               ),
             ],
@@ -228,9 +228,9 @@ class _Row extends StatelessWidget {
   @override Widget build(_) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(children: [
-      Icon(icon, size: 18, color: AppTheme.textHint),
+      Icon(icon, size: 18, color: AppTheme.textPrimary),
       const SizedBox(width: 10),
-      Text('$label:', style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+      Text('$label:', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
       const SizedBox(width: 8),
       Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
     ]),

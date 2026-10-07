@@ -203,9 +203,9 @@ class _ActivityCard extends StatelessWidget {
             Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Row(children: [
-              Icon(Icons.people_outline_rounded, size: 12, color: AppTheme.textHint),
+              Icon(Icons.people_outline_rounded, size: 12, color: AppTheme.textPrimary),
               const SizedBox(width: 3),
-              Text('$regs', style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+              Text('$regs', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
               const Spacer(),
               if (price != null)
                 Text('₹$price', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),

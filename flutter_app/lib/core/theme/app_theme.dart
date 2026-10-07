@@ -22,8 +22,8 @@ class AppTheme {
 
   // Text Colors
   static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF616161);
-  static const Color textHint = Color(0xFF9E9E9E);
+  static const Color textSecondary = Color(0xFF424242);   // darker – was 0xFF616161
+  static const Color textHint = Color(0xFF757575);        // darker – was 0xFF9E9E9E
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // Status Colors
@@ -83,13 +83,13 @@ class AppTheme {
         headlineSmall: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
         titleLarge: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: textPrimary),
         titleMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: textPrimary),
-        titleSmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textSecondary),
+        titleSmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary),
         bodyLarge: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.normal, color: textPrimary),
-        bodyMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.normal, color: textSecondary),
-        bodySmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.normal, color: textHint),
+        bodyMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.normal, color: textPrimary),
+        bodySmall: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.normal, color: textSecondary),
         labelLarge: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: textOnPrimary),
-        labelMedium: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500),
-        labelSmall: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500),
+        labelMedium: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textPrimary),
+        labelSmall: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w500, color: textPrimary),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: surface,
@@ -147,7 +147,7 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: spaceMD, vertical: spaceMD),
         hintStyle: GoogleFonts.poppins(color: textHint, fontSize: 14),
-        labelStyle: GoogleFonts.poppins(color: textSecondary, fontSize: 14),
+        labelStyle: GoogleFonts.poppins(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
       ),
       cardTheme: CardTheme(
         elevation: elevationSM,

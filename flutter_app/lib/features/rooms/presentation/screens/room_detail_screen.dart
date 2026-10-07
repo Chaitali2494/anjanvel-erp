@@ -210,9 +210,9 @@ class _GuestSummaryCard extends StatelessWidget {
         child: const Padding(
           padding: EdgeInsets.symmetric(vertical: 16),
           child: Center(child: Column(children: [
-            Icon(Icons.person_off_outlined, size: 36, color: AppTheme.textHint),
+            Icon(Icons.person_off_outlined, size: 36, color: AppTheme.textPrimary),
             SizedBox(height: 8),
-            Text('No guest checked in', style: TextStyle(color: AppTheme.textHint)),
+            Text('No guest checked in', style: TextStyle(color: AppTheme.textPrimary)),
           ])),
         ),
       );
@@ -268,10 +268,10 @@ class _GuestSummaryCard extends StatelessWidget {
               Text(guestName,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
               Text('📞 $phone',
-                  style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
               if (email != null)
                 Text('✉️ $email',
-                    style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
             ])),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -297,7 +297,7 @@ class _GuestSummaryCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(children: [
-                const Icon(Icons.people_rounded, size: 18, color: AppTheme.textSecondary),
+                const Icon(Icons.people_rounded, size: 18, color: AppTheme.textPrimary),
                 const SizedBox(width: 8),
                 const Text('Guests:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(width: 12),
@@ -367,7 +367,7 @@ class _ActivitiesCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(children: [
                 const Text('No activities booked yet',
-                    style: TextStyle(color: AppTheme.textHint, fontSize: 13)),
+                    style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
                 const Spacer(),
                 TextButton(
                   onPressed: () => context.push('/activities/register'),
@@ -401,7 +401,7 @@ class _ActivitiesCard extends StatelessWidget {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                       Text('$persons person${persons > 1 ? 's' : ''} · $date $time',
-                          style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                     ])),
                     Text('₹${total.toStringAsFixed(0)}',
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00838F), fontSize: 14)),
@@ -461,7 +461,7 @@ class _FoodOrdersCard extends StatelessWidget {
       child: orders.isEmpty
           ? const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('No food orders yet', style: TextStyle(color: AppTheme.textHint, fontSize: 13)),
+              child: Text('No food orders yet', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
             )
           : Column(children: [
               if (pending.isNotEmpty) ...[
@@ -533,7 +533,7 @@ class _FoodRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(order['item'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          Text(order['time'] as String, style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+          Text(order['time'] as String, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
         ])),
         Text('₹${(order['amount'] as num).toStringAsFixed(0)}',
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -583,7 +583,7 @@ class _RoomHeader extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Room $roomNumber', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          Text(typeName, style: const TextStyle(color: AppTheme.textSecondary)),
+          Text(typeName, style: const TextStyle(color: AppTheme.textPrimary)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -686,7 +686,7 @@ class _InfoRow extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(width: 110,
-          child: Text(label, style: const TextStyle(color: AppTheme.textHint, fontSize: 13))),
+          child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
       Expanded(child: Text(value,
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: valueColor))),
     ]),

@@ -146,7 +146,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(AppTheme.radiusMD), border: Border.all(color: Colors.grey.shade200)),
-                child: Text(notes, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.5)),
+                child: Text(notes, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.5)),
               ),
               const SizedBox(height: 20),
             ],
@@ -192,9 +192,9 @@ class _DetailRow extends StatelessWidget {
   @override Widget build(_) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(children: [
-      Icon(icon, size: 18, color: AppTheme.textHint),
+      Icon(icon, size: 18, color: AppTheme.textPrimary),
       const SizedBox(width: 10),
-      Text('$label:', style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+      Text('$label:', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
       const SizedBox(width: 8),
       Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
     ]),

@@ -134,7 +134,7 @@ class _FeedbackDashboardScreenState extends ConsumerState<FeedbackDashboardScree
                               const SizedBox(width: 10),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                Text(date, style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                                Text(date, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                               ])),
                               Row(children: List.generate(5, (s) => Icon(
                                 s < rating ? Icons.star_rounded : Icons.star_outline_rounded,
@@ -151,7 +151,7 @@ class _FeedbackDashboardScreenState extends ConsumerState<FeedbackDashboardScree
                             ],
                             if (comment.isNotEmpty) ...[
                               const SizedBox(height: 8),
-                              Text(comment, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4)),
+                              Text(comment, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, height: 1.4)),
                             ],
                           ]),
                         );

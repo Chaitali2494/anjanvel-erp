@@ -95,7 +95,7 @@ class InfoCard extends StatelessWidget {
               ),
             ),
             if (onTap != null)
-              Icon(Icons.chevron_right, color: AppTheme.textHint, size: 20),
+              Icon(Icons.chevron_right, color: AppTheme.textPrimary, size: 20),
           ],
         ),
       ),

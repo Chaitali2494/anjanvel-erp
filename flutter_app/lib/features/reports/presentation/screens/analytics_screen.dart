@@ -500,7 +500,7 @@ class _RoomStatusBar extends StatelessWidget {
           child: LinearProgressIndicator(value: pct, backgroundColor: Colors.grey.shade200, color: color, minHeight: 8),
         )),
         const SizedBox(width: 8),
-        SizedBox(width: 40, child: Text('$count rooms', style: const TextStyle(fontSize: 11, color: AppTheme.textHint), textAlign: TextAlign.right)),
+        SizedBox(width: 40, child: Text('$count rooms', style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary), textAlign: TextAlign.right)),
       ]),
     );
   }
@@ -616,7 +616,7 @@ class _MiniStat extends StatelessWidget {
         children: [
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: color)),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textHint), textAlign: TextAlign.center),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary), textAlign: TextAlign.center),
         ],
       ),
     );
@@ -645,7 +645,7 @@ class _InfoCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+            Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
           ],
         )),
       ]),

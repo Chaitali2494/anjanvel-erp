@@ -39,7 +39,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('Select Your Role', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
                   const SizedBox(height: 8),
-                  const Text('Choose your role to access the right dashboard', style: TextStyle(color: AppTheme.textHint, fontSize: 14), textAlign: TextAlign.center),
+                  const Text('Choose your role to access the right dashboard', style: TextStyle(color: AppTheme.textPrimary, fontSize: 14), textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -96,7 +96,7 @@ class _RoleCard extends StatelessWidget {
                 children: [
                   Text(role.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   const SizedBox(height: 2),
-                  Text(role.description, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                  Text(role.description, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                 ],
               ),
             ),

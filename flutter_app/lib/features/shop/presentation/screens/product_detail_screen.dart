@@ -87,7 +87,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     Text('₹$price', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Color(0xFF558B2F))),
                     if (unit.isNotEmpty) ...[
                       const SizedBox(width: 6),
-                      Text('per $unit', style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+                      Text('per $unit', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
                     ],
                   ]),
                   const SizedBox(height: 16),
@@ -106,7 +106,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     ),
                     if (sku.isNotEmpty) ...[
                       const Spacer(),
-                      Text('SKU: $sku', style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                      Text('SKU: $sku', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                     ],
                   ]),
                   const SizedBox(height: 20),
@@ -115,7 +115,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   if (desc.isNotEmpty) ...[
                     const Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 8),
-                    Text(desc, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, height: 1.6)),
+                    Text(desc, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.6)),
                     const SizedBox(height: 20),
                   ],
 

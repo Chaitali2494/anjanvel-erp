@@ -191,7 +191,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 child: _resendSeconds > 0
                     ? Text(
                         'Resend OTP in ${_resendSeconds}s',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textHint),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary),
                       )
                     : TextButton(
                         onPressed: _resend,

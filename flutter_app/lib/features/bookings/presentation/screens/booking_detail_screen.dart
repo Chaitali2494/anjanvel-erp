@@ -289,7 +289,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             children: [
               const Text('Record Payment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              Text('Balance: ₹${balance.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.textHint)),
+              Text('Balance: ₹${balance.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.textPrimary)),
               const SizedBox(height: 16),
               TextField(
                 controller: amountController,
@@ -457,7 +457,7 @@ class _StatusBanner extends StatelessWidget {
             if (balance > 0) ...[
               const SizedBox(width: 8),
               Text('Balance ₹${balance.toStringAsFixed(0)}',
-                  style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
             ],
           ]),
         ])),
@@ -512,7 +512,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: AppTheme.textHint, fontSize: 13)),
+            child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
           ),
           Expanded(
             child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
@@ -568,7 +568,7 @@ class _PaymentSummaryCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '${(paidPct * 100).toStringAsFixed(0)}% paid',
-            style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+            style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary),
           ),
         ],
       ),
@@ -617,7 +617,7 @@ class _PaymentHistoryCard extends StatelessWidget {
             const Text('Payment History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const Spacer(),
             Text('${payments.length} transaction${payments.length != 1 ? 's' : ''}',
-                style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
           ]),
           const Divider(height: 16),
 
@@ -626,9 +626,9 @@ class _PaymentHistoryCard extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 child: Column(children: [
-                  Icon(Icons.receipt_outlined, size: 36, color: AppTheme.textHint),
+                  Icon(Icons.receipt_outlined, size: 36, color: AppTheme.textPrimary),
                   SizedBox(height: 8),
-                  Text('No payments recorded yet', style: TextStyle(color: AppTheme.textHint)),
+                  Text('No payments recorded yet', style: TextStyle(color: AppTheme.textPrimary)),
                 ]),
               ),
             )
@@ -682,16 +682,16 @@ class _PaymentHistoryCard extends StatelessWidget {
                     ]),
                     const SizedBox(height: 3),
                     Text(dateStr,
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
                     if (note != null && note.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(note,
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary,
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary,
                               fontStyle: FontStyle.italic)),
                     ],
                     const SizedBox(height: 4),
                     Text('Running total: ₹${runningTotal.toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 10, color: AppTheme.textHint)),
+                        style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary)),
                   ])),
                 ]),
               );
@@ -863,7 +863,7 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
           else ...[
             // Assigned rooms
             if (_assignedRooms.isNotEmpty) ...[
-              const Text('Assigned Rooms', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+              const Text('Assigned Rooms', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
               const SizedBox(height: 6),
               ..._assignedRooms.map((r) {
                 final room = r['rooms'] as Map<String, dynamic>? ?? {};
@@ -886,12 +886,12 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
             ],
 
             // Available rooms to assign
-            const Text('Available Rooms', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+            const Text('Available Rooms', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
             const SizedBox(height: 6),
             if (_availableRooms.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(8),
-                child: Text('No available rooms', style: TextStyle(color: AppTheme.textHint)),
+                child: Text('No available rooms', style: TextStyle(color: AppTheme.textPrimary)),
               )
             else
               Wrap(
@@ -919,7 +919,7 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
                           ),
                           Text(
                             ((r['room_types'] as Map<String, dynamic>?)?['name'] ?? '').toString().split(' ').first,
-                            style: const TextStyle(fontSize: 10, color: AppTheme.textHint),
+                            style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary),
                           ),
                         ],
                       ),

@@ -107,9 +107,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(guestName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Text('Room $_roomNo ($roomType) · Check-out: Today',
-                          style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                       Text(widget.bookingId != null ? 'Booking #${widget.bookingId}' : 'Booking #ANJ-2024-001',
-                          style: const TextStyle(color: AppTheme.textHint, fontSize: 11)),
+                          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
                     ])),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -259,7 +259,7 @@ class _EmptyActivityTile extends StatelessWidget {
         const Text('🎯', style: TextStyle(fontSize: 16)),
         const SizedBox(width: 8),
         const Expanded(child: Text('No activities booked for this room',
-            style: TextStyle(color: AppTheme.textHint, fontSize: 13))),
+            style: TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
         TextButton(
           onPressed: () => context.push('/activities/register'),
           child: const Text('Add', style: TextStyle(fontSize: 12)),
@@ -307,7 +307,7 @@ class _ChargeSectionState extends State<_ChargeSection> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.color)),
             const SizedBox(width: 6),
             Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                size: 18, color: AppTheme.textHint),
+                size: 18, color: AppTheme.textPrimary),
           ]),
         ),
       ),
@@ -316,9 +316,9 @@ class _ChargeSectionState extends State<_ChargeSection> {
         child: Row(children: [
           const SizedBox(width: 12),
           Expanded(child: Text(c.label,
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13))),
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
           Text('₹${c.amount.toStringAsFixed(0)}',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
         ]),
       )),
     ]),
