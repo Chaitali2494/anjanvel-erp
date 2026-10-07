@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../../shop/data/shop_room_charges_provider.dart';
 
 // ── Session-level sales state ──────────────────────────────────────────────────
 
@@ -346,6 +347,8 @@ class ShopDashboardScreen extends ConsumerWidget {
   void _showSaleSheet(BuildContext context, WidgetRef ref, {_Product? product}) {
     _Product? selected = product;
     int qty = 1;
+    bool chargeToRoom = false;
+    final roomCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -422,26 +425,95 @@ class ShopDashboardScreen extends ConsumerWidget {
                     ),
                   ],
                 ]),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // ── Charge to Room toggle ──────────────────────────────
+                Container(
+                  decoration: BoxDecoration(
+                    color: chargeToRoom ? const Color(0xFF1565C0).withOpacity(0.06) : AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: chargeToRoom ? const Color(0xFF1565C0).withOpacity(0.4) : Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        value: chargeToRoom,
+                        onChanged: (v) => setModal(() => chargeToRoom = v),
+                        activeColor: const Color(0xFF1565C0),
+                        title: const Text('Charge to Guest Room', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
+                        subtitle: const Text('Add this to the room bill', style: TextStyle(fontSize: 11, color: AppTheme.textPrimary)),
+                        secondary: Icon(Icons.hotel_rounded, color: chargeToRoom ? const Color(0xFF1565C0) : Colors.grey),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      ),
+                      if (chargeToRoom) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                          child: TextField(
+                            controller: roomCtrl,
+                            keyboardType: TextInputType.text,
+                            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                            decoration: InputDecoration(
+                              labelText: 'Room Number *',
+                              labelStyle: const TextStyle(color: AppTheme.textPrimary),
+                              hintText: 'e.g. 101, 205',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              prefixIcon: const Icon(Icons.bed_outlined, size: 18, color: Color(0xFF1565C0)),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
                       if (selected == null) return;
+                      if (chargeToRoom && roomCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a room number'), backgroundColor: AppTheme.error),
+                        );
+                        return;
+                      }
                       Navigator.pop(ctx);
+                      // Record the shop sale
                       ref.read(shopNotifierProvider.notifier).addSale(
                         _Sale(product: selected!.name, category: selected!.category, price: selected!.price, qty: qty),
                       );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Sale recorded: ${selected!.name} × $qty'),
-                          backgroundColor: const Color(0xFF558B2F),
-                        ),
-                      );
+                      // If charging to room, also add to room charges
+                      if (chargeToRoom) {
+                        ref.read(shopRoomChargesProvider.notifier).addCharge(
+                          ShopRoomCharge(
+                            product: selected!.name,
+                            roomNumber: roomCtrl.text.trim(),
+                            price: selected!.price,
+                            qty: qty,
+                          ),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('₹${(selected!.price * qty).toStringAsFixed(0)} charged to Room ${roomCtrl.text.trim()}'),
+                            backgroundColor: const Color(0xFF1565C0),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Sale recorded: ${selected!.name} × $qty'),
+                            backgroundColor: const Color(0xFF558B2F),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF558B2F), minimumSize: const Size(double.infinity, 50)),
-                    child: const Text('Record Sale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    child: Text(
+                      chargeToRoom ? 'Charge to Room & Record Sale' : 'Record Sale',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
                   ),
                 ),
               ],

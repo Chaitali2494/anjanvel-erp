@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
+import '../../../shop/data/shop_room_charges_provider.dart';
 import '../../data/billing_state_provider.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
@@ -31,6 +32,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   Widget build(BuildContext context) {
     final activityBookings = ref.watch(activityBookingsProvider);
     final billingState     = ref.watch(billingStateProvider);
+    final shopCharges      = ref.watch(shopRoomChargesProvider);
     final isPaid           = billingState[_roomNo]?['is_paid'] == true;
 
     return activityBookings.when(
@@ -86,10 +88,22 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             })
             .toList();
 
+        // 4. SHG Shop charges for this room
+        final roomShopCharges = shopCharges
+            .where((c) => c.roomNumber == _roomNo)
+            .toList();
+        final shopBillCharges = roomShopCharges.map((c) => _Charge(
+          '${c.product} × ${c.qty}',
+          c.total,
+          Icons.storefront_rounded,
+          const Color(0xFF558B2F),
+        )).toList();
+
         final residenceTotal = residenceCharges.fold(0.0, (s, c) => s + c.amount);
         final kitchenTotal   = foodCharges.fold(0.0, (s, c) => s + c.amount);
         final activityTotal  = activityCharges.fold(0.0, (s, c) => s + c.amount);
-        final subtotal       = residenceTotal + kitchenTotal + activityTotal;
+        final shopTotal      = shopBillCharges.fold(0.0, (s, c) => s + c.amount);
+        final subtotal       = residenceTotal + kitchenTotal + activityTotal + shopTotal;
         final gst            = subtotal * 0.12;
         final discount       = subtotal * (_discountPct / 100);
         final grandTotal     = subtotal + gst - discount;
@@ -168,6 +182,20 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   emptyAction: TextButton(
                     onPressed: () => context.push('/activities/register'),
                     child: const Text('Add Activity', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // ── SHG Shop Bill ─────────────────────────────────────────
+                _BillSection(
+                  title: '🏪 SHG Shop',
+                  charges: shopBillCharges,
+                  total: shopTotal,
+                  color: const Color(0xFF558B2F),
+                  emptyLabel: 'No shop purchases for this room',
+                  emptyAction: TextButton(
+                    onPressed: () => context.push('/shop'),
+                    child: const Text('Go to Shop', style: TextStyle(fontSize: 12)),
                   ),
                 ),
                 const SizedBox(height: 16),
