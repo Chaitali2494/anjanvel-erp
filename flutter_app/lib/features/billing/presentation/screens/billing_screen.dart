@@ -1,11 +1,9 @@
-import 'dart:typed_data';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
@@ -527,14 +525,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       ),
     ));
 
-    // Save and trigger browser download
-    final Uint8List bytes = await pdf.save();
-    final blob = html.Blob([bytes], 'application/pdf');
-    final url  = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute('download', 'Invoice-$roomNo-$guestName.pdf')
-      ..click();
-    html.Url.revokeObjectUrl(url);
+    // Save and share/download
+    final bytes = await pdf.save();
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: 'Invoice-$roomNo-$guestName.pdf',
+    );
   }
 
   Future<void> _takePayment(BuildContext context, double grandTotal) async {
