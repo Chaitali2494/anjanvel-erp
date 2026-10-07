@@ -92,6 +92,11 @@ class _ActivityListScreenState extends ConsumerState<ActivityListScreen>
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () {
               ref.invalidate(activitiesProvider);

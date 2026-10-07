@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -141,6 +142,11 @@ class _StaffAttendanceScreenState extends ConsumerState<StaffAttendanceScreen>
         backgroundColor: const Color(0xFF37474F),
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () {

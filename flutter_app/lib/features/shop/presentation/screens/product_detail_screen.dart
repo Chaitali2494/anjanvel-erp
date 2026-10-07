@@ -44,6 +44,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         backgroundColor: const Color(0xFF558B2F),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
           IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {}),
         ],
       ),

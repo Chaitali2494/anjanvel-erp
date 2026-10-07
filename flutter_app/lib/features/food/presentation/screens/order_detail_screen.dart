@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
@@ -76,6 +77,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         title: Text('Order #$token', style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFFE64A19),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

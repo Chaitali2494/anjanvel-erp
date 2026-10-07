@@ -69,6 +69,11 @@ class _BookingListScreenState extends ConsumerState<BookingListScreen>
         title: const Text('Bookings'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
+          IconButton(
             icon: const Icon(Icons.calendar_month_outlined),
             onPressed: () => context.push(AppRoutes.bookingCalendar),
           ),

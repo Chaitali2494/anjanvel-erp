@@ -257,57 +257,95 @@ class _RevenueChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spots = data.asMap().entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value))
+        .toList();
+    final maxVal = data.isEmpty ? 10000.0 : (data.reduce((a, b) => a > b ? a : b) * 1.2).clamp(1000.0, double.infinity);
+
     return Container(
-      height: 180,
-      padding: const EdgeInsets.all(16),
+      height: 200,
+      padding: const EdgeInsets.fromLTRB(12, 16, 16, 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: 5000,
-            getDrawingHorizontalLine: (_) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
-          ),
-          titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (v, _) {
-                  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                  return Text(days[v.toInt() % 7], style: const TextStyle(fontSize: 10, color: AppTheme.textHint));
-                },
-              ),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: data.asMap().entries
-                  .map((e) => FlSpot(e.key.toDouble(), e.value))
-                  .toList(),
-              isCurved: true,
-              color: AppTheme.primary,
-              barWidth: 2.5,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppTheme.primary.withOpacity(0.2), AppTheme.primary.withOpacity(0)],
-                ),
-              ),
-            ),
-          ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [const Color(0xFF1B5E20), const Color(0xFF2E7D32)],
         ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+        boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'This Week',
+            style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: LineChart(
+              LineChartData(
+                minY: 0,
+                maxY: maxVal,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxVal / 4,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: Colors.white.withOpacity(0.15),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      getTitlesWidget: (v, _) {
+                        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        final idx = v.toInt();
+                        if (idx < 0 || idx >= days.length) return const SizedBox.shrink();
+                        return Text(
+                          days[idx],
+                          style: const TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.w500),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: Colors.white,
+                    barWidth: 3,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                        radius: 3,
+                        color: Colors.white,
+                        strokeColor: const Color(0xFF2E7D32),
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.white.withOpacity(0.25), Colors.white.withOpacity(0)],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -363,9 +401,19 @@ class _QuickActionTile extends StatelessWidget {
       onTap: () => context.push(action.route),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [action.color, action.color.withOpacity(0.75)],
+          ),
           borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)],
+          boxShadow: [
+            BoxShadow(
+              color: action.color.withOpacity(0.35),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -373,17 +421,25 @@ class _QuickActionTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: action.color.withOpacity(0.12),
+                color: Colors.white.withOpacity(0.25),
                 shape: BoxShape.circle,
               ),
-              child: Icon(action.icon, color: action.color, size: 22),
+              child: Icon(action.icon, color: Colors.white, size: 22),
             ),
             const SizedBox(height: 8),
-            Text(
-              action.label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-              maxLines: 2,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                action.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              ),
             ),
           ],
         ),

@@ -322,15 +322,22 @@ class AnjAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final isOnDashboard = location.startsWith('/dashboard');
+    final canPop = Navigator.of(context).canPop();
 
     return AppBar(
       title: Text(title),
-      automaticallyImplyLeading: showBack,
-      leading: leading,
+      automaticallyImplyLeading: false,
+      leading: leading ?? (canPop
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              tooltip: 'Back',
+              onPressed: () => context.pop(),
+            )
+          : null),
       actions: [
         if (!isOnDashboard)
           IconButton(
-            icon: const Icon(Icons.home_outlined),
+            icon: const Icon(Icons.home_rounded),
             tooltip: 'Home',
             onPressed: () => context.go('/dashboard/owner'),
           ),

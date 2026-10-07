@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -85,6 +86,11 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
         backgroundColor: const Color(0xFF37474F),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
           IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {}),
         ],
       ),

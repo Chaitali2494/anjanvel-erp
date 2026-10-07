@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -65,6 +66,11 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
         backgroundColor: const Color(0xFF00796B),
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard/owner'),
+          ),
           IconButton(
             icon: Icon(_lowStockOnly ? Icons.warning_rounded : Icons.warning_outlined,
                 color: _lowStockOnly ? Colors.orangeAccent : Colors.white),
