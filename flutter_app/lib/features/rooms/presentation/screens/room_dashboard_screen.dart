@@ -324,7 +324,7 @@ class _RoomCard extends StatelessWidget {
               children: [
                 Text(
                   room['room_number'] ?? '—',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                 ),
                 Container(
                   padding: const EdgeInsets.all(6),

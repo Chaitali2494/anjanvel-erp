@@ -429,7 +429,7 @@ class _ActivitiesCard extends StatelessWidget {
                 ),
                 child: Row(children: [
                   const Text('Activities Total',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                   const Spacer(),
                   Text(
                     '₹${activities.fold(0.0, (s, a) => s + ((a['total_amount'] as num?)?.toDouble() ?? 0.0)).toStringAsFixed(0)}',
@@ -482,7 +482,7 @@ class _FoodOrdersCard extends StatelessWidget {
                 ),
                 child: Row(children: [
                   const Text('Food & Bev Total',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
                   const Spacer(),
                   Text('₹${total.toStringAsFixed(0)}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFE64A19))),
@@ -532,11 +532,11 @@ class _FoodRow extends StatelessWidget {
         Text(isPending ? '⏳' : '✅', style: const TextStyle(fontSize: 14)),
         const SizedBox(width: 8),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(order['item'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(order['item'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textPrimary)),
           Text(order['time'] as String, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11)),
         ])),
         Text('₹${(order['amount'] as num).toStringAsFixed(0)}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
       ]),
     );
   }

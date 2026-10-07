@@ -746,7 +746,7 @@ class _DashboardBillCard extends ConsumerWidget {
             const Icon(Icons.receipt_long_rounded, color: Color(0xFF00838F), size: 20),
             const SizedBox(width: 8),
             const Text('Active Rooms',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
             const Spacer(),
             if (paidCount > 0)
               Container(
@@ -796,7 +796,7 @@ class _DashboardBillCard extends ConsumerWidget {
                 // Guest + status
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(room['guest_name'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
                   Text('${room['room_type']} · $stLabel',
                       style: TextStyle(fontSize: 11, color: stColor)),
                 ])),
