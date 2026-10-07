@@ -58,6 +58,11 @@ class HousekeepingDashboardScreen extends ConsumerWidget {
                         onPressed: () => context.push('/notifications'),
                         icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                       ),
+                      IconButton(
+                        onPressed: () => context.go('/dashboard/owner'),
+                        icon: const Icon(Icons.home_rounded, color: Colors.white),
+                        tooltip: 'Home',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
