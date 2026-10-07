@@ -136,16 +136,10 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // ── Today's Activities ────────────────────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const SectionHeader(title: "Today's Activities"),
-                          TextButton.icon(
-                            onPressed: () => context.push('/activities/tracker'),
-                            icon: const Icon(Icons.open_in_new_rounded, size: 14),
-                            label: const Text('Tracker', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
+                      SectionHeader(
+                        title: "Today's Activities",
+                        action: 'Tracker',
+                        onActionTap: () => context.push('/activities/tracker'),
                       ),
                       const SizedBox(height: AppTheme.spaceMD),
                       const _TodayActivitiesCard(),
