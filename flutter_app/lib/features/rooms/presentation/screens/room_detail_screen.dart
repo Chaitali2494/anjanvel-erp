@@ -582,7 +582,7 @@ class _RoomHeader extends StatelessWidget {
         ),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Room $roomNumber', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text('Room $roomNumber', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
           Text(typeName, style: const TextStyle(color: AppTheme.textPrimary)),
           const SizedBox(height: 6),
           Container(
@@ -668,7 +668,7 @@ class _SectionCard extends StatelessWidget {
       Row(children: [
         Icon(icon, size: 16, color: AppTheme.primary),
         const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
       ]),
       const Divider(height: 16),
       child,
@@ -688,7 +688,7 @@ class _InfoRow extends StatelessWidget {
       SizedBox(width: 110,
           child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13))),
       Expanded(child: Text(value,
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: valueColor))),
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: valueColor ?? AppTheme.textPrimary))),
     ]),
   );
 }

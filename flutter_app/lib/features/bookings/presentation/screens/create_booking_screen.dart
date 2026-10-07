@@ -398,7 +398,7 @@ class _BookingDetailsStep extends StatelessWidget {
                     const Text('Check-in Date *', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
                     Text(
                       checkInDate != null ? DateFormat('d MMMM yyyy').format(checkInDate!) : 'Select date',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
                     ),
                   ],
                 ),
@@ -434,7 +434,7 @@ class _BookingDetailsStep extends StatelessWidget {
                     const Text('Check-out Date', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
                     Text(
                       checkOutDate != null ? DateFormat('d MMMM yyyy').format(checkOutDate!) : 'Day visit / Select date',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
                     ),
                   ],
                 ),
