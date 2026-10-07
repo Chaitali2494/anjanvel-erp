@@ -11,6 +11,7 @@ import '../../../housekeeping/presentation/widgets/housekeeping_panel.dart';
 import '../../../activities/presentation/widgets/activities_panel.dart';
 import '../../../billing/data/billing_state_provider.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
+import '../../../rooms/data/room_service.dart';
 import 'package:intl/intl.dart';
 
 class OwnerDashboardScreen extends ConsumerWidget {
@@ -125,10 +126,8 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       const _DashboardBillCard(),
                       const SizedBox(height: AppTheme.spaceLG),
 
-                      // Room Status Overview
-                      const SectionHeader(title: 'Room Status', action: 'View All'),
-                      const SizedBox(height: AppTheme.spaceMD),
-                      _RoomStatusCard(stats: stats),
+                      // Room Status Panel
+                      const _RoomStatusPanel(),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // ── Housekeeping Status ──────────────────────────────
@@ -459,55 +458,188 @@ class _QuickActionTile extends StatelessWidget {
   }
 }
 
-// ── Room Status Card ────────────────────────────────────────────────────────────
+// ── Room Status Panel (HK/Activities style) ────────────────────────────────────
 
-class _RoomStatusCard extends StatelessWidget {
-  final DashboardStats stats;
-  const _RoomStatusCard({required this.stats});
+class _RoomStatusPanel extends ConsumerWidget {
+  const _RoomStatusPanel();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
-      ),
-      child: Row(
-        children: [
-          _RoomStatusDot('Available', stats.roomsAvailable, AppTheme.statusAvailable),
-          _RoomStatusDot('Occupied', stats.roomsOccupied, AppTheme.statusOccupied),
-          _RoomStatusDot('Cleaning', stats.roomsCleaning, AppTheme.statusCleaning),
-          _RoomStatusDot('Maintenance', stats.roomsMaintenance, AppTheme.statusMaintenance),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final roomsAsync = ref.watch(allRoomsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Room Status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
+            Row(children: [
+              TextButton(
+                onPressed: () => context.push('/rooms'),
+                child: const Text('View All', style: TextStyle(fontSize: 12)),
+              ),
+              const SizedBox(width: 4),
+              ElevatedButton.icon(
+                onPressed: () => context.push('/rooms'),
+                icon: const Icon(Icons.bed_outlined, size: 16),
+                label: const Text('Manage', style: TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ]),
+          ],
+        ),
+        const SizedBox(height: 8),
+        roomsAsync.when(
+          loading: () => const Center(child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(color: AppTheme.primary),
+          )),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (rooms) {
+            final available   = rooms.where((r) => r['status'] == 'AVAILABLE').length;
+            final occupied    = rooms.where((r) => r['status'] == 'OCCUPIED').length;
+            final reserved    = rooms.where((r) => r['status'] == 'RESERVED').length;
+            final cleaning    = rooms.where((r) => r['status'] == 'CLEANING').length;
+            final maintenance = rooms.where((r) => r['status'] == 'MAINTENANCE').length;
+
+            // Show occupied + reserved rooms first (up to 3)
+            final activeRooms = rooms
+                .where((r) => r['status'] == 'OCCUPIED' || r['status'] == 'RESERVED')
+                .take(3)
+                .toList();
+
+            return Container(
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+              ),
+              child: Column(
+                children: [
+                  // Stats strip — green gradient
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C)]),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Row(children: [
+                      _RmStat('Available',   '$available',   const Color(0xFFA5D6A7)),
+                      _RmDiv(),
+                      _RmStat('Occupied',    '$occupied',    const Color(0xFFEF9A9A)),
+                      _RmDiv(),
+                      _RmStat('Reserved',    '$reserved',    const Color(0xFF90CAF9)),
+                      _RmDiv(),
+                      _RmStat('Cleaning',    '$cleaning',    const Color(0xFFFFE082)),
+                      _RmDiv(),
+                      _RmStat('Maint.',      '$maintenance', const Color(0xFFCFD8DC)),
+                    ]),
+                  ),
+
+                  // Active room rows
+                  if (activeRooms.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.check_circle_outline_rounded, color: Color(0xFF2E7D32), size: 20),
+                        SizedBox(width: 8),
+                        Text('No rooms currently occupied or reserved', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+                      ]),
+                    )
+                  else
+                    ...activeRooms.map((room) => _RoomRow(room: room)),
+
+                  // Footer → Rooms Dashboard
+                  InkWell(
+                    onTap: () => context.push('/rooms'),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text('Open Room Dashboard', style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_rounded, size: 14, color: AppTheme.primary),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
-class _RoomStatusDot extends StatelessWidget {
-  final String label;
-  final int count;
+class _RmStat extends StatelessWidget {
+  final String label, value;
   final Color color;
-  const _RoomStatusDot(this.label, this.count, this.color);
+  const _RmStat(this.label, this.value, this.color);
+  @override Widget build(_) => Expanded(child: Column(children: [
+    Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
+    const SizedBox(height: 2),
+    Text(label, style: const TextStyle(color: Colors.white60, fontSize: 9), textAlign: TextAlign.center),
+  ]));
+}
+
+class _RmDiv extends StatelessWidget {
+  const _RmDiv();
+  @override Widget build(_) => Container(width: 1, height: 28, color: Colors.white24);
+}
+
+class _RoomRow extends StatelessWidget {
+  final Map<String, dynamic> room;
+  const _RoomRow({required this.room});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text('$count', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-              const SizedBox(width: 4),
-              Text(label, style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
-            ],
+    final status   = room['status'] as String? ?? 'AVAILABLE';
+    final roomNo   = room['room_number'] as String? ?? '—';
+    final typeName = room['room_type_name'] ?? room['type_name'] ?? 'Room';
+    final guest    = room['current_guest'] as String?;
+
+    final Color statusColor;
+    switch (status) {
+      case 'OCCUPIED':    statusColor = AppTheme.statusOccupied; break;
+      case 'RESERVED':    statusColor = AppTheme.statusReserved; break;
+      case 'CLEANING':    statusColor = AppTheme.statusCleaning; break;
+      case 'MAINTENANCE': statusColor = AppTheme.statusMaintenance; break;
+      default:            statusColor = AppTheme.statusAvailable;
+    }
+
+    return GestureDetector(
+      onTap: () => context.push('/rooms/${room['id']}'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+        child: Row(children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+            child: Center(child: Text(roomNo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primary))),
           ),
-        ],
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(typeName.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+            if (guest != null)
+              Text(guest, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11))
+            else
+              const Text('No guest', style: TextStyle(color: AppTheme.textHint, fontSize: 11)),
+          ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Text(status.replaceAll('_', ' '), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600)),
+          ),
+        ]),
       ),
     );
   }
