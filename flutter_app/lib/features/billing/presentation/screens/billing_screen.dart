@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
@@ -282,9 +287,26 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   Row(children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _downloadInvoice(
+                          guestName: guestName,
+                          roomNo: _roomNo,
+                          roomType: roomType,
+                          nights: nights,
+                          residenceCharges: residenceCharges,
+                          foodCharges: foodCharges,
+                          activityCharges: activityCharges,
+                          shopCharges: shopBillCharges,
+                          residenceTotal: residenceTotal,
+                          kitchenTotal: kitchenTotal,
+                          activityTotal: activityTotal,
+                          shopTotal: shopTotal,
+                          subtotal: subtotal,
+                          gst: gst,
+                          discount: discount,
+                          grandTotal: grandTotal,
+                        ),
                         icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                        label: const Text('Invoice'),
+                        label: const Text('Download Invoice'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF1565C0),
                           side: const BorderSide(color: Color(0xFF1565C0)),
@@ -323,6 +345,196 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         );
       },
     );
+  }
+
+  Future<void> _downloadInvoice({
+    required String guestName,
+    required String roomNo,
+    required String roomType,
+    required int nights,
+    required List<_Charge> residenceCharges,
+    required List<_Charge> foodCharges,
+    required List<_Charge> activityCharges,
+    required List<_Charge> shopCharges,
+    required double residenceTotal,
+    required double kitchenTotal,
+    required double activityTotal,
+    required double shopTotal,
+    required double subtotal,
+    required double gst,
+    required double discount,
+    required double grandTotal,
+  }) async {
+    final pdf = pw.Document();
+
+    // Colors
+    const headerColor  = PdfColor.fromInt(0xFF1A237E);
+    const accentColor  = PdfColor.fromInt(0xFF1565C0);
+    const greenColor   = PdfColor.fromInt(0xFF2E7D32);
+    const lightGrey    = PdfColor.fromInt(0xFFF5F5F5);
+    const borderColor  = PdfColor.fromInt(0xFFE0E0E0);
+
+    pw.Widget sectionTitle(String title, PdfColor color) => pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: pw.BoxDecoration(color: color, borderRadius: pw.BorderRadius.circular(4)),
+      child: pw.Text(title, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 11)),
+    );
+
+    pw.Widget chargeRow(String label, double amount) => pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 3),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: const pw.TextStyle(fontSize: 10)),
+          pw.Text('₹${amount.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
+        ],
+      ),
+    );
+
+    pw.Widget totalRow(String label, double amount, {bool bold = false, PdfColor? color}) => pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: bold ? 12 : 10, fontWeight: bold ? pw.FontWeight.bold : null, color: color)),
+        pw.Text('₹${amount.toStringAsFixed(0)}', style: pw.TextStyle(fontSize: bold ? 14 : 10, fontWeight: bold ? pw.FontWeight.bold : null, color: color ?? accentColor)),
+      ],
+    );
+
+    final now = DateTime.now();
+    final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final invoiceNo = 'ANJ-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-$roomNo';
+
+    pdf.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (pw.Context ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+
+          // ── Header ──────────────────────────────────────────────────────
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(color: headerColor, borderRadius: pw.BorderRadius.circular(8)),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Text('ANJANVEL AGRO TOURISM RESORT', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                  pw.SizedBox(height: 4),
+                  pw.Text('Anjanvel, Ratnagiri, Maharashtra', style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
+                  pw.Text('+91 98765 43210  |  anjanvel@resort.com', style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
+                ]),
+                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+                  pw.Text('TAX INVOICE', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                  pw.SizedBox(height: 4),
+                  pw.Text(invoiceNo, style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
+                  pw.Text('Date: $dateStr', style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
+                ]),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 16),
+
+          // ── Guest info ───────────────────────────────────────────────────
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(color: lightGrey, borderRadius: pw.BorderRadius.circular(6), border: pw.Border.all(color: borderColor)),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Text('BILL TO', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                  pw.SizedBox(height: 2),
+                  pw.Text(guestName, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+                ]),
+                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+                  pw.Text('Room $roomNo  •  $roomType', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
+                  pw.Text('$nights night${nights > 1 ? 's' : ''}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                ]),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 14),
+
+          // ── Charge sections ──────────────────────────────────────────────
+          if (residenceCharges.isNotEmpty) ...[
+            sectionTitle('🏨  Residence', accentColor),
+            pw.SizedBox(height: 6),
+            ...residenceCharges.map((c) => chargeRow(c.label, c.amount)),
+            pw.Divider(color: borderColor),
+            totalRow('Residence Total', residenceTotal),
+            pw.SizedBox(height: 10),
+          ],
+
+          if (foodCharges.isNotEmpty) ...[
+            sectionTitle('🍽️  Kitchen / Food', const PdfColor.fromInt(0xFFE64A19)),
+            pw.SizedBox(height: 6),
+            ...foodCharges.map((c) => chargeRow(c.label, c.amount)),
+            pw.Divider(color: borderColor),
+            totalRow('Kitchen Total', kitchenTotal),
+            pw.SizedBox(height: 10),
+          ],
+
+          if (activityCharges.isNotEmpty) ...[
+            sectionTitle('🎯  Activities', const PdfColor.fromInt(0xFF00838F)),
+            pw.SizedBox(height: 6),
+            ...activityCharges.map((c) => chargeRow(c.label, c.amount)),
+            pw.Divider(color: borderColor),
+            totalRow('Activities Total', activityTotal),
+            pw.SizedBox(height: 10),
+          ],
+
+          if (shopCharges.isNotEmpty) ...[
+            sectionTitle('🏪  SHG Shop', const PdfColor.fromInt(0xFF558B2F)),
+            pw.SizedBox(height: 6),
+            ...shopCharges.map((c) => chargeRow(c.label, c.amount)),
+            pw.Divider(color: borderColor),
+            totalRow('Shop Total', shopTotal),
+            pw.SizedBox(height: 10),
+          ],
+
+          pw.Divider(thickness: 1.5, color: const PdfColor.fromInt(0xFF9E9E9E)),
+          pw.SizedBox(height: 8),
+
+          // ── Summary ──────────────────────────────────────────────────────
+          totalRow('Subtotal', subtotal),
+          pw.SizedBox(height: 4),
+          totalRow('GST (12%)', gst, color: const PdfColor.fromInt(0xFFE64A19)),
+          if (discount > 0) ...[
+            pw.SizedBox(height: 4),
+            totalRow('Discount', -discount, color: greenColor),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(color: greenColor, borderRadius: pw.BorderRadius.circular(6)),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('GRAND TOTAL', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 13)),
+                pw.Text('₹${grandTotal.toStringAsFixed(0)}', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // ── Footer ───────────────────────────────────────────────────────
+          pw.Center(child: pw.Text('Thank you for staying at Anjanvel Agro Tourism Resort!',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600))),
+          pw.SizedBox(height: 4),
+          pw.Center(child: pw.Text('GSTIN: 27XXXXX1234X1ZX  |  www.anjanvelresort.com',
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey))),
+        ],
+      ),
+    ));
+
+    // Save and trigger browser download
+    final Uint8List bytes = await pdf.save();
+    final blob = html.Blob([bytes], 'application/pdf');
+    final url  = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', 'Invoice-$roomNo-$guestName.pdf')
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 
   Future<void> _takePayment(BuildContext context, double grandTotal) async {
