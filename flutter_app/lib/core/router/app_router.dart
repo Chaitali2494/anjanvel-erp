@@ -27,6 +27,7 @@ import '../../features/food/presentation/screens/order_detail_screen.dart';
 import '../../features/food/presentation/screens/meal_planning_screen.dart';
 import '../../features/activities/presentation/screens/activity_registration_screen.dart';
 import '../../features/activities/presentation/screens/activities_dashboard_screen.dart';
+import '../../features/activities/presentation/screens/activity_tracker_screen.dart';
 import '../../features/heritage/presentation/screens/heritage_walk_screen.dart';
 import '../../features/heritage/presentation/screens/guide_dashboard_screen.dart';
 import '../../features/heritage/presentation/screens/guide_assignment_screen.dart';
@@ -90,6 +91,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/inventory', '/shop', '/maintenance', '/billing', '/payment',
         '/feedback', '/reports', '/settings', '/notifications',
         '/profile', '/staff', '/leads', '/staff/portal', '/staff/access', '/staff/leaves',
+        '/activities/tracker',
       ];
       final isOpen = openRoutes.any((r) => loc == r || loc.startsWith('$r/'));
       if (isOpen) return null;
@@ -198,7 +200,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const ActivityRegistrationScreen(activityId: ''),
         routes: [
           GoRoute(path: 'dashboard', builder: (_, __) => const ActivitiesDashboardScreen()),
-          GoRoute(path: 'register', builder: (_, __) => const ActivityRegistrationScreen(activityId: '')),
+          GoRoute(path: 'register',  builder: (_, __) => const ActivityRegistrationScreen(activityId: '')),
+          GoRoute(path: 'tracker',   builder: (_, __) => const ActivityTrackerScreen()),
         ],
       ),
 

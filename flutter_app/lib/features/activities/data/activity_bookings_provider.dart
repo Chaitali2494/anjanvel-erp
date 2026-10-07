@@ -37,12 +37,15 @@ List<Map<String, dynamic>> _sessionBookings = <Map<String, dynamic>>[
     'room_number': '205',
     'activity_name': 'Heritage Walk',
     'activity_emoji': '🏛️',
+    'category': 'Cultural',
     'persons': 2,
     'price_per_person': 500.0,
     'total_amount': 1000.0,
     'date': _today(),
     'time': '09:00 AM',
     'status': 'CONFIRMED',
+    'tracker_status': 'PENDING',
+    'coordinator': null,
     'guest_name': 'Vikram Singh',
     'created_at': DateTime.now().toIso8601String(),
   },
@@ -51,12 +54,15 @@ List<Map<String, dynamic>> _sessionBookings = <Map<String, dynamic>>[
     'room_number': '205',
     'activity_name': 'Pottery Class',
     'activity_emoji': '🏺',
+    'category': 'Cultural',
     'persons': 1,
     'price_per_person': 400.0,
     'total_amount': 400.0,
     'date': _today(),
     'time': '02:00 PM',
     'status': 'CONFIRMED',
+    'tracker_status': 'ASSIGNED',
+    'coordinator': 'Ramesh Patil',
     'guest_name': 'Vikram Singh',
     'created_at': DateTime.now().toIso8601String(),
   },
@@ -102,6 +108,8 @@ class ActivityBookingsNotifier
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'created_at': DateTime.now().toIso8601String(),
         'status': 'CONFIRMED',
+        'tracker_status': 'PENDING',
+        'coordinator': null,
         ...booking,
       };
       _sessionBookings = <Map<String, dynamic>>[newBooking, ..._sessionBookings];
@@ -121,6 +129,8 @@ class ActivityBookingsNotifier
           'id': DateTime.now().millisecondsSinceEpoch.toString(),
           'created_at': DateTime.now().toIso8601String(),
           'status': 'CONFIRMED',
+          'tracker_status': 'PENDING',
+          'coordinator': null,
           ...booking,
         };
         _sessionBookings = <Map<String, dynamic>>[newBooking, ..._sessionBookings];
@@ -139,7 +149,27 @@ class ActivityBookingsNotifier
     state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionBookings));
   }
 
-  // ── Get bookings for a specific room ───────────────────────────────────────
+  // ── Assign coordinator ────────────────────────────────────────────────────
+  void assignCoordinator(String id, String coordinatorName) {
+    _sessionBookings = _sessionBookings.map((b) {
+      if (b['id'] == id) {
+        return <String, dynamic>{...b, 'coordinator': coordinatorName, 'tracker_status': 'ASSIGNED'};
+      }
+      return b;
+    }).toList();
+    state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionBookings));
+  }
+
+  // ── Update tracker status (PENDING → IN_PROGRESS → DONE) ─────────────────
+  void updateTrackerStatus(String id, String trackerStatus) {
+    _sessionBookings = _sessionBookings.map((b) {
+      if (b['id'] == id) return <String, dynamic>{...b, 'tracker_status': trackerStatus};
+      return b;
+    }).toList();
+    state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionBookings));
+  }
+
+  // ── Get bookings for a specific room ─────────────────────────────────────
   List<Map<String, dynamic>> bookingsForRoom(String roomNumber) =>
       _sessionBookings
           .where((b) =>
@@ -148,6 +178,14 @@ class ActivityBookingsNotifier
 
   double totalForRoom(String roomNumber) => bookingsForRoom(roomNumber)
       .fold(0.0, (sum, b) => sum + ((b['total_amount'] as num?)?.toDouble() ?? 0.0));
+
+  // ── Get today's bookings ──────────────────────────────────────────────────
+  List<Map<String, dynamic>> todayBookings() {
+    final today = _today();
+    return _sessionBookings
+        .where((b) => b['date'] == today && b['status'] != 'CANCELLED')
+        .toList();
+  }
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
