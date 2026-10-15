@@ -96,6 +96,12 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
         backgroundColor: const Color(0xFFE64A19),
         foregroundColor: Colors.white,
         actions: [
+          // Demo: simulate a guest QR order so you can test without a phone
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            tooltip: 'Simulate Guest Order',
+            onPressed: () => _simulateGuestOrder(),
+          ),
           IconButton(
             icon: const Icon(Icons.home_rounded),
             tooltip: 'Home',
@@ -231,6 +237,38 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
         SnackBar(content: Text('Order updated to $status'), backgroundColor: AppTheme.success),
       );
     }
+  }
+
+  /// Adds a fake guest QR order — useful for demo when no second device is at hand.
+  void _simulateGuestOrder() {
+    final rooms = ['101', '102', '201', '202', '301', '302'];
+    final room  = rooms[DateTime.now().second % rooms.length];
+    final items = [
+      {'name': 'Veg Thali',    'qty': 2,  'price': 350.0},
+      {'name': 'Masala Chai',  'qty': 2,  'price': 40.0},
+    ];
+    final total = items.fold<double>(
+        0, (s, i) => s + (i['qty'] as int) * (i['price'] as double));
+    final order = {
+      'id'            : 'GSIM-${DateTime.now().millisecondsSinceEpoch}',
+      'order_number'  : 'FO-G${(DateTime.now().millisecondsSinceEpoch % 9000 + 1000)}',
+      'status'        : 'PENDING',
+      'source'        : 'GUEST_QR',
+      'total_amount'  : total,
+      'meal_type'     : 'LUNCH',
+      'ordered_at'    : DateTime.now().toIso8601String(),
+      'guests'        : {'full_name': 'Room $room (Guest)'},
+      'bookings'      : {'booking_number': 'GUEST', 'room_number': room},
+      'items'         : items,
+    };
+    ref.read(foodOrdersStateProvider.notifier).addOrder(order);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🔔 Simulated guest order for Room $room'),
+        backgroundColor: const Color(0xFFE64A19),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _showNewOrderSheet() {

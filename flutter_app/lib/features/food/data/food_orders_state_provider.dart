@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/guest_sync.dart';
 
-// ── Session-persistent food orders (same pattern as activity bookings) ─────────
+// ── Session-persistent food orders ─────────────────────────────────────────────
 
 final List<Map<String, dynamic>> _sessionOrders = [
   {
@@ -67,11 +68,63 @@ final List<Map<String, dynamic>> _sessionOrders = [
 // ── Notifier ───────────────────────────────────────────────────────────────────
 
 class FoodOrdersNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  FoodOrdersNotifier() : super(List.from(_sessionOrders));
+  /// Cancel callbacks for BroadcastChannel listeners
+  void Function()? _cancelOrderListener;
+  void Function()? _cancelStatusListener;
+
+  FoodOrdersNotifier() : super(List.from(_sessionOrders)) {
+    // Merge any guest orders from localStorage (placed in another tab / prev session)
+    _mergeFromStorage();
+    // Listen for new orders / status updates broadcast by the guest portal tab
+    _cancelOrderListener = GuestSync.listenForOrders((order) {
+      if (!_sessionOrders.any((o) => o['id'] == order['id'])) {
+        _sessionOrders.insert(0, order);
+        state = List.from(_sessionOrders);
+      }
+    });
+    _cancelStatusListener = GuestSync.listenForStatusUpdates((id, status) {
+      final idx = _sessionOrders.indexWhere((o) => o['id'] == id);
+      if (idx >= 0) {
+        _sessionOrders[idx] = {..._sessionOrders[idx], 'status': status};
+        state = List.from(_sessionOrders);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _cancelOrderListener?.call();
+    _cancelStatusListener?.call();
+    super.dispose();
+  }
+
+  // ── Private helpers ──────────────────────────────────────────────────────────
+
+  void _mergeFromStorage() {
+    try {
+      final stored = GuestSync.loadOrders();
+      bool changed = false;
+      for (final o in stored) {
+        if (!_sessionOrders.any((s) => s['id'] == o['id'])) {
+          _sessionOrders.insert(0, o);
+          changed = true;
+        }
+      }
+      if (changed) state = List.from(_sessionOrders);
+    } catch (_) {}
+  }
+
+  // ── Public API ───────────────────────────────────────────────────────────────
 
   void addOrder(Map<String, dynamic> order) {
+    // Avoid duplicates (e.g. if listener fires before direct call resolves)
+    if (_sessionOrders.any((o) => o['id'] == order['id'])) return;
     _sessionOrders.insert(0, order);
     state = List.from(_sessionOrders);
+    // Persist + broadcast so other tabs (management app) pick it up immediately
+    if (order['source'] == 'GUEST_QR') {
+      GuestSync.saveOrder(order);
+    }
   }
 
   void updateStatus(String id, String newStatus) {
@@ -79,6 +132,7 @@ class FoodOrdersNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     if (idx >= 0) {
       _sessionOrders[idx] = {..._sessionOrders[idx], 'status': newStatus};
       state = List.from(_sessionOrders);
+      GuestSync.updateOrderStatus(id, newStatus);
     }
   }
 

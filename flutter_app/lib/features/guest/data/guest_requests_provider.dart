@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/guest_sync.dart';
 
 // ── Request types ──────────────────────────────────────────────────────────────
 
@@ -17,7 +18,39 @@ final Map<String, bool> _dndByRoom = {};
 
 class GuestRequestsNotifier
     extends StateNotifier<List<Map<String, dynamic>>> {
-  GuestRequestsNotifier() : super(List.from(_sessionRequests));
+  void Function()? _cancelListener;
+
+  GuestRequestsNotifier() : super(List.from(_sessionRequests)) {
+    // Merge any requests from localStorage (placed in another tab / prev session)
+    _mergeFromStorage();
+    // Listen for new requests broadcast by the guest portal tab
+    _cancelListener = GuestSync.listenForRequests((req) {
+      if (!_sessionRequests.any((r) => r['id'] == req['id'])) {
+        _sessionRequests.insert(0, req);
+        state = List.from(_sessionRequests);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _cancelListener?.call();
+    super.dispose();
+  }
+
+  void _mergeFromStorage() {
+    try {
+      final stored = GuestSync.loadRequests();
+      bool changed = false;
+      for (final r in stored) {
+        if (!_sessionRequests.any((s) => s['id'] == r['id'])) {
+          _sessionRequests.insert(0, r);
+          changed = true;
+        }
+      }
+      if (changed) state = List.from(_sessionRequests);
+    } catch (_) {}
+  }
 
   void addRequest({
     required String roomNumber,
@@ -41,6 +74,10 @@ class GuestRequestsNotifier
     };
     _sessionRequests.insert(0, req);
     state = List.from(_sessionRequests);
+    // Persist + broadcast so the management app tab picks it up immediately
+    if (source == 'GUEST_QR') {
+      GuestSync.saveRequest(req);
+    }
   }
 
   void updateStatus(String id, String newStatus, {String? assignedTo}) {
