@@ -234,6 +234,7 @@ class GuestPortalScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => StatefulBuilder(
@@ -249,7 +250,9 @@ class GuestPortalScreen extends ConsumerWidget {
             maxChildSize: 0.95,
             minChildSize: 0.5,
             expand: false,
-            builder: (_, scroll) => Column(children: [
+            builder: (_, scroll) => Container(
+              color: Colors.white,
+              child: Column(children: [
               // Handle + header
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -384,7 +387,8 @@ class GuestPortalScreen extends ConsumerWidget {
                 ),
               ),
             ]),
-          );
+          ),  // closes Container
+          );  // closes DraggableScrollableSheet
         },
       ),
     );
@@ -396,6 +400,7 @@ class GuestPortalScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _RequestSheet(
         emoji: '🧹',
@@ -425,6 +430,7 @@ class GuestPortalScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _RequestSheet(
         emoji: '🔧',
@@ -454,6 +460,7 @@ class GuestPortalScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _ActivitiesSheet(roomNumber: roomNumber),
     );
@@ -982,7 +989,9 @@ class _RequestSheetState extends State<_RequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
+      color: Colors.white,
+      child: Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
         child: Padding(
@@ -1066,7 +1075,8 @@ class _RequestSheetState extends State<_RequestSheet> {
           ]),
         ),
       ),
-    );
+    ),  // closes Padding (viewInsets)
+    ); // closes Container(color: white)
   }
 }
 
@@ -1091,7 +1101,9 @@ class _ActivitiesSheetState extends ConsumerState<_ActivitiesSheet> {
       maxChildSize: 0.95,
       minChildSize: 0.5,
       expand: false,
-      builder: (_, scroll) => Column(children: [
+      builder: (_, scroll) => Container(
+        color: Colors.white,
+        child: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
           child: Column(children: [
@@ -1242,7 +1254,8 @@ class _ActivitiesSheetState extends ConsumerState<_ActivitiesSheet> {
             );
           }),
         ),
-      ]),
+      ]),   // closes Column
+      ),    // closes Container
     );
   }
 }
