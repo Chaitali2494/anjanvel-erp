@@ -644,7 +644,7 @@ class _GuestQrCard extends StatelessWidget {
   const _GuestQrCard({required this.roomNo});
 
   // The URL a guest will open when scanning — matches the Flutter route
-  String get _portalUrl => 'https://anjanvelresort.github.io/app/#/guest/room/$roomNo';
+  String get _portalUrl => 'https://chaitali2494.github.io/anjanvel-erp/#/guest/room/$roomNo';
   String get _portalPath => '/guest/room/$roomNo';
 
   @override
