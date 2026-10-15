@@ -488,7 +488,7 @@ class _SectionCard extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: AppTheme.primary),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
             ],
           ),
           const Divider(height: 16),
@@ -515,7 +515,7 @@ class _InfoRow extends StatelessWidget {
             child: Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: AppTheme.textPrimary)),
           ),
         ],
       ),
@@ -548,7 +548,7 @@ class _PaymentSummaryCard extends StatelessWidget {
             children: [
               Icon(Icons.account_balance_wallet_outlined, size: 16, color: AppTheme.primary),
               SizedBox(width: 8),
-              Text('Payment Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text('Payment Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
             ],
           ),
           const Divider(height: 16),
@@ -851,7 +851,7 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
                 children: [
                   Icon(Icons.bed_outlined, size: 16, color: AppTheme.primary),
                   SizedBox(width: 8),
-                  Text('Room Assignment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text('Room Assignment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
                 ],
               ),
               IconButton(icon: const Icon(Icons.refresh, size: 18), onPressed: _load, padding: EdgeInsets.zero),
