@@ -298,6 +298,7 @@ class _ActivityRegistrationScreenState
           fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary));
 
   Future<void> _submit() async {
+    if (_isSaving) return; // guard against double-tap
     setState(() => _isSaving = true);
     final roomNo    = _roomCtrl.text.trim();
     final guestName = _guestCtrl.text.trim().isEmpty

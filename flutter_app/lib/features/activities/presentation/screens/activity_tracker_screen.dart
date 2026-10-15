@@ -193,12 +193,28 @@ class ActivityTrackerScreen extends ConsumerWidget {
 
 // ── Activity Tracker Card ─────────────────────────────────────────────────────
 
-class _ActivityTrackerCard extends ConsumerWidget {
+class _ActivityTrackerCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> booking;
   const _ActivityTrackerCard({required this.booking});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ActivityTrackerCard> createState() => _ActivityTrackerCardState();
+}
+
+class _ActivityTrackerCardState extends ConsumerState<_ActivityTrackerCard> {
+  bool _busy = false;
+
+  Future<void> _changeStatus(String newStatus) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    ref.read(activityBookingsProvider.notifier)
+        .updateTrackerStatus(widget.booking['id'] as String, newStatus);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final booking    = widget.booking;
     final status     = booking['tracker_status'] as String? ?? 'PENDING';
     final cfg        = _trackerCfg[status] ?? _trackerCfg['PENDING']!;
     final color      = cfg['color'] as Color;
@@ -302,9 +318,7 @@ class _ActivityTrackerCard extends ConsumerWidget {
               if (status == 'PENDING' || status == 'ASSIGNED')
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => ref
-                        .read(activityBookingsProvider.notifier)
-                        .updateTrackerStatus(booking['id'] as String, 'IN_PROGRESS'),
+                    onPressed: _busy ? null : () => _changeStatus('IN_PROGRESS'),
                     icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
                     label: const Text('Start', style: TextStyle(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
@@ -318,9 +332,7 @@ class _ActivityTrackerCard extends ConsumerWidget {
                 const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => ref
-                      .read(activityBookingsProvider.notifier)
-                      .updateTrackerStatus(booking['id'] as String, 'DONE'),
+                  onPressed: _busy ? null : () => _changeStatus('DONE'),
                   icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
                   label: const Text('Mark Done',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,
