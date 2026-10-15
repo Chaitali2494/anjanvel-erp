@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
 import '../../../shop/data/shop_room_charges_provider.dart';
+import '../../../food/data/food_orders_state_provider.dart';
 import '../../data/billing_state_provider.dart';
 
 class BillingScreen extends ConsumerStatefulWidget {
@@ -36,6 +38,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     final activityBookings = ref.watch(activityBookingsProvider);
     final billingState     = ref.watch(billingStateProvider);
     final shopCharges      = ref.watch(shopRoomChargesProvider);
+    final allFoodOrders    = ref.watch(foodOrdersStateProvider);
     final isPaid           = billingState[_roomNo]?['is_paid'] == true;
 
     return activityBookings.when(
@@ -62,17 +65,30 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               rate * nights, Icons.bed_outlined, const Color(0xFF1565C0)),
         ];
 
-        // 2. Kitchen / Food
-        final foodTotal = kDemoFoodCharges[_roomNo] ?? 0.0;
-        final foodCharges = foodTotal > 0
-            ? <_Charge>[
-                _Charge('Breakfast × $nights', nights * 250.0, Icons.free_breakfast_outlined, const Color(0xFFE64A19)),
-                _Charge('Dinner × ${nights - 1 > 0 ? nights - 1 : 1}',
-                    (nights > 1 ? nights - 1 : 1) * 350.0, Icons.dinner_dining_outlined, const Color(0xFFE64A19)),
-                _Charge('Room Service', foodTotal - (nights * 250.0) - ((nights > 1 ? nights - 1 : 1) * 350.0) + 0,
-                    Icons.room_service_outlined, const Color(0xFFE64A19)),
-              ]
-            : <_Charge>[];
+        // 2. Kitchen / Food — live from foodOrdersStateProvider
+        final roomFoodOrders = allFoodOrders
+            .where((o) =>
+                ((o['bookings'] as Map<String, dynamic>?)?['room_number'] as String? ?? '') == _roomNo &&
+                o['status'] != 'CANCELLED')
+            .toList();
+        // Build _Charge list for PDF (one charge per item in each order)
+        final foodCharges = <_Charge>[];
+        for (final order in roomFoodOrders) {
+          final items = order['items'] as List<dynamic>? ?? [];
+          if (items.isNotEmpty) {
+            for (final item in items) {
+              final name  = item['name'] as String? ?? 'Item';
+              final qty   = (item['qty'] as num?)?.toInt() ?? 1;
+              final price = (item['price'] as num?)?.toDouble() ?? 0.0;
+              foodCharges.add(_Charge('$name × $qty', price * qty, Icons.restaurant_outlined, const Color(0xFFE64A19)));
+            }
+          } else {
+            final amount   = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
+            final mealType = order['meal_type'] as String? ?? 'Food';
+            final orderNo  = order['order_number'] as String? ?? '';
+            foodCharges.add(_Charge('$mealType ($orderNo)', amount, Icons.restaurant_outlined, const Color(0xFFE64A19)));
+          }
+        }
 
         // 3. Activities
         final activityCharges = allBookings
@@ -166,12 +182,9 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const SizedBox(height: 10),
 
                 // ── Kitchen Bill ─────────────────────────────────────────
-                _BillSection(
-                  title: '🍽️ Kitchen / Food',
-                  charges: foodCharges,
+                _FoodBillSection(
+                  orders: roomFoodOrders,
                   total: kitchenTotal,
-                  color: const Color(0xFFE64A19),
-                  emptyLabel: 'No food orders for this room',
                 ),
                 const SizedBox(height: 10),
 
@@ -730,6 +743,151 @@ class _BillSectionState extends State<_BillSection> {
                         color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
               ]),
             )),
+        ],
+      ]),
+    );
+  }
+}
+
+// ── Food Bill Section (table format) ─────────────────────────────────────────
+
+class _FoodBillSection extends StatefulWidget {
+  final List<Map<String, dynamic>> orders;
+  final double total;
+  const _FoodBillSection({required this.orders, required this.total});
+
+  @override
+  State<_FoodBillSection> createState() => _FoodBillSectionState();
+}
+
+class _FoodBillSectionState extends State<_FoodBillSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    const foodColor = Color(0xFFE64A19);
+
+    // Flatten all items across orders for the table
+    final List<Map<String, dynamic>> tableRows = [];
+    for (final order in widget.orders) {
+      final items = order['items'] as List<dynamic>? ?? [];
+      final orderedAt = order['ordered_at'] as String?;
+      String dateStr = '';
+      String timeStr = '';
+      if (orderedAt != null) {
+        final dt = DateTime.tryParse(orderedAt);
+        if (dt != null) {
+          dateStr = DateFormat('dd MMM').format(dt);
+          timeStr = DateFormat('hh:mm a').format(dt);
+        }
+      }
+      if (items.isNotEmpty) {
+        for (final item in items) {
+          tableRows.add({
+            'name': item['name'] as String? ?? 'Item',
+            'qty': (item['qty'] as num?)?.toInt() ?? 1,
+            'price': (item['price'] as num?)?.toDouble() ?? 0.0,
+            'date': dateStr,
+            'time': timeStr,
+          });
+        }
+      } else {
+        final amount = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
+        final mealType = order['meal_type'] as String? ?? 'Food';
+        tableRows.add({
+          'name': '$mealType (${order['order_number'] ?? ''})',
+          'qty': 1,
+          'price': amount,
+          'date': dateStr,
+          'time': timeStr,
+        });
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+      ),
+      child: Column(children: [
+        // Header
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              const Text('🍽️ Kitchen / Food',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: foodColor)),
+              const Spacer(),
+              if (widget.total > 0)
+                Text('₹${widget.total.toStringAsFixed(0)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: foodColor)),
+              const SizedBox(width: 6),
+              Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 18, color: AppTheme.textPrimary),
+            ]),
+          ),
+        ),
+        // Table
+        if (_expanded) ...[
+          if (tableRows.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Text('No food orders for this room',
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+            )
+          else ...[
+            // Table header
+            Container(
+              color: foodColor.withOpacity(0.07),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: const Row(children: [
+                SizedBox(width: 26, child: Text('Sr', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary))),
+                Expanded(flex: 3, child: Text('Food Item', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary))),
+                SizedBox(width: 60, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary))),
+                SizedBox(width: 28, child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary))),
+                SizedBox(width: 60, child: Text('Price', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.textPrimary))),
+              ]),
+            ),
+            ...tableRows.asMap().entries.map((entry) {
+              final i = entry.key;
+              final row = entry.value;
+              final qty    = row['qty'] as int;
+              final price  = row['price'] as double;
+              final rowAmt = price * qty;
+              return Container(
+                color: i.isEven ? Colors.transparent : foodColor.withOpacity(0.03),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                child: Row(children: [
+                  SizedBox(width: 26, child: Text('${i + 1}', style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary))),
+                  Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(row['name'] as String, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                    if ((row['time'] as String).isNotEmpty)
+                      Text(row['time'] as String, style: TextStyle(fontSize: 10, color: AppTheme.textPrimary.withOpacity(0.55))),
+                  ])),
+                  SizedBox(width: 60, child: Text(row['date'] as String, style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary))),
+                  SizedBox(width: 28, child: Text('$qty', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary))),
+                  SizedBox(width: 60, child: Text('₹${rowAmt.toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
+                ]),
+              );
+            }),
+            // Total row
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                color: foodColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(children: [
+                const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+                const Spacer(),
+                Text('₹${widget.total.toStringAsFixed(0)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: foodColor)),
+              ]),
+            ),
+          ],
         ],
       ]),
     );

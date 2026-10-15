@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../data/food_orders_state_provider.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
 
   @override
   Widget build(BuildContext context) {
-    final ordersAsync = ref.watch(foodOrdersProvider);
+    final orders = ref.watch(foodOrdersStateProvider);
     final menuAsync = ref.watch(menuItemsProvider);
 
     return Scaffold(
@@ -102,10 +103,7 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              ref.invalidate(foodOrdersProvider);
-              ref.invalidate(menuItemsProvider);
-            },
+            onPressed: () => setState(() {}),
           ),
         ],
         bottom: TabBar(
@@ -123,10 +121,7 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
         controller: _tabs,
         children: [
           // ── Orders Tab ──
-          ordersAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFE64A19))),
-            error: (e, _) => const EmptyState(title: 'No Orders Yet', subtitle: 'Food orders will appear here', icon: Icons.restaurant_menu_outlined),
-            data: (orders) {
+          Builder(builder: (ctx) {
               // Stats
               final pending = orders.where((o) => o['status'] == 'PENDING').length;
               final preparing = orders.where((o) => o['status'] == 'PREPARING').length;
@@ -172,8 +167,7 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
                   ),
                 ],
               );
-            },
-          ),
+            }),
 
           // ── Menu Tab ──
           menuAsync.when(
@@ -215,14 +209,9 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
   Future<void> _updateOrderStatus(String id, String status) async {
     try {
       await ref.read(supabaseClientProvider).from('food_orders').update({'status': status, 'updated_at': DateTime.now().toIso8601String()}).eq('id', id);
-    } catch (_) {
-      // Supabase unavailable — update local demo list so UI reflects the change
-      final idx = _demoOrders.indexWhere((o) => o['id'] == id);
-      if (idx >= 0) {
-        _demoOrders[idx] = {..._demoOrders[idx], 'status': status};
-      }
-    }
-    ref.invalidate(foodOrdersProvider);
+    } catch (_) {}
+    // Always update local state so billing + room detail stay in sync
+    ref.read(foodOrdersStateProvider.notifier).updateStatus(id, status);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Order updated to $status'), backgroundColor: AppTheme.success),
@@ -389,7 +378,6 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
                     onPressed: (cart.isEmpty || roomCtrl.text.trim().isEmpty) ? null : () {
                       if (roomCtrl.text.trim().isEmpty) return;
                       // Build order items string
-                      final itemsStr = cart.entries.map((e) => '${e.value}× ${e.key}').join(', ');
                       final newOrder = {
                         'id': '${++_orderCounter}',
                         'order_number': 'FO-${(DateTime.now().millisecondsSinceEpoch % 1000).toString().padLeft(3, '0')}',
@@ -400,10 +388,16 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
                         'notes': notesCtrl.text.trim(),
                         'guests': {'full_name': 'Room ${roomCtrl.text.trim()}'},
                         'bookings': {'booking_number': 'WALK-IN', 'room_number': roomCtrl.text.trim()},
-                        'items_summary': itemsStr,
+                        'items': cart.entries.map((e) {
+                          final item = _demoMenu.firstWhere((m) => m['name'] == e.key, orElse: () => {});
+                          return {
+                            'name': e.key,
+                            'qty': e.value,
+                            'price': (item['price'] as num?)?.toDouble() ?? 0.0,
+                          };
+                        }).toList(),
                       };
-                      _demoOrders.insert(0, newOrder);
-                      ref.invalidate(foodOrdersProvider);
+                      ref.read(foodOrdersStateProvider.notifier).addOrder(newOrder);
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -520,9 +514,15 @@ class _OrderCard extends StatelessWidget {
     final amount = (order['total_amount'] as num?)?.toDouble() ?? 0;
     final mealType = order['meal_type'] as String? ?? '';
     final orderedAt = order['ordered_at'] as String?;
-    final time = orderedAt != null
-        ? DateFormat('hh:mm a').format(DateTime.parse(orderedAt))
-        : '';
+    String time = '';
+    String date = '';
+    if (orderedAt != null) {
+      final dt = DateTime.tryParse(orderedAt);
+      if (dt != null) {
+        time = DateFormat('hh:mm a').format(dt);
+        date = DateFormat('dd MMM').format(dt);
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -548,7 +548,11 @@ class _OrderCard extends StatelessWidget {
                 const Spacer(),
                 Text(mealType, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
                 const SizedBox(width: 8),
-                Text(time, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+                if (date.isNotEmpty) Text(date, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+                if (time.isNotEmpty) ...[
+                  const Text(' ', style: TextStyle(fontSize: 12)),
+                  Text(time, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+                ],
               ],
             ),
           ),
