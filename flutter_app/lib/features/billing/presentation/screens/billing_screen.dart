@@ -418,14 +418,14 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
                   pw.Text('ANJANVEL AGRO TOURISM RESORT', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 14)),
                   pw.SizedBox(height: 4),
-                  pw.Text('Anjanvel, Ratnagiri, Maharashtra', style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
-                  pw.Text('+91 98765 43210  |  anjanvel@resort.com', style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
+                  pw.Text('Anjanvel, Ratnagiri, Maharashtra', style: pw.TextStyle(color: PdfColor(1, 1, 1, 0.7), fontSize: 9)),
+                  pw.Text('+91 98765 43210  |  anjanvel@resort.com', style: pw.TextStyle(color: PdfColor(1, 1, 1, 0.7), fontSize: 9)),
                 ]),
                 pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
                   pw.Text('TAX INVOICE', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 16)),
                   pw.SizedBox(height: 4),
-                  pw.Text(invoiceNo, style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
-                  pw.Text('Date: $dateStr', style: const pw.TextStyle(color: PdfColors.white70, fontSize: 9)),
+                  pw.Text(invoiceNo, style: pw.TextStyle(color: PdfColor(1, 1, 1, 0.7), fontSize: 9)),
+                  pw.Text('Date: $dateStr', style: pw.TextStyle(color: PdfColor(1, 1, 1, 0.7), fontSize: 9)),
                 ]),
               ],
             ),
