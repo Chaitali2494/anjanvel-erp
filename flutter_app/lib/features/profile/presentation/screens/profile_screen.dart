@@ -392,7 +392,7 @@ class _SectionCard extends StatelessWidget {
             const SizedBox(width: 8),
             Text(title,
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14)),
+                    fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary)),
           ]),
           const Divider(height: 16),
           ...children,
@@ -423,7 +423,7 @@ class _InfoRow extends StatelessWidget {
                 style: TextStyle(
                     fontWeight: FontWeight.w500,
                     fontSize: 13,
-                    color: valueColor)),
+                    color: valueColor ?? AppTheme.textPrimary)),
           ),
         ],
       ),
@@ -452,7 +452,7 @@ class _ActionRow extends StatelessWidget {
             Expanded(
                 child: Text(label,
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w500))),
+                        fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textPrimary))),
             const Icon(Icons.chevron_right, color: AppTheme.textPrimary),
           ],
         ),
