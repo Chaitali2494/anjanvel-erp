@@ -25,6 +25,7 @@ class GuestRequestsNotifier
     required String subType,     // e.g. 'CLEAN_ROOM', 'AC_ISSUE', 'WIFI_ISSUE'
     required String title,
     String? note,
+    String? source,              // 'GUEST_QR' when placed from guest portal
   }) {
     final req = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -34,6 +35,7 @@ class GuestRequestsNotifier
       'title': title,
       'note': note ?? '',
       'status': 'PENDING',
+      'source': source,
       'requested_at': DateTime.now().toIso8601String(),
       'assigned_to': null,
     };

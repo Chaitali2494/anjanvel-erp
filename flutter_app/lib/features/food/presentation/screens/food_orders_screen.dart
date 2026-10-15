@@ -132,8 +132,22 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
                   ? orders
                   : orders.where((o) => o['status'] == _statusFilter).toList();
 
+              // Find NEW guest QR orders (placed within last 30 minutes)
+              final now = DateTime.now();
+              final newGuestOrders = orders.where((o) {
+                if (o['source'] != 'GUEST_QR') return false;
+                final at = o['ordered_at'] as String?;
+                if (at == null) return false;
+                final dt = DateTime.tryParse(at);
+                if (dt == null) return false;
+                return now.difference(dt).inMinutes < 30 && o['status'] == 'PENDING';
+              }).toList();
+
               return Column(
                 children: [
+                  // ── NEW guest order alert ──
+                  if (newGuestOrders.isNotEmpty)
+                    _GuestOrderAlert(orders: newGuestOrders),
                   // Stats
                   _OrderStats(pending: pending, preparing: preparing, served: served, revenue: revenue),
                   // Status filter
@@ -714,4 +728,76 @@ class _MenuItem extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Guest QR Order Alert Banner ───────────────────────────────────────────────
+
+class _GuestOrderAlert extends StatelessWidget {
+  final List<Map<String, dynamic>> orders;
+  const _GuestOrderAlert({required this.orders});
+
+  @override
+  Widget build(BuildContext context) {
+    final rooms = orders.map((o) =>
+        ((o['bookings'] as Map<String, dynamic>?)?['room_number'] as String? ?? '?'))
+        .toSet().join(', ');
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE64A19).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE64A19).withOpacity(0.4)),
+      ),
+      child: Row(children: [
+        // Pulsing dot
+        _PulsingDot(color: const Color(0xFFE64A19)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            '${orders.length} NEW order${orders.length > 1 ? 's' : ''} via Guest QR',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFE64A19)),
+          ),
+          Text('Room${rooms.contains(',') ? 's' : ''} $rooms · Waiting for kitchen',
+              style: const TextStyle(fontSize: 11, color: Colors.black54)),
+        ])),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE64A19),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text('VIEW', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        ),
+      ]),
+    );
+  }
+}
+
+class _PulsingDot extends StatefulWidget {
+  final Color color;
+  const _PulsingDot({required this.color});
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..repeat(reverse: true);
+    _scale = Tween(begin: 0.7, end: 1.3).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+  @override void dispose() { _ctrl.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => ScaleTransition(
+    scale: _scale,
+    child: Container(
+      width: 10, height: 10,
+      decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
+    ),
+  );
 }

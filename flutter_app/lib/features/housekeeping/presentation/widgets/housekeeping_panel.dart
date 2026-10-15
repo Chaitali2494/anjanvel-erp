@@ -25,24 +25,45 @@ class HousekeepingPanel extends ConsumerWidget {
         // ── Guest HK requests banner ───────────────────────────────────────
         if (pendingGuestHk.isNotEmpty) ...[
           Container(
-            margin: const EdgeInsets.only(bottom: 10),
+            margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFE65100).withOpacity(0.08),
+              color: const Color(0xFFE65100).withOpacity(0.07),
               borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-              border: Border.all(color: const Color(0xFFE65100).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFFE65100).withOpacity(0.4), width: 1.5),
             ),
             child: Column(children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
                 child: Row(children: [
-                  const Icon(Icons.notifications_active_rounded, color: Color(0xFFE65100), size: 18),
-                  const SizedBox(width: 6),
-                  Text('${pendingGuestHk.length} Guest HK Request${pendingGuestHk.length > 1 ? 's' : ''} via QR',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFE65100))),
+                  _HkPulsingDot(),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '🆕 ${pendingGuestHk.length} New Housekeeping Request${pendingGuestHk.length > 1 ? 's' : ''} via Guest QR',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFE65100)),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE65100),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${pendingGuestHk.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ]),
               ),
               ...pendingGuestHk.take(3).map((r) => _GuestHkRow(request: r, ref: ref)),
-              const SizedBox(height: 6),
+              if (pendingGuestHk.length > 3)
+                Padding(
+                  padding: const EdgeInsets.only(left: 14, bottom: 8),
+                  child: Text('+${pendingGuestHk.length - 3} more · Go to Housekeeping',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFFE65100))),
+                ),
+              const SizedBox(height: 4),
             ]),
           ),
         ],
@@ -364,6 +385,27 @@ class HKStat extends StatelessWidget {
 class HKDiv extends StatelessWidget {
   const HKDiv({super.key});
   @override Widget build(_) => Container(width: 1, height: 28, color: Colors.white24);
+}
+
+class _HkPulsingDot extends StatefulWidget {
+  @override State<_HkPulsingDot> createState() => _HkPulsingDotState();
+}
+class _HkPulsingDotState extends State<_HkPulsingDot> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+  @override void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..repeat(reverse: true);
+    _scale = Tween(begin: 0.6, end: 1.4).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+  @override void dispose() { _ctrl.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) => ScaleTransition(
+    scale: _scale,
+    child: Container(
+      width: 10, height: 10,
+      decoration: const BoxDecoration(color: Color(0xFFE65100), shape: BoxShape.circle),
+    ),
+  );
 }
 
 class HKTaskRow extends StatelessWidget {

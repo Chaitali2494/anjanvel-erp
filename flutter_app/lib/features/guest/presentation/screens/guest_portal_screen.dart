@@ -212,8 +212,8 @@ class GuestPortalScreen extends ConsumerWidget {
                   _QuickInfoRow(),
                   const SizedBox(height: 20),
 
-                  // ── My Requests ───────────────────────────────────────
-                  _MyRequests(roomNumber: roomNumber),
+                  // ── My Orders, Requests & Bill ───────────────────────
+                  _MyTracker(roomNumber: roomNumber),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -356,6 +356,7 @@ class GuestPortalScreen extends ConsumerWidget {
                       'id': '${++counter}',
                       'order_number': 'FO-G${(DateTime.now().millisecondsSinceEpoch % 9000 + 1000)}',
                       'status': 'PENDING',
+                      'source': 'GUEST_QR',
                       'total_amount': total,
                       'meal_type': mealType,
                       'ordered_at': DateTime.now().toIso8601String(),
@@ -409,6 +410,7 @@ class GuestPortalScreen extends ConsumerWidget {
             subType: sub,
             title: title,
             note: note,
+            source: 'GUEST_QR',
           );
           Navigator.pop(context);
           _showSuccess(context, '🧹 Request Sent!', 'Our housekeeping team will attend to Room $roomNumber shortly.');
@@ -437,6 +439,7 @@ class GuestPortalScreen extends ConsumerWidget {
             subType: sub,
             title: title,
             note: note,
+            source: 'GUEST_QR',
           );
           Navigator.pop(context);
           _showSuccess(context, '🔧 Issue Reported!', 'Our maintenance team will fix the issue in Room $roomNumber as soon as possible.');
@@ -636,93 +639,322 @@ class _InfoChip extends StatelessWidget {
   );
 }
 
-// ── My Requests ───────────────────────────────────────────────────────────────
+// ── My Tracker (Orders + Requests + Bill) ─────────────────────────────────────
 
-class _MyRequests extends ConsumerWidget {
+class _MyTracker extends ConsumerStatefulWidget {
   final String roomNumber;
-  const _MyRequests({required this.roomNumber});
+  const _MyTracker({required this.roomNumber});
+  @override
+  ConsumerState<_MyTracker> createState() => _MyTrackerState();
+}
+
+class _MyTrackerState extends ConsumerState<_MyTracker> with SingleTickerProviderStateMixin {
+  late TabController _tab;
+  @override
+  void initState() { super.initState(); _tab = TabController(length: 3, vsync: this); }
+  @override
+  void dispose() { _tab.dispose(); super.dispose(); }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final all = ref.watch(guestRequestsProvider);
-    final roomReqs = all.where((r) => r['room_number'] == roomNumber).take(5).toList();
-    if (roomReqs.isEmpty) return const SizedBox.shrink();
+  Widget build(BuildContext context) {
+    final allOrders   = ref.watch(foodOrdersStateProvider);
+    final allRequests = ref.watch(guestRequestsProvider);
+
+    final myOrders = allOrders
+        .where((o) =>
+            ((o['bookings'] as Map<String, dynamic>?)?['room_number'] as String? ?? '') == widget.roomNumber &&
+            o['status'] != 'CANCELLED')
+        .toList();
+    final myRequests = allRequests
+        .where((r) => r['room_number'] == widget.roomNumber)
+        .toList();
+
+    // Bill calculation
+    double foodTotal = 0;
+    for (final o in myOrders) {
+      final items = o['items'] as List<dynamic>? ?? [];
+      for (final item in items) {
+        foodTotal += ((item['price'] as num?)?.toDouble() ?? 0) * ((item['qty'] as num?)?.toInt() ?? 1);
+      }
+      if (items.isEmpty) foodTotal += (o['total_amount'] as num?)?.toDouble() ?? 0;
+    }
+    const roomRate  = 3500.0;
+    const nights    = 2;
+    final subtotal  = roomRate * nights + foodTotal;
+    final gst       = subtotal * 0.12;
+    final grandTotal = subtotal + gst;
+
+    const green = Color(0xFF1B5E20);
+    const tabGreen = Color(0xFF2E7D32);
+
+    if (myOrders.isEmpty && myRequests.isEmpty) return const SizedBox.shrink();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('My Requests', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
+      const Text('My Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
       const SizedBox(height: 10),
-      ...roomReqs.map((r) => _RequestTile(request: r)),
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10)],
+        ),
+        child: Column(children: [
+          // Tab bar
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F8E9),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: TabBar(
+              controller: _tab,
+              labelColor: tabGreen,
+              unselectedLabelColor: Colors.black45,
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              unselectedLabelStyle: const TextStyle(fontSize: 12),
+              indicatorColor: tabGreen,
+              indicatorWeight: 2.5,
+              tabs: [
+                Tab(text: 'Food Orders${myOrders.isNotEmpty ? ' (${myOrders.length})' : ''}'),
+                Tab(text: 'Requests${myRequests.isNotEmpty ? ' (${myRequests.length})' : ''}'),
+                const Tab(text: 'My Bill'),
+              ],
+            ),
+          ),
+          // Tab views
+          SizedBox(
+            height: 280,
+            child: TabBarView(
+              controller: _tab,
+              children: [
+                // ── Food Orders tab ─────────────────────────────────────
+                myOrders.isEmpty
+                  ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text('🍽️', style: TextStyle(fontSize: 36)),
+                      SizedBox(height: 8),
+                      Text('No food orders yet', style: TextStyle(color: Colors.black54, fontSize: 13)),
+                      Text('Tap "Order Food" above to get started', style: TextStyle(color: Colors.black38, fontSize: 11)),
+                    ]))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: myOrders.length,
+                      itemBuilder: (_, i) {
+                        final order = myOrders[i];
+                        final status = order['status'] as String? ?? 'PENDING';
+                        final items  = order['items'] as List<dynamic>? ?? [];
+                        final time   = order['ordered_at'] as String?;
+                        String timeStr = '';
+                        if (time != null) {
+                          final dt = DateTime.tryParse(time);
+                          if (dt != null) timeStr = DateFormat('hh:mm a').format(dt);
+                        }
+                        final Color stColor;
+                        final String stLabel;
+                        switch (status) {
+                          case 'PENDING':   stColor = const Color(0xFFE65100); stLabel = 'Received'; break;
+                          case 'PREPARING': stColor = const Color(0xFF1565C0); stLabel = 'Preparing'; break;
+                          case 'READY':     stColor = const Color(0xFF6A1B9A); stLabel = 'Ready!'; break;
+                          case 'SERVED':
+                          case 'DELIVERED': stColor = const Color(0xFF2E7D32); stLabel = 'Delivered ✓'; break;
+                          default:          stColor = Colors.grey; stLabel = status;
+                        }
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: stColor.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: stColor.withOpacity(0.2)),
+                          ),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Row(children: [
+                              const Text('🍽️', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Expanded(child: Text(
+                                order['order_number'] as String? ?? 'Order',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0D0D0D)),
+                              )),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: stColor.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                                child: Text(stLabel, style: TextStyle(fontSize: 10, color: stColor, fontWeight: FontWeight.bold)),
+                              ),
+                            ]),
+                            if (items.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                items.map((it) => '${it['name']} ×${it['qty']}').join(', '),
+                                style: const TextStyle(fontSize: 11, color: Colors.black54),
+                                maxLines: 2, overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            const SizedBox(height: 4),
+                            Row(children: [
+                              Text(timeStr, style: const TextStyle(fontSize: 10, color: Colors.black38)),
+                              const Spacer(),
+                              Text(
+                                '₹${((order['total_amount'] as num?)?.toStringAsFixed(0)) ?? '0'}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0D0D0D)),
+                              ),
+                            ]),
+                            // Status progress bar
+                            const SizedBox(height: 6),
+                            _OrderProgressBar(status: status),
+                          ]),
+                        );
+                      },
+                    ),
+
+                // ── Requests tab ────────────────────────────────────────
+                myRequests.isEmpty
+                  ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text('📋', style: TextStyle(fontSize: 36)),
+                      SizedBox(height: 8),
+                      Text('No requests yet', style: TextStyle(color: Colors.black54, fontSize: 13)),
+                    ]))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: myRequests.length,
+                      itemBuilder: (_, i) {
+                        final r = myRequests[i];
+                        final status = r['status'] as String? ?? 'PENDING';
+                        final type   = r['type'] as String? ?? '';
+                        final time   = r['requested_at'] as String?;
+                        String timeStr = '';
+                        if (time != null) {
+                          final dt = DateTime.tryParse(time);
+                          if (dt != null) timeStr = DateFormat('hh:mm a').format(dt);
+                        }
+                        final Color stColor;
+                        final String stLabel;
+                        final String typeEmoji;
+                        switch (status) {
+                          case 'PENDING':     stColor = const Color(0xFFE65100); stLabel = 'Pending'; break;
+                          case 'IN_PROGRESS': stColor = const Color(0xFF1565C0); stLabel = 'In Progress'; break;
+                          case 'DONE':        stColor = const Color(0xFF2E7D32); stLabel = 'Done ✓'; break;
+                          default:            stColor = Colors.grey; stLabel = status;
+                        }
+                        switch (type) {
+                          case 'HOUSEKEEPING': typeEmoji = '🧹'; break;
+                          case 'MAINTENANCE':  typeEmoji = '🔧'; break;
+                          case 'ACTIVITY':     typeEmoji = '🎯'; break;
+                          default:             typeEmoji = '📋';
+                        }
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: stColor.withOpacity(0.2)),
+                          ),
+                          child: Row(children: [
+                            Text(typeEmoji, style: const TextStyle(fontSize: 20)),
+                            const SizedBox(width: 10),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(r['title'] as String? ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0D0D0D))),
+                              Text(timeStr, style: const TextStyle(fontSize: 10, color: Colors.black45)),
+                            ])),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(color: stColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: Text(stLabel, style: TextStyle(fontSize: 10, color: stColor, fontWeight: FontWeight.bold)),
+                            ),
+                          ]),
+                        );
+                      },
+                    ),
+
+                // ── My Bill tab ─────────────────────────────────────────
+                ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _BillRow('🏨 Room Charges', '${nights} night${nights > 1 ? 's' : ''} × ₹${roomRate.toStringAsFixed(0)}', roomRate * nights, green),
+                    _BillRow('🍽️ Food & Beverages', '${myOrders.length} order${myOrders.length != 1 ? 's' : ''}', foodTotal, const Color(0xFFE64A19)),
+                    const Divider(height: 20),
+                    _BillRow('Subtotal', '', subtotal, Colors.black87, bold: false),
+                    _BillRow('GST (12%)', '', gst, Colors.black54, bold: false, small: true),
+                    const Divider(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: green.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: green.withOpacity(0.2)),
+                      ),
+                      child: Row(children: [
+                        const Text('Grand Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1B5E20))),
+                        const Spacer(),
+                        Text('₹${grandTotal.toStringAsFixed(0)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF1B5E20))),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('* This is an estimated bill. Final bill at checkout may vary.',
+                        style: TextStyle(fontSize: 10, color: Colors.black38), textAlign: TextAlign.center),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ),
     ]);
   }
 }
 
-class _RequestTile extends StatelessWidget {
-  final Map<String, dynamic> request;
-  const _RequestTile({required this.request});
-
-  Color get _statusColor {
-    switch (request['status']) {
-      case 'PENDING': return AppTheme.warning;
-      case 'IN_PROGRESS': return AppTheme.info;
-      case 'DONE': return AppTheme.success;
-      default: return AppTheme.textHint;
-    }
-  }
-
-  String get _statusLabel {
-    switch (request['status']) {
-      case 'PENDING': return 'Pending';
-      case 'IN_PROGRESS': return 'In Progress';
-      case 'DONE': return 'Done';
-      default: return 'Unknown';
-    }
-  }
-
-  String get _typeEmoji {
-    switch (request['type']) {
-      case 'HOUSEKEEPING': return '🧹';
-      case 'MAINTENANCE': return '🔧';
-      case 'ACTIVITY': return '🎯';
-      default: return '📋';
-    }
-  }
+class _OrderProgressBar extends StatelessWidget {
+  final String status;
+  const _OrderProgressBar({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final requestedAt = request['requested_at'] as String?;
-    String timeStr = '';
-    if (requestedAt != null) {
-      final dt = DateTime.tryParse(requestedAt);
-      if (dt != null) timeStr = DateFormat('hh:mm a').format(dt);
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _statusColor.withOpacity(0.25)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
-      ),
-      child: Row(children: [
-        Text(_typeEmoji, style: const TextStyle(fontSize: 20)),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(request['title'] as String, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0D0D0D))),
-          Text(timeStr, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-        ])),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: _statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+    const steps = ['PENDING', 'PREPARING', 'READY', 'DELIVERED'];
+    const labels = ['Received', 'Preparing', 'Ready', 'Delivered'];
+    final idx = steps.indexOf(status == 'SERVED' ? 'DELIVERED' : status);
+    return Row(children: List.generate(steps.length, (i) {
+      final done = i <= idx;
+      return Expanded(child: Row(children: [
+        Column(children: [
+          Container(
+            width: 10, height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: done ? const Color(0xFF2E7D32) : Colors.grey.shade200,
+              border: Border.all(color: done ? const Color(0xFF2E7D32) : Colors.grey.shade300),
+            ),
           ),
-          child: Text(_statusLabel, style: TextStyle(fontSize: 11, color: _statusColor, fontWeight: FontWeight.bold)),
-        ),
-      ]),
-    );
+          Text(labels[i], style: TextStyle(fontSize: 8, color: done ? const Color(0xFF2E7D32) : Colors.grey.shade400)),
+        ]),
+        if (i < steps.length - 1)
+          Expanded(child: Container(
+            height: 1.5,
+            color: i < idx ? const Color(0xFF2E7D32) : Colors.grey.shade200,
+          )),
+      ]));
+    }));
   }
+}
+
+class _BillRow extends StatelessWidget {
+  final String label, sub;
+  final double amount;
+  final Color color;
+  final bool bold;
+  final bool small;
+  const _BillRow(this.label, this.sub, this.amount, this.color, {this.bold = true, this.small = false});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(fontSize: small ? 12 : 13, fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
+        if (sub.isNotEmpty) Text(sub, style: const TextStyle(fontSize: 10, color: Colors.black45)),
+      ])),
+      Text('₹${amount.toStringAsFixed(0)}',
+          style: TextStyle(fontSize: small ? 12 : 13, fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
+    ]),
+  );
 }
 
 // ── Generic Request Sheet ─────────────────────────────────────────────────────
