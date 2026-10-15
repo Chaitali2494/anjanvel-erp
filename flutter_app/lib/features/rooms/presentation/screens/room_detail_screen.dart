@@ -30,6 +30,21 @@ final _demoFoodByRoom = <String, List<Map<String, dynamic>>>{
   ],
 };
 
+// ── Demo SHG shop charges keyed by room number ────────────────────────────────
+final _demoShopByRoom = <String, List<Map<String, dynamic>>>{
+  '101': [
+    {'product': 'Indrayani Rice',  'qty': 2, 'price': 180.0},
+    {'product': 'Kurdai Papadi',   'qty': 1, 'price': 60.0},
+  ],
+  '205': [
+    {'product': 'Fresh Mangoes',   'qty': 2, 'price': 120.0},
+    {'product': 'Warli Art Frame', 'qty': 1, 'price': 350.0},
+  ],
+  '302': [
+    {'product': 'Mixed Vegetables','qty': 1, 'price': 80.0},
+  ],
+};
+
 // ── Provider ───────────────────────────────────────────────────────────────────
 final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, roomId) async {
   final client = ref.watch(supabaseClientProvider);
@@ -184,13 +199,19 @@ class RoomDetailScreen extends ConsumerWidget {
                 _ActivitiesCard(activities: roomActivities, roomNo: roomNo),
                 const SizedBox(height: 12),
 
-                // Food orders
-                _FoodOrdersCard(orders: foodOrders, roomNo: roomNo),
-                const SizedBox(height: 12),
+                // Food orders (hide when empty)
+                if (foodOrders.isNotEmpty) ...[
+                  _FoodOrdersCard(orders: foodOrders, roomNo: roomNo),
+                  const SizedBox(height: 12),
+                ],
 
                 // SHG Shop charges
-                if (roomShopCharges.isNotEmpty) ...[
-                  _ShopChargesCard(charges: roomShopCharges, roomNo: roomNo),
+                if (roomShopCharges.isNotEmpty || _demoShopByRoom.containsKey(roomNo)) ...[
+                  _ShopChargesCard(
+                    charges: roomShopCharges,
+                    demoCharges: _demoShopByRoom[roomNo] ?? [],
+                    roomNo: roomNo,
+                  ),
                   const SizedBox(height: 12),
                 ],
 
@@ -622,31 +643,31 @@ class _RoomHeader extends StatelessWidget {
 
 class _ShopChargesCard extends StatelessWidget {
   final List<ShopRoomCharge> charges;
+  final List<Map<String, dynamic>> demoCharges;
   final String roomNo;
-  const _ShopChargesCard({required this.charges, required this.roomNo});
+  const _ShopChargesCard({required this.charges, required this.demoCharges, required this.roomNo});
 
   @override
   Widget build(BuildContext context) {
-    final total = charges.fold(0.0, (s, c) => s + c.total);
+    // Live session charges take priority; fall back to demo
+    final useLive = charges.isNotEmpty;
+    final liveTotal = charges.fold(0.0, (s, c) => s + c.total);
+    final demoTotal = demoCharges.fold(0.0, (s, c) => s + ((c['price'] as double) * (c['qty'] as int)));
+    final total = useLive ? liveTotal : demoTotal;
+
     return _SectionCard(
       title: '🏪 SHG Shop Charges',
       icon: Icons.storefront_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...charges.map((c) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(children: [
-              Expanded(child: Text(
-                '${c.product} × ${c.qty}',
-                style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-              )),
-              Text(
-                '₹${c.total.toStringAsFixed(0)}',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary),
-              ),
-            ]),
-          )),
+          if (useLive)
+            ...charges.map((c) => _ShopRow('${c.product} × ${c.qty}', c.total))
+          else
+            ...demoCharges.map((c) => _ShopRow(
+              '${c['product']} × ${c['qty']}',
+              (c['price'] as double) * (c['qty'] as int),
+            )),
           const Divider(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -660,6 +681,21 @@ class _ShopChargesCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ShopRow extends StatelessWidget {
+  final String label;
+  final double amount;
+  const _ShopRow(this.label, this.amount);
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(children: [
+      Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary))),
+      Text('₹${amount.toStringAsFixed(0)}',
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+    ]),
+  );
 }
 
 // ── Status Actions ────────────────────────────────────────────────────────────
