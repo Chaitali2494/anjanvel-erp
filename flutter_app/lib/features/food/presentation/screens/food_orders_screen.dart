@@ -398,41 +398,58 @@ class _OrderCard extends StatelessWidget {
           ),
           // Actions
           if (status != 'SERVED' && status != 'CANCELLED')
-            Container(
+            Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: Row(
                 children: [
-                  if (status == 'PENDING')
+                  if (status == 'PENDING') ...[
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => onStatusChange(order['id'] as String, 'PREPARING'),
-                        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0277BD)),
-                        child: const Text('Start Prep', overflow: TextOverflow.ellipsis),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0277BD),
+                          minimumSize: const Size(0, 38),
+                        ),
+                        child: const Text('Start Prep'),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                  ],
                   if (status == 'PREPARING') ...[
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => onStatusChange(order['id'] as String, 'READY'),
-                        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF00838F)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF00838F),
+                          minimumSize: const Size(0, 38),
+                        ),
                         child: const Text('Mark Ready'),
                       ),
                     ),
+                    const SizedBox(width: 8),
                   ],
                   if (status == 'READY') ...[
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () => onStatusChange(order['id'] as String, 'SERVED'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.success,
+                          minimumSize: const Size(0, 38),
+                        ),
                         child: const Text('Mark Served'),
                       ),
                     ),
+                    const SizedBox(width: 8),
                   ],
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () => onStatusChange(order['id'] as String, 'CANCELLED'),
-                    style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error),
-                    child: const Text('Cancel'),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => onStatusChange(order['id'] as String, 'CANCELLED'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.error,
+                        minimumSize: const Size(0, 38),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
                   ),
                 ],
               ),
