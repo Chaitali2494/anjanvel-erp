@@ -630,6 +630,7 @@ class _ShopChargesCard extends StatelessWidget {
     final total = charges.fold(0.0, (s, c) => s + c.total);
     return _SectionCard(
       title: '🏪 SHG Shop Charges',
+      icon: Icons.storefront_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
