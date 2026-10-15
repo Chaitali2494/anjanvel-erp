@@ -19,7 +19,7 @@ class HousekeepingPanel extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Housekeeping', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('Housekeeping', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
             Row(children: [
               TextButton(
                 onPressed: () => context.push('/housekeeping'),

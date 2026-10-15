@@ -128,7 +128,7 @@ class _BookingCalendarScreenState extends ConsumerState<BookingCalendarScreen> {
                         children: [
                           Text(
                             'Check-ins on $dayStr',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textPrimary),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -231,27 +231,202 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
   }
 
   void _showNewOrderSheet() {
+    final roomCtrl  = TextEditingController();
+    final notesCtrl = TextEditingController();
+    String mealType = 'BREAKFAST';
+    final Map<String, int> cart = {}; // menuItem name → qty
+    int _orderCounter = DateTime.now().millisecondsSinceEpoch;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('New Food Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            const Text('Food orders are placed by guests through their room service. Orders will appear here automatically.',
-                style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE64A19), minimumSize: const Size(double.infinity, 48)),
-              child: const Text('OK'),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModal) {
+          final total = cart.entries.fold<double>(0, (s, e) {
+            final item = _demoMenu.firstWhere((m) => m['name'] == e.key, orElse: () => {});
+            return s + ((item['price'] as num?)?.toDouble() ?? 0) * e.value;
+          });
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16, right: 16, top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
-          ],
-        ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(children: [
+                    const Icon(Icons.restaurant_menu_outlined, color: Color(0xFFE64A19)),
+                    const SizedBox(width: 10),
+                    const Text('Create Food Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                    const Spacer(),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ]),
+                  const SizedBox(height: 12),
+
+                  // Room number
+                  const Text('Room Number *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: roomCtrl,
+                    keyboardType: TextInputType.text,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. 101, T01',
+                      prefixIcon: Icon(Icons.bed_outlined, size: 18),
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Meal type
+                  const Text('Meal Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 6),
+                  Row(children: ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map((m) {
+                    final sel = mealType == m;
+                    return Expanded(child: GestureDetector(
+                      onTap: () => setModal(() => mealType = m),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: sel ? const Color(0xFFE64A19) : const Color(0xFFE64A19).withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE64A19).withOpacity(sel ? 1 : 0.3)),
+                        ),
+                        child: Text(m[0] + m.substring(1).toLowerCase(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                                color: sel ? Colors.white : const Color(0xFFE64A19))),
+                      ),
+                    ));
+                  }).toList()),
+                  const SizedBox(height: 14),
+
+                  // Menu items
+                  const Text('Select Items', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary)),
+                  const SizedBox(height: 6),
+                  ..._demoMenu.map((item) {
+                    final name  = item['name'] as String;
+                    final price = (item['price'] as num).toDouble();
+                    final qty   = cart[name] ?? 0;
+                    final isVeg = item['is_veg'] as bool? ?? true;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: qty > 0 ? const Color(0xFFE64A19).withOpacity(0.05) : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: qty > 0 ? const Color(0xFFE64A19).withOpacity(0.4) : Colors.grey.shade200),
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 12, height: 12,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: isVeg ? Colors.green : Colors.red, width: 1.5),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: Center(child: Container(
+                            width: 5, height: 5,
+                            decoration: BoxDecoration(color: isVeg ? Colors.green : Colors.red, shape: BoxShape.circle),
+                          )),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textPrimary))),
+                        Text('₹${price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                        const SizedBox(width: 8),
+                        if (qty == 0)
+                          GestureDetector(
+                            onTap: () => setModal(() => cart[name] = 1),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE64A19),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('Add', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          )
+                        else
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            GestureDetector(
+                              onTap: () => setModal(() { if (qty > 1) cart[name] = qty - 1; else cart.remove(name); }),
+                              child: const Icon(Icons.remove_circle_outline, color: Color(0xFFE64A19), size: 22),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
+                            ),
+                            GestureDetector(
+                              onTap: () => setModal(() => cart[name] = qty + 1),
+                              child: const Icon(Icons.add_circle_outline, color: Color(0xFFE64A19), size: 22),
+                            ),
+                          ]),
+                      ]),
+                    );
+                  }),
+                  const SizedBox(height: 10),
+
+                  // Notes
+                  TextField(
+                    controller: notesCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Special instructions (optional)',
+                      prefixIcon: Icon(Icons.note_outlined, size: 18),
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Place Order button
+                  ElevatedButton(
+                    onPressed: (cart.isEmpty || roomCtrl.text.trim().isEmpty) ? null : () {
+                      if (roomCtrl.text.trim().isEmpty) return;
+                      // Build order items string
+                      final itemsStr = cart.entries.map((e) => '${e.value}× ${e.key}').join(', ');
+                      final newOrder = {
+                        'id': '${++_orderCounter}',
+                        'order_number': 'FO-${(DateTime.now().millisecondsSinceEpoch % 1000).toString().padLeft(3, '0')}',
+                        'status': 'PENDING',
+                        'total_amount': total,
+                        'meal_type': mealType,
+                        'ordered_at': DateTime.now().toIso8601String(),
+                        'notes': notesCtrl.text.trim(),
+                        'guests': {'full_name': 'Room ${roomCtrl.text.trim()}'},
+                        'bookings': {'booking_number': 'WALK-IN', 'room_number': roomCtrl.text.trim()},
+                        'items_summary': itemsStr,
+                      };
+                      _demoOrders.insert(0, newOrder);
+                      ref.invalidate(foodOrdersProvider);
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Order placed for Room ${roomCtrl.text.trim()} — ₹${total.toStringAsFixed(0)}'),
+                          backgroundColor: AppTheme.success,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE64A19),
+                      minimumSize: const Size(double.infinity, 50),
+                      disabledBackgroundColor: Colors.grey.shade300,
+                    ),
+                    child: Text(
+                      cart.isEmpty ? 'Select items to place order' : 'Place Order  •  ₹${total.toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -672,13 +672,13 @@ class _BookingTile extends StatelessWidget {
               children: [
                 Text(
                   booking['guest_name'] ?? 'Guest',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   '${booking['booking_number']} • ${booking['total_guests']} guests',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textPrimary),
                 ),
               ],
             ),

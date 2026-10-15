@@ -263,9 +263,9 @@ class EmptyState extends StatelessWidget {
               child: Icon(icon, size: 48, color: AppTheme.primary.withOpacity(0.6)),
             ),
             const SizedBox(height: AppTheme.spaceLG),
-            Text(title, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary), textAlign: TextAlign.center),
             const SizedBox(height: AppTheme.spaceSM),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
+            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary), textAlign: TextAlign.center),
             if (buttonLabel != null) ...[
               const SizedBox(height: AppTheme.spaceLG),
               ElevatedButton(onPressed: onButtonTap, child: Text(buttonLabel!)),

@@ -359,7 +359,7 @@ class _BookingTab extends StatelessWidget {
                     Icon(emptyIcon, size: 56, color: AppTheme.textPrimary.withOpacity(0.3)),
                     const SizedBox(height: 12),
                     Text(emptyMessage,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: AppTheme.textPrimary)),
                     const SizedBox(height: 4),
                     Text(emptySub,
                         style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
