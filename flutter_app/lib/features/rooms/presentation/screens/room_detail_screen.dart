@@ -6,6 +6,8 @@ import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../data/room_service.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
+import '../../../shop/data/shop_room_charges_provider.dart';
+import '../../../billing/data/billing_state_provider.dart';
 
 // ── Demo food orders keyed by room number ──────────────────────────────────────
 final _demoFoodByRoom = <String, List<Map<String, dynamic>>>{
@@ -43,9 +45,15 @@ final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, Strin
     room = null;
   }
 
+  // Pick a stable room number for demo: use roomId directly if short, else
+  // hash into kBillableRooms so different UUIDs get different demo rooms
+  final _demoRoomNo = roomId.length <= 5
+      ? roomId
+      : kBillableRooms[roomId.hashCode.abs() % kBillableRooms.length]['room_number'] as String;
+
   room ??= {
     'id': roomId,
-    'room_number': roomId.length > 6 ? '101' : roomId,
+    'room_number': _demoRoomNo,
     'status': 'AVAILABLE',
     'floor': 1,
     'description': 'Demo room',
@@ -82,6 +90,7 @@ class RoomDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final roomAsync        = ref.watch(roomDetailFullProvider(roomId));
     final bookingsAsync    = ref.watch(activityBookingsProvider);
+    final allShopCharges   = ref.watch(shopRoomChargesProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -113,6 +122,9 @@ class RoomDetailScreen extends ConsumerWidget {
 
           // Food orders for this room
           final foodOrders = _demoFoodByRoom[roomNo] ?? [];
+
+          // Shop charges for this room
+          final roomShopCharges = allShopCharges.where((c) => c.roomNumber == roomNo).toList();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -175,6 +187,12 @@ class RoomDetailScreen extends ConsumerWidget {
                 // Food orders
                 _FoodOrdersCard(orders: foodOrders, roomNo: roomNo),
                 const SizedBox(height: 12),
+
+                // SHG Shop charges
+                if (roomShopCharges.isNotEmpty) ...[
+                  _ShopChargesCard(charges: roomShopCharges, roomNo: roomNo),
+                  const SizedBox(height: 12),
+                ],
 
                 // Status actions
                 _StatusActionsCard(
@@ -596,6 +614,49 @@ class _RoomHeader extends StatelessWidget {
           ),
         ])),
       ]),
+    );
+  }
+}
+
+// ── SHG Shop Charges Card ─────────────────────────────────────────────────────
+
+class _ShopChargesCard extends StatelessWidget {
+  final List<ShopRoomCharge> charges;
+  final String roomNo;
+  const _ShopChargesCard({required this.charges, required this.roomNo});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = charges.fold(0.0, (s, c) => s + c.total);
+    return _SectionCard(
+      title: '🏪 SHG Shop Charges',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...charges.map((c) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(children: [
+              Expanded(child: Text(
+                '${c.product} × ${c.qty}',
+                style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+              )),
+              Text(
+                '₹${c.total.toStringAsFixed(0)}',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textPrimary),
+              ),
+            ]),
+          )),
+          const Divider(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Shop Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+              Text('₹${total.toStringAsFixed(0)}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF558B2F))),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
