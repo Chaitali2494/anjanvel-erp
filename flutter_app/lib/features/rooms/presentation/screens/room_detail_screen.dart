@@ -49,22 +49,30 @@ final _demoShopByRoom = <String, List<Map<String, dynamic>>>{
 final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, roomId) async {
   final client = ref.watch(supabaseClientProvider);
 
+  // roomId may be a real UUID or a room_number string (e.g. "101", "Villa")
+  final isUuid = roomId.contains('-') && roomId.length > 20;
+
   Map<String, dynamic>? room;
   try {
-    room = await client
-        .from('rooms')
-        .select('*, room_types(name, base_price, max_occupancy, amenities)')
-        .eq('id', roomId)
-        .maybeSingle();
+    room = isUuid
+        ? await client
+            .from('rooms')
+            .select('*, room_types(name, base_price, max_occupancy, amenities)')
+            .eq('id', roomId)
+            .maybeSingle()
+        : await client
+            .from('rooms')
+            .select('*, room_types(name, base_price, max_occupancy, amenities)')
+            .eq('room_number', roomId)
+            .maybeSingle();
   } catch (_) {
     room = null;
   }
 
-  // Pick a stable room number for demo: use roomId directly if short, else
-  // hash into kBillableRooms so different UUIDs get different demo rooms
-  final _demoRoomNo = roomId.length <= 5
-      ? roomId
-      : kBillableRooms[roomId.hashCode.abs() % kBillableRooms.length]['room_number'] as String;
+  // If UUID, hash to a demo room number; if already a room_number, use directly
+  final _demoRoomNo = isUuid
+      ? kBillableRooms[roomId.hashCode.abs() % kBillableRooms.length]['room_number'] as String
+      : roomId;
 
   room ??= {
     'id': roomId,
@@ -81,16 +89,42 @@ final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, Strin
   };
 
   try {
-    final bookingRooms = await client
-        .from('booking_rooms')
-        .select('booking_id, bookings(id, booking_number, status, check_in_date, check_out_date, num_adults, num_children, total_amount, paid_amount, primary_guest_id, guests:primary_guest_id(full_name, phone, email))')
-        .eq('room_id', roomId)
-        .inFilter('bookings.status', ['CONFIRMED', 'CHECKED_IN', 'RESERVED'])
-        .order('created_at', ascending: false)
-        .limit(1);
-    room['current_booking'] = bookingRooms.isNotEmpty ? bookingRooms.first['bookings'] : null;
+    // booking_rooms uses UUID; only query if we have a UUID
+    if (isUuid) {
+      final bookingRooms = await client
+          .from('booking_rooms')
+          .select('booking_id, bookings(id, booking_number, status, check_in_date, check_out_date, num_adults, num_children, total_amount, paid_amount, primary_guest_id, guests:primary_guest_id(full_name, phone, email))')
+          .eq('room_id', roomId)
+          .inFilter('bookings.status', ['CONFIRMED', 'CHECKED_IN', 'RESERVED'])
+          .order('created_at', ascending: false)
+          .limit(1);
+      room['current_booking'] = bookingRooms.isNotEmpty ? bookingRooms.first['bookings'] : null;
+    } else {
+      room['current_booking'] = null; // will show demo guest from kBillableRooms below
+    }
   } catch (_) {
     room['current_booking'] = null;
+  }
+
+  // Inject demo guest info when offline or using room_number navigation
+  if (room['current_booking'] == null) {
+    final demoRoom = kBillableRooms.firstWhere(
+      (r) => r['room_number'] == _demoRoomNo,
+      orElse: () => {},
+    );
+    if (demoRoom.isNotEmpty) {
+      room['current_booking'] = {
+        'booking_number': 'DEMO-${demoRoom['room_number']}',
+        'status': demoRoom['status'],
+        'check_in_date': demoRoom['check_in'],
+        'check_out_date': demoRoom['check_out'],
+        'num_adults': 2,
+        'num_children': 0,
+        'total_amount': (demoRoom['rate'] as double) * (demoRoom['nights'] as int),
+        'paid_amount': 0,
+        'guests': {'full_name': demoRoom['guest_name'], 'phone': '98765 00000', 'email': null},
+      };
+    }
   }
 
   return room;

@@ -306,7 +306,11 @@ class _RoomCard extends StatelessWidget {
     final guestName = room['current_guest'] as String?;
 
     return GestureDetector(
-      onTap: () => context.push('/rooms/${room['id']}'),
+      onTap: () {
+        // Prefer room_number so demo data matches; fall back to id (UUID)
+        final nav = room['room_number']?.toString() ?? room['id'];
+        context.push('/rooms/${Uri.encodeComponent(nav)}');
+      },
       onLongPress: () => _showStatusMenu(context),
       child: Container(
         decoration: BoxDecoration(
