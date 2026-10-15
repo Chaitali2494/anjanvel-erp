@@ -12,14 +12,34 @@ final calendarBookingsProvider = FutureProvider.family<List<Map<String, dynamic>
   final client = ref.watch(supabaseClientProvider);
   final start = DateTime(month.year, month.month, 1);
   final end = DateTime(month.year, month.month + 1, 0);
-  return await client
-      .from('bookings')
-      .select('id, booking_number, check_in_date, check_out_date, status, num_adults, num_children, guests:primary_guest_id(full_name)')
-      .gte('check_in_date', DateFormat('yyyy-MM-dd').format(start))
-      .lte('check_in_date', DateFormat('yyyy-MM-dd').format(end))
-      .neq('status', 'CANCELLED')
-      .order('check_in_date', ascending: true);
+  try {
+    return await client
+        .from('bookings')
+        .select('id, booking_number, check_in_date, check_out_date, status, num_adults, num_children, guests:primary_guest_id(full_name)')
+        .gte('check_in_date', DateFormat('yyyy-MM-dd').format(start))
+        .lte('check_in_date', DateFormat('yyyy-MM-dd').format(end))
+        .neq('status', 'CANCELLED')
+        .order('check_in_date', ascending: true);
+  } catch (_) {
+    // Offline: return demo bookings for the current month only
+    final today = DateTime.now();
+    if (month.year != today.year || month.month != today.month) return [];
+    return _demoCalendarBookings;
+  }
 });
+
+// Demo bookings seeded for the current month
+List<Map<String, dynamic>> get _demoCalendarBookings {
+  final now = DateTime.now();
+  String d(int day) => '${now.year}-${now.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+  return [
+    {'id': 'cb1', 'booking_number': 'BK-001', 'check_in_date': d(now.day),     'check_out_date': d(now.day + 2),  'status': 'CHECKED_IN', 'num_adults': 2, 'num_children': 0, 'guests': {'full_name': 'Rahul Sharma'}},
+    {'id': 'cb2', 'booking_number': 'BK-002', 'check_in_date': d(now.day + 1), 'check_out_date': d(now.day + 3),  'status': 'CONFIRMED',  'num_adults': 4, 'num_children': 2, 'guests': {'full_name': 'Priya Patel'}},
+    {'id': 'cb3', 'booking_number': 'BK-003', 'check_in_date': d(now.day + 3), 'check_out_date': d(now.day + 5),  'status': 'CONFIRMED',  'num_adults': 2, 'num_children': 1, 'guests': {'full_name': 'Amit Desai'}},
+    {'id': 'cb4', 'booking_number': 'BK-004', 'check_in_date': d(now.day + 5), 'check_out_date': d(now.day + 7),  'status': 'CONFIRMED',  'num_adults': 3, 'num_children': 0, 'guests': {'full_name': 'Meena Gupta'}},
+    {'id': 'cb5', 'booking_number': 'BK-005', 'check_in_date': d(now.day + 7), 'check_out_date': d(now.day + 10), 'status': 'INQUIRY',    'num_adults': 6, 'num_children': 2, 'guests': {'full_name': 'Suresh Patil'}},
+  ];
+}
 
 class BookingCalendarScreen extends ConsumerStatefulWidget {
   const BookingCalendarScreen({super.key});
@@ -183,6 +203,13 @@ class _BookingCalendarScreenState extends ConsumerState<BookingCalendarScreen> {
         ref.invalidate(calendarBookingsProvider(focusedDay));
       },
       calendarStyle: CalendarStyle(
+        // Force dark text on all day numbers
+        defaultTextStyle: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+        todayTextStyle: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+        selectedTextStyle: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+        weekendTextStyle: const TextStyle(color: AppTheme.error, fontSize: 14),
+        outsideTextStyle: TextStyle(color: AppTheme.textPrimary.withOpacity(0.35), fontSize: 14),
+        disabledTextStyle: TextStyle(color: AppTheme.textPrimary.withOpacity(0.25), fontSize: 14),
         todayDecoration: BoxDecoration(
           color: AppTheme.primary.withOpacity(0.3),
           shape: BoxShape.circle,
@@ -197,11 +224,17 @@ class _BookingCalendarScreenState extends ConsumerState<BookingCalendarScreen> {
         ),
         markersMaxCount: 3,
         markerSize: 6,
-        weekendTextStyle: const TextStyle(color: AppTheme.error),
+      ),
+      daysOfWeekStyle: const DaysOfWeekStyle(
+        weekdayStyle: TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+        weekendStyle: TextStyle(color: AppTheme.error, fontSize: 12, fontWeight: FontWeight.w600),
       ),
       headerStyle: const HeaderStyle(
         formatButtonVisible: true,
         titleCentered: true,
+        titleTextStyle: TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+        leftChevronIcon: Icon(Icons.chevron_left, color: AppTheme.textPrimary),
+        rightChevronIcon: Icon(Icons.chevron_right, color: AppTheme.textPrimary),
         formatButtonDecoration: BoxDecoration(
           color: Color(0xFFE8F5E9),
           borderRadius: BorderRadius.all(Radius.circular(12)),

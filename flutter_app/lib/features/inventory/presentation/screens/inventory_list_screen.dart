@@ -281,7 +281,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                       await client.from('inventory_items').update({...data, 'updated_at': DateTime.now().toIso8601String()}).eq('id', existing['id']);
                     }
                   } catch (_) {
-                    // Offline: save locally
+                    // Offline: save / update locally
                     if (existing == null) {
                       _localItems.insert(0, {
                         'id': 'local_${DateTime.now().millisecondsSinceEpoch}',
@@ -289,22 +289,32 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                         'supplier': '—',
                       });
                     } else {
-                      final idx = _localItems.indexWhere((i) => i['id'] == existing['id']);
-                      if (idx >= 0) {
-                        _localItems[idx] = {..._localItems[idx], ...data};
+                      // First try local overrides list
+                      final localIdx = _localItems.indexWhere((i) => i['id'] == existing['id']);
+                      if (localIdx >= 0) {
+                        _localItems[localIdx] = {..._localItems[localIdx], ...data};
+                      } else {
+                        // Fall back to updating the demo list in-place
+                        final demoIdx = _demoInventory.indexWhere((i) => i['id'] == existing['id']);
+                        if (demoIdx >= 0) {
+                          _demoInventory[demoIdx] = {..._demoInventory[demoIdx], ...data};
+                        }
                       }
                     }
                   }
                   ref.invalidate(inventoryProvider);
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(existing == null ? '✅ Item added' : '✅ Item updated'),
-                        backgroundColor: const Color(0xFF00796B),
-                      ),
-                    );
-                  }
+                  // Use a post-frame callback so the sheet is gone before we show the snackbar
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(existing == null ? '✅ Item added' : '✅ Item updated'),
+                          backgroundColor: const Color(0xFF00796B),
+                        ),
+                      );
+                    }
+                  });
                 },
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00796B),

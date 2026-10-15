@@ -404,7 +404,7 @@ class _ActivityTrackerCardState extends ConsumerState<_ActivityTrackerCard> {
                   style: const TextStyle(fontSize: 12)),
               onTap: () {
                 ref.read(activityBookingsProvider.notifier)
-                    .assignCoordinator(booking['id'] as String, s['name'] as String);
+                    .assignCoordinator(widget.booking['id'] as String, s['name'] as String);
                 Navigator.pop(context);
               },
             )),
