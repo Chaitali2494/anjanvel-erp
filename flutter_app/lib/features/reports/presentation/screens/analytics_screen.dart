@@ -431,7 +431,7 @@ class _BookingsStaticView extends StatelessWidget {
             childAspectRatio: 1.2,
             children: [
               _MiniStat('Total', '$total', AppTheme.primary),
-              _MiniStat('Inquiry', '$inquiry', AppTheme.textHint),
+              _MiniStat('Enquiry', '$inquiry', AppTheme.textHint),
               _MiniStat('Confirmed', '$confirmed', AppTheme.info),
               _MiniStat('In-House', '$checkedIn', AppTheme.success),
               _MiniStat('Checked Out', '$checkedOut', AppTheme.secondary),

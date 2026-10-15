@@ -23,7 +23,7 @@ class _BookingListScreenState extends ConsumerState<BookingListScreen>
   late TabController _tabController;
   final _searchController = TextEditingController();
 
-  final _tabs = ['All', 'Inquiry', 'Confirmed', 'Checked In', 'Checked Out', 'Cancelled'];
+  final _tabs = ['All', 'Enquiry', 'Confirmed', 'Checked In', 'Checked Out', 'Cancelled'];
   final _tabStatuses = [null, 'INQUIRY', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'];
 
   @override
@@ -185,6 +185,17 @@ class BookingCard extends StatelessWidget {
     }
   }
 
+  String get _statusLabel {
+    switch (booking.status) {
+      case 'INQUIRY': return 'ENQUIRY';
+      case 'CONFIRMED': return 'CONFIRMED';
+      case 'CHECKED_IN': return 'CHECKED IN';
+      case 'CHECKED_OUT': return 'CHECKED OUT';
+      case 'CANCELLED': return 'CANCELLED';
+      default: return booking.status.replaceAll('_', ' ');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -212,7 +223,7 @@ class BookingCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(color: _statusColor),
                   ),
                   const Spacer(),
-                  StatusBadge(label: booking.status, color: _statusColor),
+                  StatusBadge(label: _statusLabel, color: _statusColor),
                 ],
               ),
             ),
