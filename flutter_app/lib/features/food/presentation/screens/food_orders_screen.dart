@@ -35,9 +35,9 @@ final menuItemsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async
 // ── Demo Data ─────────────────────────────────────────────────────────────────
 
 final _demoOrders = [
-  {'id': '1', 'order_number': 'FO-001', 'status': 'PENDING', 'total_amount': 850.0, 'meal_type': 'BREAKFAST', 'ordered_at': DateTime.now().toIso8601String(), 'guests': {'full_name': 'Rahul Sharma'}, 'bookings': {'booking_number': 'BK-001', 'room_number': 'R01'}},
-  {'id': '2', 'order_number': 'FO-002', 'status': 'PREPARING', 'total_amount': 1200.0, 'meal_type': 'LUNCH', 'ordered_at': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(), 'guests': {'full_name': 'Priya Patel'}, 'bookings': {'booking_number': 'BK-002', 'room_number': 'T01'}},
-  {'id': '3', 'order_number': 'FO-003', 'status': 'SERVED', 'total_amount': 650.0, 'meal_type': 'DINNER', 'ordered_at': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(), 'guests': {'full_name': 'Amit Desai'}, 'bookings': {'booking_number': 'BK-003', 'room_number': 'D01'}},
+  {'id': '1', 'order_number': 'FO-001', 'status': 'PENDING',   'total_amount': 850.0,  'meal_type': 'BREAKFAST', 'ordered_at': DateTime.now().toIso8601String(),                                           'guests': {'full_name': 'Priya Sharma'},  'bookings': {'booking_number': 'BK-001', 'room_number': '101'}},
+  {'id': '2', 'order_number': 'FO-002', 'status': 'PREPARING', 'total_amount': 1200.0, 'meal_type': 'LUNCH',     'ordered_at': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(), 'guests': {'full_name': 'Rajesh Kumar'}, 'bookings': {'booking_number': 'BK-002', 'room_number': '102'}},
+  {'id': '3', 'order_number': 'FO-003', 'status': 'SERVED',    'total_amount': 650.0,  'meal_type': 'DINNER',    'ordered_at': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(), 'guests': {'full_name': 'Anita Patel'},  'bookings': {'booking_number': 'BK-003', 'room_number': '201'}},
 ];
 
 final _demoMenu = [

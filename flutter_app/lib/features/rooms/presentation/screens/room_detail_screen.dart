@@ -12,27 +12,6 @@ import '../../../shop/data/shop_room_charges_provider.dart';
 import '../../../billing/data/billing_state_provider.dart';
 import '../../../food/data/food_orders_state_provider.dart';
 
-// ── Demo food orders keyed by room number ──────────────────────────────────────
-final _demoFoodByRoom = <String, List<Map<String, dynamic>>>{
-  '101': [
-    {'item': 'Masala Chai × 2',       'amount': 80,  'time': '07:30 AM', 'status': 'DELIVERED'},
-    {'item': 'Veg Breakfast Thali × 2','amount': 320, 'time': '08:00 AM', 'status': 'DELIVERED'},
-    {'item': 'Mango Lassi × 1',        'amount': 80,  'time': '12:30 PM', 'status': 'DELIVERED'},
-  ],
-  '102': [
-    {'item': 'Filter Coffee × 2',      'amount': 100, 'time': '06:45 AM', 'status': 'DELIVERED'},
-    {'item': 'Paneer Butter Masala',   'amount': 280, 'time': '01:00 PM', 'status': 'DELIVERED'},
-  ],
-  '205': [
-    {'item': 'Welcome Drink × 4',      'amount': 200, 'time': '03:00 PM', 'status': 'DELIVERED'},
-    {'item': 'Non-Veg Dinner Thali × 2','amount': 580,'time': '07:30 PM', 'status': 'DELIVERED'},
-    {'item': 'Masala Chai × 2',        'amount': 80,  'time': '06:00 AM', 'status': 'PENDING'},
-  ],
-  '301': [
-    {'item': 'Veg Thali × 2',          'amount': 360, 'time': '12:30 PM', 'status': 'DELIVERED'},
-  ],
-};
-
 // ── Demo SHG shop charges keyed by room number ────────────────────────────────
 final _demoShopByRoom = <String, List<Map<String, dynamic>>>{
   '101': [
