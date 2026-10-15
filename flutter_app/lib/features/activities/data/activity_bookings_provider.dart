@@ -30,6 +30,8 @@ final kCheckedInRooms = <Map<String, dynamic>>[
 
 // ── Module-level session state — persists across navigations ──────────────────
 
+int _bookingCounter = 0; // ensures unique IDs even within same millisecond
+
 List<Map<String, dynamic>> _sessionBookings = <Map<String, dynamic>>[
   // Pre-seeded demo bookings (room 205 so billing demo shows data)
   {
@@ -105,7 +107,7 @@ class ActivityBookingsNotifier
   Future<void> addBooking(Map<String, dynamic> booking) async {
     if (_sessionUseLocal) {
       final newBooking = <String, dynamic>{
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'id': '${DateTime.now().millisecondsSinceEpoch}_${++_bookingCounter}',
         'created_at': DateTime.now().toIso8601String(),
         'status': 'CONFIRMED',
         'tracker_status': 'PENDING',
@@ -126,7 +128,7 @@ class ActivityBookingsNotifier
         // Fall back to local if Supabase insert fails
         _sessionUseLocal = true;
         final newBooking = <String, dynamic>{
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+          'id': '${DateTime.now().millisecondsSinceEpoch}_${++_bookingCounter}',
           'created_at': DateTime.now().toIso8601String(),
           'status': 'CONFIRMED',
           'tracker_status': 'PENDING',

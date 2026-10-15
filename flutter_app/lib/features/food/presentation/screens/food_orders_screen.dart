@@ -178,13 +178,24 @@ class _FoodOrdersScreenState extends ConsumerState<FoodOrdersScreen>
           // ── Menu Tab ──
           menuAsync.when(
             loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFFE64A19))),
-            error: (e, _) => const EmptyState(title: 'Menu Unavailable', subtitle: 'Menu items will appear here', icon: Icons.menu_book_outlined),
-            data: (menu) {
-              final categories = menu.map((m) => m['category'] as String? ?? 'Other').toSet().toList()..sort();
+            error: (e, _) {
+              // Show demo menu even on error
+              final categories = _demoMenu.map((m) => m['category'] as String? ?? 'Other').toSet().toList()..sort();
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: categories.map((cat) {
-                  final items = menu.where((m) => m['category'] == cat).toList();
+                  final items = _demoMenu.where((m) => m['category'] == cat).toList();
+                  return _MenuCategory(category: cat, items: items);
+                }).toList(),
+              );
+            },
+            data: (menu) {
+              final _menu = menu.isEmpty ? _demoMenu : menu;
+              final categories = _menu.map((m) => m['category'] as String? ?? 'Other').toSet().toList()..sort();
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: categories.map((cat) {
+                  final items = _menu.where((m) => m['category'] == cat).toList();
                   return _MenuCategory(category: cat, items: items);
                 }).toList(),
               );
@@ -396,7 +407,7 @@ class _OrderCard extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: () => onStatusChange(order['id'] as String, 'PREPARING'),
                         style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0277BD)),
-                        child: const Text('Start Preparing'),
+                        child: const Text('Start Prep', overflow: TextOverflow.ellipsis),
                       ),
                     ),
                   if (status == 'PREPARING') ...[

@@ -7,13 +7,18 @@ import '../../../../shared/widgets/app_widgets.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
+// Local items added offline (persists within session)
+final List<Map<String, dynamic>> _localItems = [];
+
 final inventoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   try {
     final result = await client.from('inventory_items').select('id, name, category, unit, quantity, min_quantity, unit_price, supplier').order('category').order('name');
-    return result.isEmpty ? _demoInventory : result;
+    final base = result.isEmpty ? List<Map<String, dynamic>>.from(_demoInventory) : List<Map<String, dynamic>>.from(result);
+    // Merge local offline additions
+    return [..._localItems, ...base];
   } catch (_) {
-    return _demoInventory;
+    return [..._localItems, ..._demoInventory];
   }
 });
 
@@ -257,25 +262,48 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
+                  if (nameCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter item name'), backgroundColor: Colors.orange));
+                    return;
+                  }
+                  final data = {
+                    'name': nameCtrl.text.trim(), 'category': category, 'unit': unit,
+                    'quantity': double.tryParse(qtyCtrl.text) ?? 0,
+                    'min_quantity': double.tryParse(minCtrl.text) ?? 0,
+                    'unit_price': double.tryParse(priceCtrl.text) ?? 0,
+                  };
                   try {
-                    final data = {
-                      'name': nameCtrl.text, 'category': category, 'unit': unit,
-                      'quantity': double.tryParse(qtyCtrl.text) ?? 0,
-                      'min_quantity': double.tryParse(minCtrl.text) ?? 0,
-                      'unit_price': double.tryParse(priceCtrl.text) ?? 0,
-                      'updated_at': DateTime.now().toIso8601String(),
-                    };
                     final client = ref.read(supabaseClientProvider);
                     if (existing == null) {
-                      await client.from('inventory_items').insert(data);
+                      await client.from('inventory_items').insert({...data, 'updated_at': DateTime.now().toIso8601String()});
                     } else {
-                      await client.from('inventory_items').update(data).eq('id', existing['id']);
+                      await client.from('inventory_items').update({...data, 'updated_at': DateTime.now().toIso8601String()}).eq('id', existing['id']);
                     }
-                    ref.invalidate(inventoryProvider);
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  } catch (e) {
-                    if (ctx.mounted) ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error));
+                  } catch (_) {
+                    // Offline: save locally
+                    if (existing == null) {
+                      _localItems.insert(0, {
+                        'id': 'local_${DateTime.now().millisecondsSinceEpoch}',
+                        ...data,
+                        'supplier': '—',
+                      });
+                    } else {
+                      final idx = _localItems.indexWhere((i) => i['id'] == existing['id']);
+                      if (idx >= 0) {
+                        _localItems[idx] = {..._localItems[idx], ...data};
+                      }
+                    }
+                  }
+                  ref.invalidate(inventoryProvider);
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(existing == null ? '✅ Item added' : '✅ Item updated'),
+                        backgroundColor: const Color(0xFF00796B),
+                      ),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
