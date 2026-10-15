@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../data/room_service.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
 import '../../../shop/data/shop_room_charges_provider.dart';
@@ -262,6 +263,10 @@ class RoomDetailScreen extends ConsumerWidget {
                   currentStatus: status,
                   onChanged: () => ref.invalidate(roomDetailFullProvider(roomId)),
                 ),
+                const SizedBox(height: 12),
+
+                // Guest QR Code
+                _GuestQrCard(roomNo: roomNo),
                 const SizedBox(height: 80),
               ],
             ),
@@ -651,6 +656,141 @@ class _FoodOrdersCard extends StatelessWidget {
             ]),
     );
   }
+}
+
+// ── Guest QR Card ─────────────────────────────────────────────────────────────
+
+class _GuestQrCard extends StatelessWidget {
+  final String roomNo;
+  const _GuestQrCard({required this.roomNo});
+
+  // The URL a guest will open when scanning — matches the Flutter route
+  String get _portalUrl => 'https://anjanvelresort.github.io/app/#/guest/room/$roomNo';
+  String get _portalPath => '/guest/room/$roomNo';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        border: Border.all(color: const Color(0xFF2E7D32).withOpacity(0.2)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.qr_code_2_rounded, color: Color(0xFF2E7D32), size: 20),
+          const SizedBox(width: 8),
+          const Text('Guest Self-Service QR',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0D0D0D))),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text('Room Portal', style: TextStyle(fontSize: 11, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        const Text('Print and place in room. Guest scans to order food, request housekeeping, book activities or report issues.',
+            style: TextStyle(fontSize: 12, color: Colors.black54)),
+        const SizedBox(height: 14),
+        Row(children: [
+          // QR Code
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade200, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: QrImageView(
+              data: _portalUrl,
+              version: QrVersions.auto,
+              size: 120,
+              backgroundColor: Colors.white,
+              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF1B5E20)),
+              dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF2E7D32)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            _QrInfoRow(Icons.restaurant_outlined,      'Order Food'),
+            _QrInfoRow(Icons.cleaning_services_outlined,'Request Housekeeping'),
+            _QrInfoRow(Icons.build_outlined,           'Report Maintenance'),
+            _QrInfoRow(Icons.hiking_outlined,          'Book Activities'),
+            _QrInfoRow(Icons.do_not_disturb_rounded,   'Do Not Disturb'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(6)),
+              child: Text(_portalPath, style: const TextStyle(fontSize: 10, color: Colors.black54, fontFamily: 'monospace')),
+            ),
+          ])),
+        ]),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _showFullQr(context),
+            icon: const Icon(Icons.open_in_full_rounded, size: 16),
+            label: const Text('View Full Size QR'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF2E7D32),
+              side: const BorderSide(color: Color(0xFF2E7D32)),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  void _showFullQr(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Room $roomNo — Guest Portal', textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D0D0D))),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          QrImageView(
+            data: _portalUrl,
+            version: QrVersions.auto,
+            size: 220,
+            backgroundColor: Colors.white,
+            eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF1B5E20)),
+            dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF2E7D32)),
+          ),
+          const SizedBox(height: 12),
+          const Text('🍽️ Food  🧹 Housekeeping  🔧 Maintenance', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          const Text('🎯 Activities  🚫 Do Not Disturb', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          Text(_portalUrl, textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: Colors.black45)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+}
+
+class _QrInfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _QrInfoRow(this.icon, this.label);
+  @override
+  Widget build(_) => Padding(
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Row(children: [
+      Icon(icon, size: 13, color: const Color(0xFF2E7D32)),
+      const SizedBox(width: 5),
+      Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF0D0D0D))),
+    ]),
+  );
 }
 
 // ── Room Header ───────────────────────────────────────────────────────────────

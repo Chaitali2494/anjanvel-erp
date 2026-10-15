@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../../guest/data/guest_requests_provider.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,9 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     final ticketsAsync = ref.watch(maintenanceTicketsProvider);
+    final guestMaintenance = ref.watch(guestRequestsProvider)
+        .where((r) => r['type'] == 'MAINTENANCE')
+        .toList();
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -89,6 +93,30 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
           final filtered   = _filterStatus == 'ALL' ? tickets : tickets.where((t) => t['status'] == _filterStatus).toList();
 
           return Column(children: [
+            // ── Guest maintenance requests (from QR) ──────────────────
+            if (guestMaintenance.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6A1B9A).withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                  border: Border.all(color: const Color(0xFF6A1B9A).withOpacity(0.25)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                    child: Row(children: [
+                      const Icon(Icons.qr_code_rounded, size: 16, color: Color(0xFF6A1B9A)),
+                      const SizedBox(width: 6),
+                      Text('${guestMaintenance.length} Guest Report${guestMaintenance.length > 1 ? 's' : ''} via QR',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF6A1B9A))),
+                    ]),
+                  ),
+                  ...guestMaintenance.take(4).map((r) => _GuestMaintRow(request: r, ref: ref)),
+                  const SizedBox(height: 4),
+                ]),
+              ),
+
             // Stats
             Container(
               margin: const EdgeInsets.all(16),
@@ -147,6 +175,63 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
           ]);
         },
       ),
+    );
+  }
+}
+
+// ── Guest Maintenance Row ─────────────────────────────────────────────────────
+
+class _GuestMaintRow extends StatelessWidget {
+  final Map<String, dynamic> request;
+  final WidgetRef ref;
+  const _GuestMaintRow({required this.request, required this.ref});
+
+  Color get _statusColor {
+    switch (request['status']) {
+      case 'PENDING': return AppTheme.warning;
+      case 'IN_PROGRESS': return AppTheme.info;
+      case 'DONE': return AppTheme.success;
+      default: return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final room   = request['room_number'] as String? ?? '';
+    final title  = request['title'] as String? ?? '';
+    final status = request['status'] as String? ?? 'PENDING';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+      child: Row(children: [
+        Container(
+          width: 32, height: 32,
+          decoration: BoxDecoration(color: const Color(0xFF6A1B9A).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          child: Center(child: Text(room, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF6A1B9A)))),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+          const Text('Reported via Guest QR', style: TextStyle(fontSize: 10, color: Colors.black45)),
+        ])),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(color: _statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+          child: Text(status, style: TextStyle(fontSize: 10, color: _statusColor, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 6),
+        if (status == 'PENDING')
+          GestureDetector(
+            onTap: () => ref.read(guestRequestsProvider.notifier).updateStatus(request['id'] as String, 'IN_PROGRESS'),
+            child: const Icon(Icons.play_arrow_rounded, color: Color(0xFF1565C0), size: 20),
+          ),
+        if (status == 'IN_PROGRESS')
+          GestureDetector(
+            onTap: () => ref.read(guestRequestsProvider.notifier).updateStatus(request['id'] as String, 'DONE'),
+            child: const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 20),
+          ),
+      ]),
     );
   }
 }

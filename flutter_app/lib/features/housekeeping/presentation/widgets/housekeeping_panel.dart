@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/housekeeping_provider.dart';
+import '../../../guest/data/guest_requests_provider.dart';
 
 // ── Housekeeping Panel (shared by Owner & Manager dashboards) ──────────────────
 
@@ -13,9 +14,38 @@ class HousekeepingPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasksAsync = ref.watch(housekeepingTasksProvider);
 
+    final guestRequests = ref.watch(guestRequestsProvider);
+    final pendingGuestHk = guestRequests
+        .where((r) => r['type'] == 'HOUSEKEEPING' && r['status'] == 'PENDING')
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── Guest HK requests banner ───────────────────────────────────────
+        if (pendingGuestHk.isNotEmpty) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE65100).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+              border: Border.all(color: const Color(0xFFE65100).withOpacity(0.3)),
+            ),
+            child: Column(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+                child: Row(children: [
+                  const Icon(Icons.notifications_active_rounded, color: Color(0xFFE65100), size: 18),
+                  const SizedBox(width: 6),
+                  Text('${pendingGuestHk.length} Guest HK Request${pendingGuestHk.length > 1 ? 's' : ''} via QR',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFE65100))),
+                ]),
+              ),
+              ...pendingGuestHk.take(3).map((r) => _GuestHkRow(request: r, ref: ref)),
+              const SizedBox(height: 6),
+            ]),
+          ),
+        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -258,6 +288,64 @@ class HousekeepingPanel extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Guest HK Request Row ───────────────────────────────────────────────────────
+
+class _GuestHkRow extends StatelessWidget {
+  final Map<String, dynamic> request;
+  final WidgetRef ref;
+  const _GuestHkRow({required this.request, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final room = request['room_number'] as String? ?? '';
+    final title = request['title'] as String? ?? '';
+    final subType = (request['sub_type'] as String? ?? '').replaceAll('_', ' ');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.orange.shade100))),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: const Color(0xFFE65100).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          child: Center(child: Text(room, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFE65100)))),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppTheme.textPrimary)),
+          Text('Via Guest QR  •  $subType', style: const TextStyle(fontSize: 10, color: Colors.black54)),
+        ])),
+        Row(children: [
+          GestureDetector(
+            onTap: () {
+              ref.read(guestRequestsProvider.notifier).updateStatus(request['id'] as String, 'IN_PROGRESS');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Request acknowledged — in progress'), backgroundColor: Color(0xFF1565C0)),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFF1565C0).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: const Text('Accept', style: TextStyle(fontSize: 11, color: Color(0xFF1565C0), fontWeight: FontWeight.bold)),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () {
+              ref.read(guestRequestsProvider.notifier).updateStatus(request['id'] as String, 'DONE');
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: AppTheme.success.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: const Text('Done', style: TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ]),
+      ]),
     );
   }
 }

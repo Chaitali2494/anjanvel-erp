@@ -12,6 +12,7 @@ import '../../../activities/presentation/widgets/activities_panel.dart';
 import '../../../billing/data/billing_state_provider.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
 import '../../../rooms/data/room_service.dart';
+import '../../../guest/data/guest_requests_provider.dart';
 import 'package:intl/intl.dart';
 
 class OwnerDashboardScreen extends ConsumerWidget {
@@ -130,8 +131,12 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       const _RoomStatusPanel(),
                       const SizedBox(height: AppTheme.spaceLG),
 
-                      // ── Housekeeping Status ──────────────────────────────
+                      // ── Guest Requests (from QR) ─────────────────────────
                       const SizedBox(height: AppTheme.spaceLG),
+                      _GuestRequestsPanel(),
+                      const SizedBox(height: AppTheme.spaceLG),
+
+                      // ── Housekeeping Status ──────────────────────────────
                       HousekeepingPanel(),
                       const SizedBox(height: AppTheme.spaceLG),
 
@@ -1121,6 +1126,209 @@ class _TodayActivitiesCard extends ConsumerWidget {
           ]),
         );
       },
+    );
+  }
+}
+
+// ── Guest Requests Panel (from QR) ────────────────────────────────────────────
+
+class _GuestRequestsPanel extends ConsumerWidget {
+  const _GuestRequestsPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allRequests = ref.watch(guestRequestsProvider);
+    final dndMap      = ref.watch(dndProvider);
+
+    final pending   = allRequests.where((r) => r['status'] == 'PENDING').toList();
+    final hkCount   = pending.where((r) => r['type'] == 'HOUSEKEEPING').length;
+    final maintCount= pending.where((r) => r['type'] == 'MAINTENANCE').length;
+    final foodCount = pending.where((r) => r['type'] == 'FOOD').length;
+    final actCount  = pending.where((r) => r['type'] == 'ACTIVITIES').length;
+    final dndCount  = dndMap.values.where((v) => v).length;
+
+    const amber = Color(0xFFFF8F00);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+        border: Border.all(color: amber.withOpacity(0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          decoration: BoxDecoration(
+            color: amber.withOpacity(0.06),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLG)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.qr_code_scanner_rounded, color: amber, size: 20),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Guest QR Requests',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
+            ),
+            if (pending.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: amber.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text('${pending.length} pending',
+                    style: const TextStyle(color: amber, fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+          ]),
+        ),
+
+        if (pending.isEmpty && dndCount == 0)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(
+              child: Text('No pending guest requests', style: TextStyle(color: AppTheme.textHint, fontSize: 13)),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                if (hkCount > 0)
+                  _GuestReqChip(
+                    icon: Icons.cleaning_services_rounded,
+                    label: 'Housekeeping',
+                    count: hkCount,
+                    color: const Color(0xFF1565C0),
+                    onTap: () => context.push('/housekeeping'),
+                  ),
+                if (maintCount > 0)
+                  _GuestReqChip(
+                    icon: Icons.build_rounded,
+                    label: 'Maintenance',
+                    count: maintCount,
+                    color: const Color(0xFF6A1B9A),
+                    onTap: () => context.push('/maintenance'),
+                  ),
+                if (foodCount > 0)
+                  _GuestReqChip(
+                    icon: Icons.restaurant_rounded,
+                    label: 'Food Orders',
+                    count: foodCount,
+                    color: const Color(0xFFE65100),
+                    onTap: () => context.push('/food'),
+                  ),
+                if (actCount > 0)
+                  _GuestReqChip(
+                    icon: Icons.hiking_rounded,
+                    label: 'Activities',
+                    count: actCount,
+                    color: const Color(0xFF00695C),
+                    onTap: () => context.push('/activities/tracker'),
+                  ),
+                if (dndCount > 0)
+                  _GuestReqChip(
+                    icon: Icons.do_not_disturb_rounded,
+                    label: 'DND Rooms',
+                    count: dndCount,
+                    color: const Color(0xFFC62828),
+                    onTap: () => context.push('/rooms'),
+                  ),
+              ],
+            ),
+          ),
+
+        // Recent requests list (up to 3)
+        if (pending.isNotEmpty) ...[
+          const Divider(height: 0),
+          ...pending.take(3).map((r) {
+            final type  = r['type'] as String? ?? '';
+            final room  = r['room_number'] as String? ?? '';
+            final title = r['title'] as String? ?? '';
+            final Color typeColor;
+            final IconData typeIcon;
+            switch (type) {
+              case 'HOUSEKEEPING': typeColor = const Color(0xFF1565C0); typeIcon = Icons.cleaning_services_rounded; break;
+              case 'MAINTENANCE':  typeColor = const Color(0xFF6A1B9A); typeIcon = Icons.build_rounded; break;
+              case 'FOOD':         typeColor = const Color(0xFFE65100); typeIcon = Icons.restaurant_rounded; break;
+              case 'ACTIVITIES':   typeColor = const Color(0xFF00695C); typeIcon = Icons.hiking_rounded; break;
+              default:             typeColor = AppTheme.textHint;       typeIcon = Icons.help_outline_rounded;
+            }
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+              child: Row(children: [
+                Container(
+                  width: 34, height: 34,
+                  decoration: BoxDecoration(color: typeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  child: Icon(typeIcon, color: typeColor, size: 17),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 30, height: 30,
+                  decoration: BoxDecoration(color: amber.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Center(child: Text(room, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: amber))),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: amber.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                  child: const Text('PENDING', style: TextStyle(fontSize: 9, color: amber, fontWeight: FontWeight.bold)),
+                ),
+              ]),
+            );
+          }),
+          if (pending.length > 3)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text('+${pending.length - 3} more requests',
+                  style: const TextStyle(fontSize: 12, color: amber, fontWeight: FontWeight.w600)),
+            ),
+          const SizedBox(height: 4),
+        ],
+      ]),
+    );
+  }
+}
+
+class _GuestReqChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int count;
+  final Color color;
+  final VoidCallback onTap;
+  const _GuestReqChip({required this.icon, required this.label, required this.count, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: color, size: 15),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+            child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+          ),
+        ]),
+      ),
     );
   }
 }

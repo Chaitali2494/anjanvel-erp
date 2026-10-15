@@ -62,6 +62,7 @@ import '../../features/staff/presentation/screens/staff_portal_screen.dart';
 import '../../features/staff/presentation/screens/leave_management_screen.dart';
 import '../../features/leads/presentation/screens/lead_list_screen.dart';
 import '../../features/leads/presentation/screens/lead_detail_screen.dart';
+import '../../features/guest/presentation/screens/guest_portal_screen.dart';
 import '../providers/auth_provider.dart';
 import '../models/user_role.dart';
 
@@ -93,6 +94,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/feedback', '/reports', '/settings', '/notifications',
         '/profile', '/staff', '/leads', '/staff/portal', '/staff/access', '/staff/leaves',
         '/activities/tracker', '/dashboard/activity-coordinator',
+        '/guest',   // Guest portal — no auth required (accessed via QR)
       ];
       final isOpen = openRoutes.any((r) => loc == r || loc.startsWith('$r/'));
       if (isOpen) return null;
@@ -135,6 +137,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const LeadListScreen(),
         routes: [
           GoRoute(path: ':id', builder: (_, state) => LeadDetailScreen(leadId: state.pathParameters['id']!)),
+        ],
+      ),
+
+      // Guest Portal (QR-accessible, no auth required)
+      GoRoute(
+        path: '/guest',
+        builder: (_, __) => const GuestPortalScreen(roomNumber: '101'),
+        routes: [
+          GoRoute(
+            path: 'room/:roomNumber',
+            builder: (_, state) => GuestPortalScreen(
+              roomNumber: state.pathParameters['roomNumber'] ?? '101',
+            ),
+          ),
         ],
       ),
 
