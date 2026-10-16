@@ -61,6 +61,8 @@ final _sessionEdits = <String, Map<String, dynamic>>{};
 class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   bool _isLoading = false;
 
+  bool get _isLocalBooking => widget.bookingId.startsWith('local_');
+
   @override
   Widget build(BuildContext context) {
     final bookingAsync = ref.watch(bookingDetailProvider(widget.bookingId));
@@ -91,6 +93,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         data: (b) {
           // Merge session edits over fetched data
           final edits = _sessionEdits[widget.bookingId] ?? {};
+          final effectiveStatus = edits['status'] as String? ?? b.status;
           final checkIn  = edits['check_in_date']  as String? ?? b.checkInDate;
           final checkOut = edits['check_out_date']  as String? ?? b.checkOutDate;
           final adults   = edits['num_adults']      as int?    ?? b.numAdults;
@@ -105,9 +108,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status banner — reflects local payment state
+                // Status banner — reflects local payment state + session overrides
                 _StatusBanner(
                   booking: b,
+                  effectiveStatus: effectiveStatus,
                   extraPaid: _sessionPaidExtra(widget.bookingId),
                   onStatusChange: (s) => _updateStatus(b.id, s),
                 ),
@@ -187,8 +191,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Confirm / Cancel actions
-                if (b.status == 'INQUIRY') ...[
+                // Confirm / Cancel actions — use effectiveStatus so local bookings reflect session state
+                if (effectiveStatus == 'INQUIRY') ...[
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -200,7 +204,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                 ],
-                if (b.status != 'CANCELLED' && b.status != 'CHECKED_OUT')
+                if (effectiveStatus != 'CANCELLED' && effectiveStatus != 'CHECKED_OUT')
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -407,6 +411,10 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   }
 
   Future<void> _updateStatus(String id, String status) async {
+    if (_isLocalBooking) {
+      setState(() => (_sessionEdits[id] ??= {})['status'] = status);
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       await ref.read(bookingServiceProvider).updateBooking(id, {'status': status});
@@ -419,6 +427,15 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   }
 
   Future<void> _confirmBooking(String id) async {
+    if (_isLocalBooking) {
+      setState(() => (_sessionEdits[id] ??= {})['status'] = 'CONFIRMED');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking confirmed!'), backgroundColor: AppTheme.success),
+        );
+      }
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       await ref.read(bookingServiceProvider).confirmBooking(id);
@@ -438,6 +455,15 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   Future<void> _cancelBooking(String id) async {
     final reason = await _showCancelDialog();
     if (reason == null) return;
+    if (_isLocalBooking) {
+      setState(() => (_sessionEdits[id] ??= {})['status'] = 'CANCELLED');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking cancelled'), backgroundColor: AppTheme.warning),
+        );
+      }
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       await ref.read(bookingServiceProvider).cancelBooking(id, reason);
@@ -610,12 +636,15 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
 class _StatusBanner extends StatelessWidget {
   final BookingModel booking;
+  final String? effectiveStatus;
   final double extraPaid;
   final Function(String) onStatusChange;
-  const _StatusBanner({required this.booking, this.extraPaid = 0, required this.onStatusChange});
+  const _StatusBanner({required this.booking, this.effectiveStatus, this.extraPaid = 0, required this.onStatusChange});
+
+  String get _status => effectiveStatus ?? booking.status;
 
   Color get _color {
-    switch (booking.status) {
+    switch (_status) {
       case 'CONFIRMED':   return AppTheme.success;
       case 'CHECKED_IN':  return AppTheme.info;
       case 'CHECKED_OUT': return AppTheme.textHint;
@@ -645,7 +674,7 @@ class _StatusBanner extends StatelessWidget {
             decoration: BoxDecoration(color: _color, shape: BoxShape.circle)),
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(booking.status.replaceAll('_', ' '),
+          Text(_status.replaceAll('_', ' '),
               style: TextStyle(color: _color, fontWeight: FontWeight.bold, fontSize: 15)),
           Row(children: [
             Container(
