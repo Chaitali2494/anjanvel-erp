@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../data/booking_service.dart';
+import '../../data/session_bookings_provider.dart';
 import '../../../guests/data/guest_service.dart';
 
 class CreateBookingScreen extends ConsumerStatefulWidget {
@@ -105,6 +106,20 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
             : _specialRequestsController.text.trim(),
         'status': 'INQUIRY',
         'payment_status': 'PENDING',
+      });
+
+      // Push into session store so calendar + booking list update immediately
+      ref.read(sessionBookingsProvider.notifier).addBooking({
+        'id'            : booking.id,
+        'booking_number': booking.bookingNumber,
+        'check_in_date' : DateFormat('yyyy-MM-dd').format(_checkInDate!),
+        'check_out_date': _checkOutDate != null
+            ? DateFormat('yyyy-MM-dd').format(_checkOutDate!)
+            : null,
+        'status'        : booking.status,
+        'num_adults'    : _numAdults,
+        'num_children'  : _numChildren,
+        'guests'        : {'full_name': _nameController.text.trim()},
       });
 
       if (mounted) {
