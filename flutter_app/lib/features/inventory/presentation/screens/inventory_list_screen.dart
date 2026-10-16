@@ -59,6 +59,13 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   String? _categoryFilter;
   bool _lowStockOnly = false;
   String _search = '';
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,21 +95,68 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
           ),
         ],
       ),
-      body: inventoryAsync.when(
+      body: Column(
+        children: [
+          // ── Search bar — always visible, outside the async builder ────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+            child: TextField(
+              controller: _searchCtrl,
+              autofocus: false,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Search by name, category or supplier…',
+                prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF00796B)),
+                suffixIcon: _search.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _search = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00796B), width: 1.5),
+                ),
+              ),
+              onChanged: (v) => setState(() => _search = v),
+            ),
+          ),
+
+          // ── Rest of the content driven by the async provider ─────────────────
+          Expanded(
+            child: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF00796B))),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (items) {
+          final q = _search.toLowerCase().trim();
           final lowStock = items.where((i) {
             final qty = (i['quantity'] as num?)?.toDouble() ?? 0;
             final min = (i['min_quantity'] as num?)?.toDouble() ?? 0;
             return qty <= min;
           }).length;
 
-          // Apply filters
+          // Apply filters — search covers name, category and supplier
           var filtered = items.where((i) {
-            final matchCat = _categoryFilter == null || i['category'] == _categoryFilter;
-            final matchSearch = _search.isEmpty ||
-                (i['name'] as String? ?? '').toLowerCase().contains(_search.toLowerCase());
+            final matchCat    = _categoryFilter == null || i['category'] == _categoryFilter;
+            final matchSearch = q.isEmpty ||
+                (i['name']     as String? ?? '').toLowerCase().contains(q) ||
+                (i['category'] as String? ?? '').toLowerCase().contains(q) ||
+                (i['supplier'] as String? ?? '').toLowerCase().contains(q);
             final matchLow = !_lowStockOnly || (() {
               final qty = (i['quantity'] as num?)?.toDouble() ?? 0;
               final min = (i['min_quantity'] as num?)?.toDouble() ?? 0;
@@ -119,19 +173,6 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             children: [
               // Stats
               _InventoryStats(total: items.length, lowStock: lowStock, totalValue: totalValue),
-
-              // Search
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextField(
-                  decoration: const InputDecoration(
-                    hintText: 'Search items...',
-                    prefixIcon: Icon(Icons.search, size: 20),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  ),
-                  onChanged: (v) => setState(() => _search = v),
-                ),
-              ),
 
               // Category filter
               SizedBox(
@@ -192,7 +233,10 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             ],
           );
         },
-      ),
+      ),          // closes inventoryAsync.when(
+    ),            // closes Expanded(child: when(...))
+  ],              // closes outer Column children
+),                // closes outer Column (body:)
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddSheet(),
         icon: const Icon(Icons.add),
