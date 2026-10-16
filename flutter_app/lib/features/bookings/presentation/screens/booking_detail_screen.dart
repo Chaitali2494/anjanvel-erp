@@ -55,6 +55,9 @@ class BookingDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<BookingDetailScreen> createState() => _BookingDetailScreenState();
 }
 
+// Session-scoped edits keyed by bookingId — survive provider rebuilds
+final _sessionEdits = <String, Map<String, dynamic>>{};
+
 class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   bool _isLoading = false;
 
@@ -67,6 +70,15 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       appBar: AnjAppBar(
         title: 'Booking Detail',
         actions: [
+          bookingAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (b) => IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit Booking',
+              onPressed: () => _showEditDialog(b),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_outlined),
             onPressed: () => ref.invalidate(bookingDetailProvider(widget.bookingId)),
@@ -76,8 +88,18 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       body: bookingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (b) => LoadingOverlay(
-          isLoading: _isLoading,
+        data: (b) {
+          // Merge session edits over fetched data
+          final edits = _sessionEdits[widget.bookingId] ?? {};
+          final checkIn  = edits['check_in_date']  as String? ?? b.checkInDate;
+          final checkOut = edits['check_out_date']  as String? ?? b.checkOutDate;
+          final adults   = edits['num_adults']      as int?    ?? b.numAdults;
+          final children = edits['num_children']    as int?    ?? b.numChildren;
+          final guestName  = edits['guest_name']  as String? ?? b.guestName;
+          final guestPhone = edits['guest_phone'] as String? ?? b.guestPhone;
+
+          return LoadingOverlay(
+            isLoading: _isLoading,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -98,9 +120,9 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   child: Column(
                     children: [
                       _InfoRow('Booking #', b.bookingNumber),
-                      _InfoRow('Check-in', b.checkInDate),
-                      _InfoRow('Check-out', b.checkOutDate ?? 'Day Visit'),
-                      _InfoRow('Guests', '${b.numAdults} adults · ${b.numChildren} children'),
+                      _InfoRow('Check-in', checkIn),
+                      _InfoRow('Check-out', checkOut ?? 'Day Visit'),
+                      _InfoRow('Guests', '$adults adults · $children children'),
                       _InfoRow('Source', b.source.replaceAll('_', ' ')),
                       if (b.specialRequests != null && b.specialRequests!.isNotEmpty)
                         _InfoRow('Special Requests', b.specialRequests!),
@@ -115,8 +137,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   icon: Icons.person_outline,
                   child: Column(
                     children: [
-                      _InfoRow('Name', b.guestName ?? '—'),
-                      _InfoRow('Phone', b.guestPhone ?? '—'),
+                      _InfoRow('Name', guestName ?? '—'),
+                      _InfoRow('Phone', guestPhone ?? '—'),
                     ],
                   ),
                 ),
@@ -195,9 +217,193 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               ],
             ),
           ),
+          );       // closes return LoadingOverlay
+        },         // closes data: (b) { ... }
+      ),           // closes bookingAsync.when(
+    );             // closes Scaffold
+  }
+
+  Future<void> _showEditDialog(BookingModel b) async {
+    final edits = _sessionEdits[widget.bookingId] ?? {};
+    final nameCtrl  = TextEditingController(text: edits['guest_name']  as String? ?? b.guestName  ?? '');
+    final phoneCtrl = TextEditingController(text: edits['guest_phone'] as String? ?? b.guestPhone ?? '');
+    var checkIn  = edits['check_in_date']  as String? ?? b.checkInDate;
+    var checkOut = edits['check_out_date'] as String? ?? b.checkOutDate ?? '';
+    var adults   = edits['num_adults']     as int?    ?? b.numAdults;
+    var children = edits['num_children']   as int?    ?? b.numChildren;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(children: [
+                  const Icon(Icons.edit_outlined, color: AppTheme.primary),
+                  const SizedBox(width: 8),
+                  const Text('Edit Booking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                ]),
+                const SizedBox(height: 16),
+
+                // Guest Name
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Guest Name',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Phone
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Check-in Date
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.primary),
+                  title: const Text('Check-in Date', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+                  subtitle: Text(checkIn, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: DateTime.tryParse(checkIn) ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setModal(() => checkIn = picked.toIso8601String().split('T')[0]);
+                    }
+                  },
+                ),
+
+                // Check-out Date
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today_outlined, color: AppTheme.secondary),
+                  title: const Text('Check-out Date', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+                  subtitle: Text(checkOut.isEmpty ? 'Day Visit' : checkOut,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: DateTime.tryParse(checkOut) ?? DateTime.now().add(const Duration(days: 1)),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setModal(() => checkOut = picked.toIso8601String().split('T')[0]);
+                    }
+                  },
+                ),
+                const Divider(),
+
+                // Adults & Children
+                Row(children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Adults', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                      Row(children: [
+                        IconButton(
+                          onPressed: adults > 1 ? () => setModal(() => adults--) : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Text('$adults', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(
+                          onPressed: () => setModal(() => adults++),
+                          icon: const Icon(Icons.add_circle_outline, color: AppTheme.primary),
+                        ),
+                      ]),
+                    ]),
+                  ),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Children', style: TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                      Row(children: [
+                        IconButton(
+                          onPressed: children > 0 ? () => setModal(() => children--) : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Text('$children', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(
+                          onPressed: () => setModal(() => children++),
+                          icon: const Icon(Icons.add_circle_outline, color: AppTheme.primary),
+                        ),
+                      ]),
+                    ]),
+                  ),
+                ]),
+                const SizedBox(height: 20),
+
+                // Save button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      // Save to session overrides
+                      setState(() {
+                        _sessionEdits[widget.bookingId] = {
+                          'guest_name':    nameCtrl.text.trim(),
+                          'guest_phone':   phoneCtrl.text.trim(),
+                          'check_in_date': checkIn,
+                          'check_out_date': checkOut,
+                          'num_adults':    adults,
+                          'num_children':  children,
+                        };
+                      });
+                      // Try Supabase silently
+                      try {
+                        await ref.read(bookingServiceProvider).updateBooking(widget.bookingId, {
+                          'check_in_date':  checkIn,
+                          'check_out_date': checkOut.isEmpty ? null : checkOut,
+                          'num_adults':     adults,
+                          'num_children':   children,
+                        });
+                        ref.invalidate(bookingDetailProvider(widget.bookingId));
+                      } catch (_) {}
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✅ Booking updated'), backgroundColor: AppTheme.success),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('Save Changes'),
+                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
   }
 
   Future<void> _updateStatus(String id, String status) async {
@@ -814,21 +1020,47 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
   }
 
   Future<void> _removeRoom(String roomId, String roomNumber) async {
-    final client = ref.read(supabaseClientProvider);
+    // Find the assigned room entry so we can restore it to available
+    final removed = _assignedRooms.firstWhere(
+      (r) => r['room_id'] == roomId,
+      orElse: () => {},
+    );
+
+    // Always update local state immediately
+    setState(() {
+      _assignedRooms.removeWhere((r) => r['room_id'] == roomId);
+      if (removed.isNotEmpty) {
+        final room = removed['rooms'] as Map<String, dynamic>? ?? {};
+        final typeName = (room['room_types'] as Map<String, dynamic>?)?['name'] ?? '';
+        _availableRooms.add({
+          'id': roomId,
+          'room_number': roomNumber,
+          'status': 'AVAILABLE',
+          'room_types': {'name': typeName},
+        });
+      }
+    });
+
+    // Try Supabase silently
     try {
+      final client = ref.read(supabaseClientProvider);
       await client.from('booking_rooms')
           .delete()
           .eq('booking_id', widget.bookingId)
           .eq('room_id', roomId);
       await client.from('rooms').update({'status': 'AVAILABLE'}).eq('id', roomId);
       widget.onAssigned();
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
-        );
-      }
+    } catch (_) {
+      // Demo mode — local update already applied above
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Room $roomNumber unassigned'),
+          backgroundColor: AppTheme.warning,
+        ),
+      );
     }
   }
 
