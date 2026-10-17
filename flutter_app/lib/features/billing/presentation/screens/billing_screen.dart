@@ -50,26 +50,24 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activityBookings = ref.watch(activityBookingsProvider);
-    final billingState     = ref.watch(billingStateProvider);
-    final shopCharges      = ref.watch(shopRoomChargesProvider);
-    final allFoodOrders    = ref.watch(foodOrdersStateProvider);
-    final isPaid           = billingState[_roomNo]?['is_paid'] == true;
+    // Use .valueOrNull so the screen renders immediately with session/demo data
+    // while Supabase loads in the background (avoids full-screen spinner)
+    final allBookings  = ref.watch(activityBookingsProvider).valueOrNull ?? <Map<String, dynamic>>[];
+    final billingState = ref.watch(billingStateProvider);
+    final shopCharges  = ref.watch(shopRoomChargesProvider);
+    final allFoodOrders = ref.watch(foodOrdersStateProvider);
+    final isPaid        = billingState[_roomNo]?['is_paid'] == true;
 
-    return activityBookings.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
-      data: (allBookings) {
-        // ── Find room info (session data takes priority over demo) ──────
-        final roomInfo   = getRoomInfo(_roomNo);
-        final guestName  = roomInfo['guest_name'] as String? ?? 'Guest';
-        final roomType   = roomInfo['room_type']  as String? ?? 'Room';
-        final baseNights = roomInfo['nights']     as int?    ?? 1;
-        final nights     = _calcNights(baseNights);
-        final rate       = (roomInfo['rate']      as num?)?.toDouble() ?? 3500.0;
-        // Persons: staff override (from +/− buttons) takes priority over booking value
-        final basePersons = (roomInfo['persons']  as int?)  ?? 1;
-        final persons     = _personsOverride ?? basePersons;
+    // ── Find room info (session data takes priority over demo) ──────
+    final roomInfo   = getRoomInfo(_roomNo);
+    final guestName  = roomInfo['guest_name'] as String? ?? 'Guest';
+    final roomType   = roomInfo['room_type']  as String? ?? 'Room';
+    final baseNights = roomInfo['nights']     as int?    ?? 1;
+    final nights     = _calcNights(baseNights);
+    final rate       = (roomInfo['rate']      as num?)?.toDouble() ?? 3500.0;
+    // Persons: staff override (from +/− buttons) takes priority over booking value
+    final basePersons = (roomInfo['persons']  as int?)  ?? 1;
+    final persons     = _personsOverride ?? basePersons;
 
         // Check-in / check-out label for display
         final checkIn  = widget.checkInDate ?? roomInfo['check_in']  as String? ?? '';
@@ -508,8 +506,6 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             ),
           ),
         );
-      },
-    );
   }
 
   Future<void> _downloadInvoice({
