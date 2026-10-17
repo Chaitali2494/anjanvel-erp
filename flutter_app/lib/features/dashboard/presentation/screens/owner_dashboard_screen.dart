@@ -15,6 +15,7 @@ import '../../../rooms/data/room_service.dart';
 import '../../../guest/data/guest_requests_provider.dart';
 import '../../../bookings/data/session_bookings_provider.dart';
 import '../../../bookings/data/booking_service.dart';
+import '../../../food/data/food_orders_state_provider.dart';
 import 'package:intl/intl.dart';
 
 class OwnerDashboardScreen extends ConsumerWidget {
@@ -33,7 +34,14 @@ class OwnerDashboardScreen extends ConsumerWidget {
 
     // ── Live session stats — reactive to every booking/check-in action ────────
     final sessionBookings = ref.watch(sessionBookingsProvider);
+    final allFoodOrders   = ref.watch(foodOrdersStateProvider);
+    final allActivities   = ref.watch(activityBookingsProvider).valueOrNull ?? [];
     final today = DateTime.now().toIso8601String().split('T')[0];
+
+    // Force room panel to refresh when session bookings change
+    ref.listen(sessionBookingsProvider, (_, __) {
+      ref.invalidate(allRoomsProvider);
+    });
 
     // Arrivals today = bookings with check_in_date == today (any active status)
     final arrivalsToday = sessionBookings.where((b) {
@@ -54,6 +62,26 @@ class OwnerDashboardScreen extends ConsumerWidget {
       final co  = b['check_out_date'] as String? ?? '';
       final eff = sessionStatusOverrides[b['id']] ?? b['status'] as String? ?? '';
       return co == today && (eff == 'CHECKED_OUT' || eff == 'CHECKED_IN');
+    }).length;
+
+    // Today's session check-ins (for the check-in list)
+    final sessionTodayCheckins = sessionBookings.where((b) {
+      final ci  = b['check_in_date'] as String? ?? '';
+      final eff = sessionStatusOverrides[b['id']] ?? b['status'] as String? ?? '';
+      return ci == today && ['CONFIRMED', 'CHECKED_IN', 'ADVANCE_PAID'].contains(eff);
+    }).toList();
+
+    // Live badge counts for quick actions
+    final pendingFoodOrders = allFoodOrders
+        .where((o) => (o['status'] as String?) == 'PENDING').length;
+    final activeActivities = allActivities
+        .where((a) => (a['status'] as String?) != 'CANCELLED').length;
+    final unpaidBills = billingState.values
+        .where((b) => b['is_paid'] != true).length;
+    final pendingCheckIns = sessionBookings.where((b) {
+      final ci  = b['check_in_date'] as String? ?? '';
+      final eff = sessionStatusOverrides[b['id']] ?? b['status'] as String? ?? '';
+      return ci == today && eff == 'CONFIRMED';
     }).length;
 
     // Guests in-house = rooms currently occupied from sessionRoomBookings
@@ -176,7 +204,13 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       // Quick Actions
                       const SectionHeader(title: 'Quick Actions'),
                       const SizedBox(height: AppTheme.spaceMD),
-                      _QuickActionsGrid(),
+                      _QuickActionsGrid(
+                        pendingCheckIns:  pendingCheckIns,
+                        pendingFood:      pendingFoodOrders,
+                        activeActivities: activeActivities,
+                        unpaidBills:      unpaidBills,
+                        occupiedRooms:    guestsInHouse > 0 ? sessionRoomBookings.length : 0,
+                      ),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // ── Revenue from Billing (live sync) ───────────────
@@ -212,14 +246,30 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       const ActivitiesPanel(),
                       const SizedBox(height: AppTheme.spaceLG),
 
-                      // Today's Check-ins
+                      // Today's Check-ins — merge session + Supabase, dedup by booking_number
                       SectionHeader(
-                        title: "Today's Check-ins",
+                        title: "Today's Check-ins  (${sessionTodayCheckins.length + stats.todayCheckins.length})",
                         action: 'All Bookings',
                         onActionTap: () => context.push(AppRoutes.bookings),
                       ),
                       const SizedBox(height: AppTheme.spaceMD),
-                      ...stats.todayCheckins.map((b) => _BookingTile(booking: b)),
+                      if (sessionTodayCheckins.isEmpty && stats.todayCheckins.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(children: [
+                            const Icon(Icons.event_available_outlined, color: AppTheme.textHint, size: 20),
+                            const SizedBox(width: 8),
+                            Text('No check-ins scheduled for today',
+                                style: TextStyle(color: AppTheme.textHint, fontSize: 13)),
+                          ]),
+                        )
+                      else ...[
+                        ...sessionTodayCheckins.map((b) => _BookingTile(booking: b)),
+                        ...stats.todayCheckins
+                            .where((db) => !sessionTodayCheckins
+                                .any((s) => s['booking_number'] == db['booking_number']))
+                            .map((b) => _BookingTile(booking: b)),
+                      ],
 
                       // Low Stock Alerts
                       if (stats.lowStockAlerts > 0) ...[
@@ -458,29 +508,41 @@ class _RevenueChart extends StatelessWidget {
 // ── Quick Actions ───────────────────────────────────────────────────────────────
 
 class _QuickActionsGrid extends StatelessWidget {
-  final _actions = const [
-    _Action('New Booking', Icons.add_circle_outline_rounded, '/bookings/create', AppTheme.primary),
-    _Action('Check-in',    Icons.login_rounded,              '/checkin',           AppTheme.info),
-    _Action('Rooms',       Icons.bed_outlined,               '/rooms',             AppTheme.secondary),
-    _Action('Food Orders', Icons.restaurant_menu_outlined,   '/food',              AppTheme.warning),
-    _Action('Activities',  Icons.hiking_outlined,            '/activities/tracker',Color(0xFF00695C)),
-    _Action('Billing',     Icons.receipt_long_rounded,       '/billing',           Color(0xFF00838F)),
-    _Action('Staff',       Icons.people_rounded,             '/staff',             Color(0xFF1565C0)),
-    _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent),
-    _Action('Inventory',   Icons.inventory_2_outlined,       '/inventory',         Color(0xFF00796B)),
-  ];
+  final int pendingCheckIns;
+  final int pendingFood;
+  final int activeActivities;
+  final int unpaidBills;
+  final int occupiedRooms;
 
-  const _QuickActionsGrid();
+  const _QuickActionsGrid({
+    this.pendingCheckIns  = 0,
+    this.pendingFood      = 0,
+    this.activeActivities = 0,
+    this.unpaidBills      = 0,
+    this.occupiedRooms    = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final actions = [
+      _Action('New Booking', Icons.add_circle_outline_rounded, '/bookings/create', AppTheme.primary,  0),
+      _Action('Check-in',    Icons.login_rounded,              '/checkin',          AppTheme.info,     pendingCheckIns),
+      _Action('Rooms',       Icons.bed_outlined,               '/rooms',            AppTheme.secondary,occupiedRooms),
+      _Action('Food Orders', Icons.restaurant_menu_outlined,   '/food',             AppTheme.warning,  pendingFood),
+      _Action('Activities',  Icons.hiking_outlined,            '/activities/tracker',const Color(0xFF00695C), activeActivities),
+      _Action('Billing',     Icons.receipt_long_rounded,       '/billing',          const Color(0xFF00838F), unpaidBills),
+      _Action('Staff',       Icons.people_rounded,             '/staff',            const Color(0xFF1565C0), 0),
+      _Action('Reports',     Icons.bar_chart_rounded,          '/reports',          AppTheme.accent,   0),
+      _Action('Inventory',   Icons.inventory_2_outlined,       '/inventory',        const Color(0xFF00796B), 0),
+    ];
+
     return GridView.count(
       crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
-      children: _actions.map((a) => _QuickActionTile(action: a)).toList(),
+      children: actions.map((a) => _QuickActionTile(action: a)).toList(),
     );
   }
 }
@@ -490,7 +552,8 @@ class _Action {
   final IconData icon;
   final String route;
   final Color color;
-  const _Action(this.label, this.icon, this.route, this.color);
+  final int badge;
+  const _Action(this.label, this.icon, this.route, this.color, this.badge);
 }
 
 class _QuickActionTile extends StatelessWidget {
@@ -501,50 +564,77 @@ class _QuickActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => context.push(action.route),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [action.color, action.color.withOpacity(0.75)],
-          ),
-          borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-          boxShadow: [
-            BoxShadow(
-              color: action.color.withOpacity(0.35),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                shape: BoxShape.circle,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [action.color, action.color.withOpacity(0.75)],
               ),
-              child: Icon(action.icon, color: Colors.white, size: 22),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                action.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+              boxShadow: [
+                BoxShadow(
+                  color: action.color.withOpacity(0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(action.icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    action.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Live badge — only shown when count > 0
+          if (action.badge > 0)
+            Positioned(
+              top: -5,
+              right: -5,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade600,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: Text(
+                  '${action.badge}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -592,18 +682,41 @@ class _RoomStatusPanel extends ConsumerWidget {
             padding: EdgeInsets.all(16),
             child: CircularProgressIndicator(color: AppTheme.primary),
           )),
-          error: (_, __) => const SizedBox.shrink(),
-          data: (rooms) {
+          error: (_, __) => _buildRoomsFromSession(context),
+          data: (dbRooms) {
+            // Merge DB rooms with session room assignments
+            final allRooms = List<Map<String, dynamic>>.from(dbRooms);
+
+            // Add session-assigned rooms not already in DB list
+            for (final entry in sessionRoomBookings.entries) {
+              final rno = entry.key;
+              final booking = entry.value;
+              final alreadyIn = allRooms.any((r) => r['room_number']?.toString() == rno);
+              if (!alreadyIn) {
+                final bId  = booking['id'] as String? ?? '';
+                final bEff = sessionStatusOverrides[bId] ?? booking['status'] as String? ?? '';
+                allRooms.add({
+                  'id': rno,
+                  'room_number': rno,
+                  'room_type_name': booking['room_type_name'] ?? 'Room',
+                  'type_name': booking['room_type_name'] ?? 'Room',
+                  'status': bEff == 'CHECKED_IN' ? 'OCCUPIED' : 'RESERVED',
+                  'current_guest': (booking['guests'] as Map?)?.['full_name'] ?? '',
+                });
+              }
+            }
+
+            final rooms = allRooms;
             final available   = rooms.where((r) => r['status'] == 'AVAILABLE').length;
             final occupied    = rooms.where((r) => r['status'] == 'OCCUPIED').length;
             final reserved    = rooms.where((r) => r['status'] == 'RESERVED').length;
             final cleaning    = rooms.where((r) => r['status'] == 'CLEANING').length;
             final maintenance = rooms.where((r) => r['status'] == 'MAINTENANCE').length;
 
-            // Show occupied + reserved rooms first (up to 3)
+            // Show occupied + reserved rooms first (up to 5)
             final activeRooms = rooms
                 .where((r) => r['status'] == 'OCCUPIED' || r['status'] == 'RESERVED')
-                .take(3)
+                .take(5)
                 .toList();
 
             return Container(
@@ -667,6 +780,85 @@ class _RoomStatusPanel extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+
+  /// Fallback: build room panel purely from session data (kBillableRooms + sessionRoomBookings)
+  Widget _buildRoomsFromSession(BuildContext context) {
+    final rooms = kBillableRooms.map((demo) {
+      final rno     = demo['room_number'] as String;
+      final booking = sessionRoomBookings[rno];
+      String status = 'AVAILABLE';
+      String? guest;
+      if (booking != null) {
+        final bId  = booking['id'] as String? ?? '';
+        final bEff = sessionStatusOverrides[bId] ?? booking['status'] as String? ?? '';
+        status = bEff == 'CHECKED_IN' ? 'OCCUPIED' : 'RESERVED';
+        guest  = (booking['guests'] as Map?)?.['full_name'] as String?;
+      }
+      return {
+        'id': rno,
+        'room_number': rno,
+        'room_type_name': demo['room_type'],
+        'type_name': demo['room_type'],
+        'status': status,
+        'current_guest': guest ?? demo['guest_name'],
+      };
+    }).toList();
+
+    final occupied  = rooms.where((r) => r['status'] == 'OCCUPIED').length;
+    final reserved  = rooms.where((r) => r['status'] == 'RESERVED').length;
+    final available = rooms.where((r) => r['status'] == 'AVAILABLE').length;
+    final activeRooms = rooms
+        .where((r) => r['status'] == 'OCCUPIED' || r['status'] == 'RESERVED')
+        .take(5).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+        border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+      ),
+      child: Column(children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C)]),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(children: [
+            _RmStat('Available', '$available', const Color(0xFFA5D6A7)),
+            _RmDiv(),
+            _RmStat('Occupied',  '$occupied',  const Color(0xFFEF9A9A)),
+            _RmDiv(),
+            _RmStat('Reserved',  '$reserved',  const Color(0xFF90CAF9)),
+          ]),
+        ),
+        if (activeRooms.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.check_circle_outline_rounded, color: Color(0xFF2E7D32), size: 20),
+              SizedBox(width: 8),
+              Text('No rooms currently occupied', style: TextStyle(color: AppTheme.textHint, fontSize: 13)),
+            ]),
+          )
+        else
+          ...activeRooms.map((room) => _RoomRow(room: room)),
+        InkWell(
+          onTap: () => context.push('/rooms'),
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('Open Room Dashboard', style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+              SizedBox(width: 4),
+              Icon(Icons.arrow_forward_rounded, size: 14, color: AppTheme.primary),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 }
