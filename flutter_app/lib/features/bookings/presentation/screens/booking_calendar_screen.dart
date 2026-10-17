@@ -360,35 +360,68 @@ class _BookingCalendarScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          color: AppTheme.surface,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Bookings on $dayStr',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppTheme.textPrimary),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${dayBookings.length} booking${dayBookings.length != 1 ? 's' : ''}',
+              Row(children: [
+                const Icon(Icons.calendar_today_outlined,
+                    size: 15, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                Text(
+                  dayStr,
                   style: const TextStyle(
-                      color: AppTheme.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AppTheme.textPrimary),
                 ),
-              ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${dayBookings.length} booking${dayBookings.length != 1 ? 's' : ''}',
+                    style: const TextStyle(
+                        color: AppTheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ]),
+              if (dayBookings.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  _CountChip(
+                    label: 'Checked In',
+                    count: dayBookings.where((b) => b['status'] == 'CHECKED_IN').length,
+                    color: const Color(0xFF2E7D32),
+                  ),
+                  _CountChip(
+                    label: 'Confirmed',
+                    count: dayBookings.where((b) => b['status'] == 'CONFIRMED').length,
+                    color: AppTheme.primary,
+                  ),
+                  _CountChip(
+                    label: 'Inquiry',
+                    count: dayBookings.where((b) => b['status'] == 'INQUIRY').length,
+                    color: AppTheme.warning,
+                  ),
+                  _CountChip(
+                    label: 'Adv. Paid',
+                    count: dayBookings.where((b) => b['status'] == 'ADVANCE_PAID').length,
+                    color: const Color(0xFF6A1B9A),
+                  ),
+                ].where((c) => (c as _CountChip).count > 0).toList()),
+              ],
             ],
           ),
         ),
+        const Divider(height: 1),
         Expanded(
           child: dayBookings.isEmpty
               ? Center(
@@ -414,6 +447,30 @@ class _BookingCalendarScreenState
                 ),
         ),
       ],
+    );
+  }
+}
+
+// ── Count chip (day summary bar) ──────────────────────────────────────────────
+
+class _CountChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  const _CountChip({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    if (count == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Text('$count $label',
+          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -445,137 +502,226 @@ class _CalendarBookingTile extends StatelessWidget {
   final Map<String, dynamic> booking;
   const _CalendarBookingTile({required this.booking});
 
-  Color get _statusColor {
-    switch (booking['status'] as String? ?? '') {
-      case 'CONFIRMED'  : return AppTheme.primary;
-      case 'CHECKED_IN' : return const Color(0xFF2E7D32);
-      case 'INQUIRY'    : return AppTheme.warning;
-      case 'CHECKED_OUT': return AppTheme.info;
-      default           : return AppTheme.textHint;
-    }
-  }
+  static const _statusColors = {
+    'CONFIRMED'   : Color(0xFF1565C0),
+    'CHECKED_IN'  : Color(0xFF2E7D32),
+    'ADVANCE_PAID': Color(0xFF6A1B9A),
+    'INQUIRY'     : Color(0xFFF57C00),
+    'CHECKED_OUT' : Color(0xFF00838F),
+    'CANCELLED'   : Color(0xFFB71C1C),
+  };
+  static const _statusLabels = {
+    'CONFIRMED'   : 'Confirmed',
+    'CHECKED_IN'  : 'Checked In',
+    'ADVANCE_PAID': 'Advance Paid',
+    'INQUIRY'     : 'Inquiry',
+    'CHECKED_OUT' : 'Checked Out',
+    'CANCELLED'   : 'Cancelled',
+  };
 
-  String get _statusLabel =>
-      (booking['status'] as String? ?? '').replaceAll('_', ' ');
+  static String _fmt(String? s) {
+    if (s == null || s.isEmpty) return '—';
+    final dt = DateTime.tryParse(s);
+    if (dt == null) return s;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final guest    = booking['guests'] as Map<String, dynamic>? ?? {};
-    final name     = guest['full_name'] as String? ?? 'Guest';
-    final checkIn  = booking['check_in_date']  as String? ?? '';
-    final checkOut = booking['check_out_date'] as String?;
-    final adults   = booking['num_adults']   as int? ?? 0;
-    final children = booking['num_children'] as int? ?? 0;
+    final status = booking['status'] as String? ?? 'CONFIRMED';
+    final color  = _statusColors[status] ?? AppTheme.textHint;
+    final label  = _statusLabels[status] ?? status.replaceAll('_', ' ');
 
-    // Nights count
-    String nights = '';
-    if (checkOut != null && checkIn.isNotEmpty) {
-      try {
-        final diff = DateTime.parse(checkOut)
-            .difference(DateTime.parse(checkIn))
-            .inDays;
-        if (diff > 0) nights = '$diff night${diff != 1 ? 's' : ''}';
-      } catch (_) {}
+    // Guest name — Supabase nests it; session bookings store it flat
+    final guestMap  = booking['guests'] as Map<String, dynamic>?;
+    final guestName = guestMap?['full_name'] as String?
+        ?? booking['guest_name']  as String?
+        ?? booking['full_name']   as String?
+        ?? 'Guest';
+
+    final bookingNo = booking['booking_number'] as String?
+        ?? booking['id'] as String? ?? '';
+    final checkIn  = booking['check_in_date']  as String? ?? '';
+    final checkOut = booking['check_out_date'] as String? ?? '';
+    final adults   = (booking['num_adults']   as num?)?.toInt() ?? 0;
+    final children = (booking['num_children'] as num?)?.toInt() ?? 0;
+    final total    = (booking['total_amount'] as num?)?.toDouble();
+    final roomType = booking['room_type_name'] as String?
+        ?? booking['package_name'] as String?;
+    final roomNo   = booking['room_number'] as String?;
+
+    // Nights
+    int nights = 0;
+    if (checkIn.isNotEmpty && checkOut.isNotEmpty) {
+      final ci = DateTime.tryParse(checkIn);
+      final co = DateTime.tryParse(checkOut);
+      if (ci != null && co != null) nights = co.difference(ci).inDays;
     }
 
     return GestureDetector(
       onTap: () => context.push('/bookings/${booking['id']}'),
       child: Container(
-        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-          border: Border.all(color: _statusColor.withOpacity(0.3)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)
-          ],
+          border: Border.all(color: color.withOpacity(0.25)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
         ),
-        child: Row(
-          children: [
-            // Status bar
-            Container(
-              width: 4,
-              height: 54,
-              decoration: BoxDecoration(
-                  color: _statusColor,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15)),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: _statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(_statusLabel,
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: _statusColor,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    children: [
-                      Text(booking['booking_number'] as String? ?? '',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppTheme.textPrimary)),
-                      if (checkIn.isNotEmpty)
-                        _InfoChip(
-                            icon: Icons.login_rounded, text: checkIn),
-                      if (checkOut != null)
-                        _InfoChip(
-                            icon: Icons.logout_rounded, text: checkOut),
-                      if (nights.isNotEmpty)
-                        _InfoChip(
-                            icon: Icons.nights_stay_outlined, text: nights),
-                      _InfoChip(
-                          icon: Icons.people_outline,
-                          text: '$adults A${children > 0 ? " · ${children}C" : ""}'),
-                    ],
-                  ),
-                ],
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Colour sidebar ──────────────────────────────────────────
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(AppTheme.radiusMD)),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: AppTheme.textPrimary),
-          ],
+
+              // ── Content ─────────────────────────────────────────────────
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      // Row 1: Guest name + status badge
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                            guestName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: AppTheme.textPrimary),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(label,
+                              style: TextStyle(
+                                  fontSize: 11, color: color,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ]),
+                      const SizedBox(height: 5),
+
+                      // Row 2: Booking number + room type
+                      Row(children: [
+                        const Icon(Icons.confirmation_number_outlined,
+                            size: 12, color: AppTheme.textHint),
+                        const SizedBox(width: 4),
+                        Text(bookingNo,
+                            style: const TextStyle(
+                                fontSize: 12, color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w600)),
+                        if (roomNo != null) ...[
+                          const SizedBox(width: 10),
+                          const Icon(Icons.hotel_outlined,
+                              size: 12, color: AppTheme.textHint),
+                          const SizedBox(width: 4),
+                          Text('Room $roomNo',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppTheme.textSecondary)),
+                        ],
+                        if (roomType != null) ...[
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text('• $roomType',
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppTheme.textHint),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ]),
+                      const SizedBox(height: 6),
+
+                      // Row 3: Dates + nights
+                      Row(children: [
+                        const Icon(Icons.login_rounded,
+                            size: 13, color: Color(0xFF2E7D32)),
+                        const SizedBox(width: 4),
+                        Text(_fmt(checkIn),
+                            style: const TextStyle(
+                                fontSize: 12, color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w500)),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Icon(Icons.arrow_forward_rounded,
+                              size: 11, color: AppTheme.textHint),
+                        ),
+                        const Icon(Icons.logout_rounded,
+                            size: 13, color: Color(0xFFB71C1C)),
+                        const SizedBox(width: 4),
+                        Text(_fmt(checkOut),
+                            style: const TextStyle(
+                                fontSize: 12, color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w500)),
+                        if (nights > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('$nights N',
+                                style: const TextStyle(
+                                    fontSize: 10, color: AppTheme.primary,
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ]),
+                      const SizedBox(height: 5),
+
+                      // Row 4: Pax + total
+                      Row(children: [
+                        const Icon(Icons.people_outline,
+                            size: 13, color: AppTheme.textHint),
+                        const SizedBox(width: 4),
+                        Text(
+                          adults > 0
+                              ? '$adults Adult${adults != 1 ? "s" : ""}'
+                                  '${children > 0 ? "  +  $children Child${children != 1 ? "ren" : ""}" : ""}'
+                              : 'Guests TBD',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                        const Spacer(),
+                        if (total != null && total > 0) ...[
+                          const Icon(Icons.currency_rupee,
+                              size: 12, color: AppTheme.success),
+                          Text(
+                            total.toStringAsFixed(0),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.success),
+                          ),
+                        ],
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded,
+                            size: 18, color: AppTheme.textHint),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String   text;
-  const _InfoChip({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: AppTheme.textPrimary.withOpacity(0.6)),
-          const SizedBox(width: 2),
-          Text(text,
-              style: TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.textPrimary.withOpacity(0.8))),
-        ],
-      );
 }
