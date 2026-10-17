@@ -120,7 +120,6 @@ class BookingRoadmapScreen extends ConsumerWidget {
                     billingState: billingState,
                     allActivities: allActivities,
                     allFood: allFood,
-                    ref: ref,
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
@@ -134,23 +133,89 @@ class BookingRoadmapScreen extends ConsumerWidget {
 }
 
 // ─── Journey card ─────────────────────────────────────────────────────────────
-class _JourneyCard extends StatelessWidget {
+class _JourneyCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> booking;
   final Map<String, Map<String, dynamic>> billingState;
   final List<Map<String, dynamic>> allActivities;
   final List<Map<String, dynamic>> allFood;
-  final WidgetRef ref;
 
   const _JourneyCard({
     required this.booking,
     required this.billingState,
     required this.allActivities,
     required this.allFood,
-    required this.ref,
   });
 
   @override
+  ConsumerState<_JourneyCard> createState() => _JourneyCardState();
+}
+
+class _JourneyCardState extends ConsumerState<_JourneyCard> {
+  // Local overrides for immediate UI feedback (no waiting for provider rebuild)
+  String? _localStatus;
+  String? _localCheckedInAt;
+
+  void _doCheckIn(String bookingId, Map<String, dynamic> booking,
+      String roomNo, String roomType, String guestName) {
+    final now = DateTime.now().toIso8601String();
+    setState(() {
+      _localStatus     = 'CHECKED_IN';
+      _localCheckedInAt = now;
+    });
+
+    // Resolve room from assignments if not in booking map
+    String resolvedRoom = roomNo;
+    String resolvedType = roomType;
+    if (resolvedRoom == '—' || resolvedRoom.isEmpty) {
+      final assignments = sessionBookingRoomAssignments[bookingId];
+      if (assignments != null && assignments.isNotEmpty) {
+        resolvedRoom = assignments.first['room_number'] as String? ?? '—';
+        resolvedType = assignments.first['type_name'] as String? ?? roomType;
+      }
+    }
+
+    // Update global provider (cross-screen sync)
+    ref.read(sessionBookingsProvider.notifier).addBooking({
+      ...booking,
+      'status': 'CHECKED_IN',
+      'checked_in_at': now,
+      if (resolvedRoom != '—') 'room_number': resolvedRoom,
+    });
+
+    // Update booking service cache for Front Desk screen
+    if (bookingId.startsWith('local_')) {
+      ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
+    }
+
+    // Sync sessionRoomBookings so room detail shows the guest
+    if (resolvedRoom != '—' && resolvedRoom.isNotEmpty) {
+      final guest = booking['guests'] as Map<String, dynamic>? ?? {};
+      sessionRoomBookings[resolvedRoom] = {
+        'id': bookingId,
+        'booking_number': booking['booking_number'] ?? '',
+        'status': 'CHECKED_IN',
+        'check_in_date':  booking['check_in_date']  ?? '',
+        'check_out_date': booking['check_out_date'] ?? '',
+        'num_adults':   (booking['num_adults']   as num?)?.toInt()    ?? 1,
+        'num_children': (booking['num_children'] as num?)?.toInt()    ?? 0,
+        'total_amount': (booking['total_amount'] as num?)?.toDouble() ?? 0,
+        'paid_amount':  (booking['paid_amount']  as num?)?.toDouble() ?? 0,
+        'room_type_name': resolvedType,
+        'rate': 3500.0,
+        'guests': guest.isNotEmpty ? guest
+            : {'full_name': guestName, 'phone': booking['guest_phone'] ?? ''},
+      };
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Guest checked in successfully! 🏠'),
+      backgroundColor: Color(0xFF2E7D32),
+    ));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final booking = widget.booking;
     final id = booking['id']?.toString() ?? '';
     final guestsMap  = booking['guests'] as Map<String, dynamic>?;
     final guestName  = guestsMap?['full_name'] as String? ??
@@ -169,11 +234,12 @@ class _JourneyCard extends StatelessWidget {
     }
     final checkIn    = booking['check_in_date']  as String? ?? booking['check_in']  as String?;
     final checkOut   = booking['check_out_date'] as String? ?? booking['check_out'] as String?;
-    final status     = (booking['status'] as String? ?? '').toUpperCase();
+    // Use local status override for immediate UI feedback
+    final status     = (_localStatus ?? (booking['status'] as String? ?? '')).toUpperCase();
     final stage      = _stageIndex(status);
     final color      = _stageColors[stage];
     final createdAt    = booking['created_at']    as String?;
-    final checkedInAt  = booking['checked_in_at'] as String?;
+    final checkedInAt  = _localCheckedInAt ?? booking['checked_in_at'] as String?;
 
     // Bill data
     final roomInfo       = getRoomInfo(roomNo == '—' ? '' : roomNo);
@@ -262,14 +328,22 @@ class _JourneyCard extends StatelessWidget {
               createdAt: createdAt,
               checkedInAt: checkedInAt,
               bookingId: id,
-              booking: booking,
               roomCharge: roomCharge,
               foodCharge: foodCharge,
               activityCharge: activityCharge,
               shopCharge: shopCharge,
               total: total,
               isPaid: isPaid,
-              ref: ref,
+              onCheckIn: () => _doCheckIn(id, booking, roomNo,
+                  roomInfo['room_type']?.toString() ?? '—', guestName),
+              onCancel: () {
+                setState(() => _localStatus = 'CANCELLED');
+                ref.read(sessionBookingsProvider.notifier).updateStatus(id, 'CANCELLED');
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Booking cancelled'),
+                  backgroundColor: Colors.red,
+                ));
+              },
             ),
           ),
         ],
@@ -351,11 +425,11 @@ class _StageDetail extends StatelessWidget {
   final int stage;
   final String guestName, guestPhone, roomNo, roomType, bookingId;
   final String? checkIn, checkOut, createdAt, checkedInAt;
-  final Map<String, dynamic> booking;
   final int nights;
   final double roomCharge, foodCharge, activityCharge, shopCharge, total;
   final bool isPaid;
-  final WidgetRef ref;
+  final VoidCallback onCheckIn;
+  final VoidCallback onCancel;
 
   const _StageDetail({
     required this.stage,
@@ -369,14 +443,14 @@ class _StageDetail extends StatelessWidget {
     required this.createdAt,
     required this.checkedInAt,
     required this.bookingId,
-    required this.booking,
     required this.roomCharge,
     required this.foodCharge,
     required this.activityCharge,
     required this.shopCharge,
     required this.total,
     required this.isPaid,
-    required this.ref,
+    required this.onCheckIn,
+    required this.onCancel,
   });
 
   @override
@@ -390,7 +464,7 @@ class _StageDetail extends StatelessWidget {
           bookingId: bookingId, guestName: guestName,
           roomNo: roomNo, roomType: roomType,
           checkIn: checkIn, checkOut: checkOut,
-          booking: booking, ref: ref);
+          onCheckIn: onCheckIn, onCancel: onCancel);
       case 2: return _CheckedInDetail(
           checkIn: checkIn, checkedInAt: checkedInAt,
           roomNo: roomNo, roomType: roomType,
@@ -441,13 +515,13 @@ class _CreatedDetail extends StatelessWidget {
 class _ConfirmedDetail extends StatelessWidget {
   final String bookingId, guestName, roomNo, roomType;
   final String? checkIn, checkOut;
-  final Map<String, dynamic> booking;
-  final WidgetRef ref;
+  final VoidCallback onCheckIn;
+  final VoidCallback onCancel;
   const _ConfirmedDetail({
     required this.bookingId, required this.guestName,
     required this.roomNo, required this.roomType,
     required this.checkIn, required this.checkOut,
-    required this.booking, required this.ref,
+    required this.onCheckIn, required this.onCancel,
   });
 
   @override
@@ -469,11 +543,7 @@ class _ConfirmedDetail extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {
-                  ref.read(sessionBookingsProvider.notifier).updateStatus(bookingId, 'CANCELLED');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.red));
-                },
+                onPressed: onCancel,
                 icon: const Icon(Icons.cancel_outlined, size: 16),
                 label: const Text('Cancel'),
                 style: OutlinedButton.styleFrom(
@@ -486,55 +556,7 @@ class _ConfirmedDetail extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  final now = DateTime.now().toIso8601String();
-                  // Resolve the room number (may have been assigned after booking was created)
-                  String resolvedRoom = booking['room_number']?.toString() ?? '—';
-                  String resolvedType = roomType;
-                  if (resolvedRoom == '—' || resolvedRoom.isEmpty) {
-                    final assignments = sessionBookingRoomAssignments[bookingId];
-                    if (assignments != null && assignments.isNotEmpty) {
-                      resolvedRoom = assignments.first['room_number'] as String? ?? '—';
-                      resolvedType = assignments.first['type_name'] as String? ?? roomType;
-                    }
-                  }
-                  // addBooking works for BOTH session & Supabase bookings:
-                  // it removes the old entry and inserts the updated one,
-                  // so the merged list immediately shows CHECKED_IN.
-                  ref.read(sessionBookingsProvider.notifier).addBooking({
-                    ...booking,
-                    'status': 'CHECKED_IN',
-                    'checked_in_at': now,
-                    'room_number': resolvedRoom == '—' ? null : resolvedRoom,
-                  });
-                  // Also update booking service cache (for Front Desk screen)
-                  if (bookingId.startsWith('local_')) {
-                    ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
-                  }
-                  // Sync sessionRoomBookings so room detail shows the guest
-                  if (resolvedRoom != '—' && resolvedRoom.isNotEmpty) {
-                    final guest = booking['guests'] as Map<String, dynamic>? ?? {};
-                    sessionRoomBookings[resolvedRoom] = {
-                      'id': bookingId,
-                      'booking_number': booking['booking_number'] ?? '',
-                      'status': 'CHECKED_IN',
-                      'check_in_date':  booking['check_in_date']  ?? '',
-                      'check_out_date': booking['check_out_date'] ?? '',
-                      'num_adults':   (booking['num_adults']   as num?)?.toInt()    ?? 1,
-                      'num_children': (booking['num_children'] as num?)?.toInt()    ?? 0,
-                      'total_amount': (booking['total_amount'] as num?)?.toDouble() ?? 0,
-                      'paid_amount':  (booking['paid_amount']  as num?)?.toDouble() ?? 0,
-                      'room_type_name': resolvedType,
-                      'rate': 3500.0,
-                      'guests': guest.isNotEmpty ? guest
-                          : {'full_name': guestName, 'phone': booking['guest_phone'] ?? ''},
-                    };
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Guest checked in successfully! 🏠'),
-                    backgroundColor: Color(0xFF2E7D32),
-                  ));
-                },
+                onPressed: onCheckIn,
                 icon: const Icon(Icons.login_rounded, size: 16, color: Colors.white),
                 label: const Text('Check In Now', style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
