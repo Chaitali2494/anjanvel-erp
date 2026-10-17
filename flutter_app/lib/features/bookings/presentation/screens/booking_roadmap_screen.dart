@@ -159,7 +159,14 @@ class _JourneyCard extends StatelessWidget {
         booking['guest_phone'] as String? ?? '—';
     final bookingNo  = booking['booking_number']?.toString() ??
         (id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase());
-    final roomNo     = booking['room_number']?.toString() ?? '—';
+    // Check session room assignments as fallback (assigned via booking detail screen)
+    String roomNo = booking['room_number']?.toString() ?? '—';
+    if (roomNo == '—' || roomNo.isEmpty) {
+      final assignments = sessionBookingRoomAssignments[id];
+      if (assignments != null && assignments.isNotEmpty) {
+        roomNo = assignments.first['room_number'] as String? ?? '—';
+      }
+    }
     final checkIn    = booking['check_in_date']  as String? ?? booking['check_in']  as String?;
     final checkOut   = booking['check_out_date'] as String? ?? booking['check_out'] as String?;
     final status     = (booking['status'] as String? ?? '').toUpperCase();
@@ -481,6 +488,16 @@ class _ConfirmedDetail extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () {
                   final now = DateTime.now().toIso8601String();
+                  // Resolve the room number (may have been assigned after booking was created)
+                  String resolvedRoom = booking['room_number']?.toString() ?? '—';
+                  String resolvedType = roomType;
+                  if (resolvedRoom == '—' || resolvedRoom.isEmpty) {
+                    final assignments = sessionBookingRoomAssignments[bookingId];
+                    if (assignments != null && assignments.isNotEmpty) {
+                      resolvedRoom = assignments.first['room_number'] as String? ?? '—';
+                      resolvedType = assignments.first['type_name'] as String? ?? roomType;
+                    }
+                  }
                   // addBooking works for BOTH session & Supabase bookings:
                   // it removes the old entry and inserts the updated one,
                   // so the merged list immediately shows CHECKED_IN.
@@ -488,15 +505,16 @@ class _ConfirmedDetail extends StatelessWidget {
                     ...booking,
                     'status': 'CHECKED_IN',
                     'checked_in_at': now,
+                    'room_number': resolvedRoom == '—' ? null : resolvedRoom,
                   });
                   // Also update booking service cache (for Front Desk screen)
                   if (bookingId.startsWith('local_')) {
                     ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
                   }
                   // Sync sessionRoomBookings so room detail shows the guest
-                  if (roomNo != '—' && roomNo.isNotEmpty) {
+                  if (resolvedRoom != '—' && resolvedRoom.isNotEmpty) {
                     final guest = booking['guests'] as Map<String, dynamic>? ?? {};
-                    sessionRoomBookings[roomNo] = {
+                    sessionRoomBookings[resolvedRoom] = {
                       'id': bookingId,
                       'booking_number': booking['booking_number'] ?? '',
                       'status': 'CHECKED_IN',
@@ -506,7 +524,7 @@ class _ConfirmedDetail extends StatelessWidget {
                       'num_children': (booking['num_children'] as num?)?.toInt()    ?? 0,
                       'total_amount': (booking['total_amount'] as num?)?.toDouble() ?? 0,
                       'paid_amount':  (booking['paid_amount']  as num?)?.toDouble() ?? 0,
-                      'room_type_name': roomType,
+                      'room_type_name': resolvedType,
                       'rate': 3500.0,
                       'guests': guest.isNotEmpty ? guest
                           : {'full_name': guestName, 'phone': booking['guest_phone'] ?? ''},
