@@ -155,6 +155,40 @@ class _JourneyCardState extends ConsumerState<_JourneyCard> {
   String? _localStatus;
   String? _localCheckedInAt;
 
+  void _doConfirm(String bookingId, Map<String, dynamic> booking) {
+    setState(() => _localStatus = 'CONFIRMED');
+    ref.read(sessionBookingsProvider.notifier).addBooking({
+      ...booking, 'status': 'CONFIRMED',
+    });
+    if (bookingId.startsWith('local_')) {
+      ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CONFIRMED');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Booking confirmed! ✓'),
+      backgroundColor: Color(0xFF0288D1),
+    ));
+  }
+
+  void _doCheckOut(String bookingId, Map<String, dynamic> booking, String roomNo) {
+    setState(() => _localStatus = 'CHECKED_OUT');
+    ref.read(sessionBookingsProvider.notifier).addBooking({
+      ...booking,
+      'status': 'CHECKED_OUT',
+      'checked_out_at': DateTime.now().toIso8601String(),
+    });
+    if (bookingId.startsWith('local_')) {
+      ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_OUT');
+    }
+    // Free the room
+    if (roomNo != '—' && roomNo.isNotEmpty) {
+      sessionRoomBookings.remove(roomNo);
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Guest checked out. Room released.'),
+      backgroundColor: Color(0xFFE65100),
+    ));
+  }
+
   void _doCheckIn(String bookingId, Map<String, dynamic> booking,
       String roomNo, String roomType, String guestName) {
     final now = DateTime.now().toIso8601String();
@@ -334,8 +368,11 @@ class _JourneyCardState extends ConsumerState<_JourneyCard> {
               shopCharge: shopCharge,
               total: total,
               isPaid: isPaid,
-              onCheckIn: () => _doCheckIn(id, booking, roomNo,
+              onConfirm:  () => _doConfirm(id, booking),
+              onCheckIn:  () => _doCheckIn(id, booking, roomNo,
                   roomInfo['room_type']?.toString() ?? '—', guestName),
+              onCheckOut: () => _doCheckOut(id, booking, roomNo),
+              onViewBill: () => context.push('/billing'),
               onCancel: () {
                 setState(() => _localStatus = 'CANCELLED');
                 ref.read(sessionBookingsProvider.notifier).updateStatus(id, 'CANCELLED');
@@ -428,7 +465,10 @@ class _StageDetail extends StatelessWidget {
   final int nights;
   final double roomCharge, foodCharge, activityCharge, shopCharge, total;
   final bool isPaid;
+  final VoidCallback onConfirm;
   final VoidCallback onCheckIn;
+  final VoidCallback onCheckOut;
+  final VoidCallback onViewBill;
   final VoidCallback onCancel;
 
   const _StageDetail({
@@ -449,7 +489,10 @@ class _StageDetail extends StatelessWidget {
     required this.shopCharge,
     required this.total,
     required this.isPaid,
+    required this.onConfirm,
     required this.onCheckIn,
+    required this.onCheckOut,
+    required this.onViewBill,
     required this.onCancel,
   });
 
@@ -459,7 +502,8 @@ class _StageDetail extends StatelessWidget {
       case 0: return _CreatedDetail(
           guestName: guestName, guestPhone: guestPhone,
           roomNo: roomNo, roomType: roomType,
-          checkIn: checkIn, checkOut: checkOut, createdAt: createdAt);
+          checkIn: checkIn, checkOut: checkOut, createdAt: createdAt,
+          onConfirm: onConfirm);
       case 1: return _ConfirmedDetail(
           bookingId: bookingId, guestName: guestName,
           roomNo: roomNo, roomType: roomType,
@@ -468,7 +512,8 @@ class _StageDetail extends StatelessWidget {
       case 2: return _CheckedInDetail(
           checkIn: checkIn, checkedInAt: checkedInAt,
           roomNo: roomNo, roomType: roomType,
-          nights: nights, guestName: guestName);
+          nights: nights, guestName: guestName,
+          onCheckOut: onCheckOut, onViewBill: onViewBill);
       case 3: return _CheckedOutDetail(
           checkOut: checkOut, roomNo: roomNo, roomType: roomType,
           roomCharge: roomCharge, foodCharge: foodCharge,
@@ -483,10 +528,12 @@ class _StageDetail extends StatelessWidget {
 class _CreatedDetail extends StatelessWidget {
   final String guestName, guestPhone, roomNo, roomType;
   final String? checkIn, checkOut, createdAt;
+  final VoidCallback onConfirm;
   const _CreatedDetail({
     required this.guestName, required this.guestPhone,
     required this.roomNo, required this.roomType,
     required this.checkIn, required this.checkOut, required this.createdAt,
+    required this.onConfirm,
   });
 
   @override
@@ -504,8 +551,21 @@ class _CreatedDetail extends StatelessWidget {
         _InfoRow(icon: Icons.calendar_month_rounded, label: 'Check-out', value: _fmtDate(checkOut), color: c),
         if (createdAt != null)
           _InfoRow(icon: Icons.access_time_rounded, label: 'Booked on', value: _fmtDate(createdAt), color: c),
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
         _StatusChip('Awaiting Confirmation', Colors.orange),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onConfirm,
+            icon: const Icon(Icons.check_circle_outline_rounded, size: 16, color: Colors.white),
+            label: const Text('Confirm Booking', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7B61FF),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -577,16 +637,18 @@ class _CheckedInDetail extends StatelessWidget {
   final String? checkIn, checkedInAt;
   final String roomNo, roomType, guestName;
   final int nights;
+  final VoidCallback onCheckOut;
+  final VoidCallback onViewBill;
   const _CheckedInDetail({
     required this.checkIn, required this.checkedInAt,
     required this.roomNo, required this.roomType,
     required this.nights, required this.guestName,
+    required this.onCheckOut, required this.onViewBill,
   });
 
   @override
   Widget build(BuildContext context) {
     const c = Color(0xFF2E7D32);
-    // Use actual check-in timestamp if available, otherwise fall back to date
     final timeSource = checkedInAt ?? checkIn;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -598,8 +660,37 @@ class _CheckedInDetail extends StatelessWidget {
         _InfoRow(icon: Icons.calendar_today_rounded, label: 'Check-in Date', value: _fmtDate(checkIn), color: c),
         _InfoRow(icon: Icons.access_time_rounded, label: 'Check-in Time', value: _fmtTime(timeSource), color: c),
         _InfoRow(icon: Icons.nights_stay_rounded, label: 'Duration', value: '$nights night${nights == 1 ? '' : 's'}', color: c),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         const _StatusChip('In-House 🏠', Color(0xFF2E7D32)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onViewBill,
+                icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                label: const Text('View Bill'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0288D1),
+                  side: const BorderSide(color: Color(0xFF0288D1)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: onCheckOut,
+                icon: const Icon(Icons.logout_rounded, size: 16, color: Colors.white),
+                label: const Text('Check Out', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE65100),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
