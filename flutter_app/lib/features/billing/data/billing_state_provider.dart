@@ -150,14 +150,18 @@ Map<String, dynamic> getRoomInfo(String roomNumber) {
       'room_type': 'Room',
       'nights': 1,
       'rate': 3500.0,
+      'persons': 1,
       'status': 'CHECKED_IN',
     },
   );
 
   final session = sessionRoomBookings[roomNumber];
-  if (session == null) return Map<String, dynamic>.from(demo);
+  if (session == null) return {
+    ...demo,
+    'persons': demo['persons'] ?? 1,
+  };
 
-  // Merge: session data takes priority for guest name and dates
+  // Merge: session data takes priority for guest name, dates, persons
   final ci  = DateTime.tryParse((session['check_in_date']  as String?) ?? '');
   final co  = DateTime.tryParse((session['check_out_date'] as String?) ?? '');
   final actualNights = (ci != null && co != null && co.isAfter(ci))
@@ -168,10 +172,25 @@ Map<String, dynamic> getRoomInfo(String roomNumber) {
       as String?
       ?? demo['guest_name'] as String? ?? 'Guest';
 
+  // persons = adults from session booking; fall back to demo or 1
+  final sessionAdults = (session['num_adults'] as num?)?.toInt();
+  final persons = sessionAdults != null && sessionAdults > 0
+      ? sessionAdults
+      : (demo['persons'] as int? ?? 1);
+
+  // rate: prefer rate stored in session (from room assignment), then demo
+  final sessionRate = (session['rate'] as num?)?.toDouble();
+  final rate = sessionRate != null && sessionRate > 0
+      ? sessionRate
+      : (demo['rate'] as num?)?.toDouble() ?? 3500.0;
+
   return {
     ...demo,
     'guest_name': guestName,
     'nights':     actualNights,
+    'persons':    persons,
+    'rate':       rate,
+    'room_type':  session['room_type_name'] ?? demo['room_type'] ?? 'Room',
     'check_in':   session['check_in_date']  ?? demo['check_in'],
     'check_out':  session['check_out_date'] ?? demo['check_out'],
   };

@@ -24,23 +24,21 @@ class BillingScreen extends ConsumerStatefulWidget {
 }
 
 class _BillingScreenState extends ConsumerState<BillingScreen> {
-  double _discountPct  = 0;
+  double _discountPct   = 0;
   int    _extraMattress = 0;
-  static const double _mattressRate = 200.0; // ₹200 per mattress per night
+  int?   _personsOverride; // null = use booking value; set when staff adjusts manually
+  static const double _mattressRate = 200.0;
 
   final _discountCtrl = TextEditingController(text: '0');
 
-  String get _roomNo => widget.roomNumber ?? 'TS-1';
+  // Use '101' as fallback — matches kBillableRooms & sessionRoomBookings keys
+  String get _roomNo => widget.roomNumber ?? '101';
 
-  /// Calculate actual nights from widget dates, then session booking, then demo data
+  /// Actual nights from widget dates → session booking → demo fallback
   int _calcNights(int fallbackNights) {
-    // 1. Dates passed directly to the screen
     final ci = DateTime.tryParse(widget.checkInDate ?? '');
     final co = DateTime.tryParse(widget.checkOutDate ?? '');
-    if (ci != null && co != null && co.isAfter(ci)) {
-      return co.difference(ci).inDays;
-    }
-    // 2. Session booking for this room
+    if (ci != null && co != null && co.isAfter(ci)) return co.difference(ci).inDays;
     return getActualNights(_roomNo) > 0 ? getActualNights(_roomNo) : fallbackNights;
   }
 
@@ -63,12 +61,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (allBookings) {
         // ── Find room info (session data takes priority over demo) ──────
-        final roomInfo  = getRoomInfo(_roomNo);
-        final guestName = roomInfo['guest_name'] as String? ?? 'Guest';
-        final roomType  = roomInfo['room_type']  as String? ?? 'Room';
-        final baseNights = roomInfo['nights'] as int? ?? 1;
-        final nights    = _calcNights(baseNights);
-        final rate      = (roomInfo['rate']       as num?)?.toDouble() ?? 3500.0;
+        final roomInfo   = getRoomInfo(_roomNo);
+        final guestName  = roomInfo['guest_name'] as String? ?? 'Guest';
+        final roomType   = roomInfo['room_type']  as String? ?? 'Room';
+        final baseNights = roomInfo['nights']     as int?    ?? 1;
+        final nights     = _calcNights(baseNights);
+        final rate       = (roomInfo['rate']      as num?)?.toDouble() ?? 3500.0;
+        // Persons: staff override (from +/− buttons) takes priority over booking value
+        final basePersons = (roomInfo['persons']  as int?)  ?? 1;
+        final persons     = _personsOverride ?? basePersons;
 
         // Check-in / check-out label for display
         final checkIn  = widget.checkInDate ?? roomInfo['check_in']  as String? ?? '';
@@ -80,13 +81,15 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         }
 
         // ── Charge categories ────────────────────────────────────────────
-        // 1. Residence (room + extra mattresses)
+        // 1. Residence: rate × persons × nights  (+mattresses)
+        final roomCharge    = rate * persons * nights;
         final mattressTotal = _extraMattress * _mattressRate * nights;
         final residenceCharges = <_Charge>[
           _Charge(
-            '$roomType × $nights night${nights > 1 ? 's' : ''}'
-            '${checkIn.isNotEmpty && checkOut.isNotEmpty ? '  (${ _fmt(checkIn)} – ${_fmt(checkOut)})' : ''}',
-            rate * nights,
+            '$roomType × $persons person${persons > 1 ? 's' : ''} × $nights night${nights > 1 ? 's' : ''}'
+            '  (₹${rate.toInt()}/person/night)'
+            '${checkIn.isNotEmpty && checkOut.isNotEmpty ? '\n${_fmt(checkIn)} – ${_fmt(checkOut)}' : ''}',
+            roomCharge,
             Icons.bed_outlined,
             const Color(0xFF1565C0),
           ),
@@ -215,31 +218,65 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // ── Extra Mattress ───────────────────────────────────────
-                if (!isPaid)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-                      border: Border.all(color: const Color(0xFF6A1B9A).withOpacity(0.25)),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.hotel_outlined, color: Color(0xFF6A1B9A), size: 20),
+                // ── Persons + Extra Mattress controls (always visible) ──────
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                    border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.18)),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+                  ),
+                  child: Column(children: [
+                    // ── Persons row ──────────────────────────────────────
+                    Row(children: [
+                      const Icon(Icons.people_outline, color: Color(0xFF1565C0), size: 20),
                       const SizedBox(width: 10),
-                      Expanded(
+                      const Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Text('Extra Mattress',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                          Text('₹${_mattressRate.toInt()}/mattress/night',
-                              style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                          Text('Persons', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          Text('Adults staying (affects room charge)', style: TextStyle(fontSize: 11, color: AppTheme.textHint)),
                         ]),
                       ),
                       Row(children: [
                         IconButton(
-                          onPressed: _extraMattress > 0
-                              ? () => setState(() => _extraMattress--)
-                              : null,
+                          onPressed: (!isPaid && persons > 1) ? () => setState(() => _personsOverride = persons - 1) : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: const Color(0xFF1565C0),
+                          iconSize: 22,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        ),
+                        Container(
+                          width: 36,
+                          alignment: Alignment.center,
+                          child: Text('$persons',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1565C0))),
+                        ),
+                        IconButton(
+                          onPressed: !isPaid ? () => setState(() => _personsOverride = persons + 1) : null,
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: const Color(0xFF1565C0),
+                          iconSize: 22,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        ),
+                      ]),
+                    ]),
+                    const Divider(height: 18, thickness: 0.5),
+                    // ── Extra Mattress row ───────────────────────────────
+                    Row(children: [
+                      const Icon(Icons.hotel_outlined, color: Color(0xFF6A1B9A), size: 20),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('Extra Mattress', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          Text('₹200/mattress/night — charged separately', style: TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                        ]),
+                      ),
+                      Row(children: [
+                        IconButton(
+                          onPressed: (!isPaid && _extraMattress > 0) ? () => setState(() => _extraMattress--) : null,
                           icon: const Icon(Icons.remove_circle_outline),
                           color: const Color(0xFF6A1B9A),
                           iconSize: 22,
@@ -250,10 +287,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           width: 36,
                           alignment: Alignment.center,
                           child: Text('$_extraMattress',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6A1B9A))),
                         ),
                         IconButton(
-                          onPressed: () => setState(() => _extraMattress++),
+                          onPressed: !isPaid ? () => setState(() => _extraMattress++) : null,
                           icon: const Icon(Icons.add_circle_outline),
                           color: const Color(0xFF6A1B9A),
                           iconSize: 22,
@@ -262,7 +299,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                         ),
                       ]),
                     ]),
-                  ),
+                  ]),
+                ),
                 const SizedBox(height: 10),
 
                 // ── Kitchen Bill ─────────────────────────────────────────
@@ -362,10 +400,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       ]),
                       const SizedBox(height: 10),
                     ],
-                    _SummaryRow('🏨 Room (${nights}N × ₹${rate.toInt()})',
-                        '₹${(rate * nights).toStringAsFixed(0)}', false, const Color(0xFF1565C0)),
+                    _SummaryRow(
+                        '🏨 Room  $persons pax × ${nights}N × ₹${rate.toInt()}',
+                        '₹${roomCharge.toStringAsFixed(0)}',
+                        false, const Color(0xFF1565C0)),
                     if (_extraMattress > 0)
-                      _SummaryRow('🛏️ Mattress (×$_extraMattress × ${nights}N)',
+                      _SummaryRow('🛏️ Mattress ×$_extraMattress × ${nights}N × ₹${_mattressRate.toInt()}',
                           '₹${mattressTotal.toStringAsFixed(0)}', false, const Color(0xFF6A1B9A)),
                     if (kitchenTotal > 0)
                       _SummaryRow('🍽️ Kitchen',    '₹${kitchenTotal.toStringAsFixed(0)}', false, const Color(0xFFE64A19)),
@@ -415,6 +455,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           roomNo: _roomNo,
                           roomType: roomType,
                           nights: nights,
+                          persons: persons,
                           residenceCharges: residenceCharges,
                           foodCharges: foodCharges,
                           activityCharges: activityCharges,
@@ -426,6 +467,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                           subtotal: subtotal,
                           gst: gst,
                           discount: discount,
+                          discountPct: _discountPct,
                           grandTotal: grandTotal,
                         ),
                         icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
@@ -475,6 +517,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     required String roomNo,
     required String roomType,
     required int nights,
+    required int persons,
     required List<_Charge> residenceCharges,
     required List<_Charge> foodCharges,
     required List<_Charge> activityCharges,
@@ -486,6 +529,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     required double subtotal,
     required double gst,
     required double discount,
+    required double discountPct,
     required double grandTotal,
   }) async {
     final pdf = pw.Document();
@@ -571,7 +615,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 ]),
                 pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
                   pw.Text('Room $roomNo  •  $roomType', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                  pw.Text('$nights night${nights > 1 ? 's' : ''}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                  pw.Text('$persons person${persons > 1 ? 's' : ''}  •  $nights night${nights > 1 ? 's' : ''}',
+                      style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
                 ]),
               ],
             ),
@@ -624,7 +669,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
           totalRow('GST (12%)', gst, color: const PdfColor.fromInt(0xFFE64A19)),
           if (discount > 0) ...[
             pw.SizedBox(height: 4),
-            totalRow('Discount', -discount, color: greenColor),
+            totalRow('Discount (${discountPct.toStringAsFixed(0)}%)', -discount, color: greenColor),
           ],
           pw.SizedBox(height: 8),
           pw.Container(
