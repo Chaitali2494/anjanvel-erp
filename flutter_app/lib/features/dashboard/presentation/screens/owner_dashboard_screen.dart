@@ -23,6 +23,12 @@ class OwnerDashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final dashboardAsync = ref.watch(dashboardStatsProvider);
 
+    // ── Live billing revenue — updates instantly when bills are paid ──────────
+    final billingState = ref.watch(billingStateProvider);
+    final paidBills    = billingState.values.where((b) => b['is_paid'] == true).toList();
+    final paidRevenue  = paidBills.fold(0.0, (s, b) => s + ((b['amount'] as num?)?.toDouble() ?? 0.0));
+    final paidCount    = paidBills.length;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: CustomScrollView(
@@ -116,7 +122,7 @@ class OwnerDashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Today's Stats
-                      _TodayStatsGrid(stats: stats),
+                      _TodayStatsGrid(stats: stats, paidRevenue: paidRevenue, paidCount: paidCount),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // Revenue Chart
@@ -129,6 +135,16 @@ class OwnerDashboardScreen extends ConsumerWidget {
                       const SectionHeader(title: 'Quick Actions'),
                       const SizedBox(height: AppTheme.spaceMD),
                       _QuickActionsGrid(),
+                      const SizedBox(height: AppTheme.spaceLG),
+
+                      // ── Revenue from Billing (live sync) ───────────────
+                      const SectionHeader(title: 'Revenue Collected Today'),
+                      const SizedBox(height: AppTheme.spaceMD),
+                      _PaidBillsSummaryCard(
+                        billingState: billingState,
+                        paidRevenue: paidRevenue,
+                        paidCount: paidCount,
+                      ),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // ── Bill Card ──────────────────────────────────────
@@ -214,17 +230,14 @@ class OwnerDashboardScreen extends ConsumerWidget {
 
 // ── Today's Stats ──────────────────────────────────────────────────────────────
 
-class _TodayStatsGrid extends ConsumerWidget {
+class _TodayStatsGrid extends StatelessWidget {
   final DashboardStats stats;
-  const _TodayStatsGrid({required this.stats});
+  final double paidRevenue;
+  final int paidCount;
+  const _TodayStatsGrid({required this.stats, this.paidRevenue = 0, this.paidCount = 0});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Sum all paid bills from billingStateProvider
-    final billingState = ref.watch(billingStateProvider);
-    final paidRevenue  = billingState.values
-        .where((b) => b['is_paid'] == true)
-        .fold(0.0, (sum, b) => sum + ((b['amount'] as num?)?.toDouble() ?? 0.0));
+  Widget build(BuildContext context) {
     final totalRevenue = stats.revenueToday + paidRevenue;
 
     return GridView.count(
@@ -240,7 +253,9 @@ class _TodayStatsGrid extends ConsumerWidget {
           value: '₹${totalRevenue.toStringAsFixed(0)}',
           icon: Icons.currency_rupee_rounded,
           color: AppTheme.success,
-          subtitle: paidRevenue > 0 ? '₹${paidRevenue.toStringAsFixed(0)} from billing' : '+12%',
+          subtitle: paidRevenue > 0
+              ? '$paidCount bill${paidCount > 1 ? "s" : ""} paid  •  ₹${paidRevenue.toStringAsFixed(0)}'
+              : 'No bills paid yet',
           onTap: () {},
         ),
         StatCard(
@@ -845,6 +860,120 @@ class _DashboardSkeleton extends StatelessWidget {
           )),
         ),
       ],
+    );
+  }
+}
+
+// ── Paid Bills Summary Card (live revenue sync) ───────────────────────────────
+
+class _PaidBillsSummaryCard extends StatelessWidget {
+  final Map<String, Map<String, dynamic>> billingState;
+  final double paidRevenue;
+  final int paidCount;
+  const _PaidBillsSummaryCard({
+    required this.billingState,
+    required this.paidRevenue,
+    required this.paidCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (paidCount == 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+        ),
+        child: const Row(children: [
+          Icon(Icons.receipt_long_outlined, color: AppTheme.textHint, size: 22),
+          SizedBox(width: 12),
+          Text('No bills collected yet today',
+              style: TextStyle(color: AppTheme.textHint, fontSize: 14)),
+        ]),
+      );
+    }
+
+    final paidRooms = billingState.entries.where((e) => e.value['is_paid'] == true).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+        border: Border.all(color: AppTheme.success.withOpacity(0.25)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+      ),
+      child: Column(children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.success.withOpacity(0.08),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusMD)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 20),
+            const SizedBox(width: 10),
+            Text('$paidCount Bill${paidCount > 1 ? "s" : ""} Collected',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.success)),
+            const Spacer(),
+            Text('₹${paidRevenue.toStringAsFixed(0)}',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.success)),
+          ]),
+        ),
+        // Room rows
+        ...paidRooms.map((entry) {
+          final rno    = entry.key;
+          final data   = entry.value;
+          final amount = (data['amount'] as num?)?.toDouble() ?? 0.0;
+          final paidAt = data['paid_at'] as String? ?? '';
+          String timeStr = '';
+          if (paidAt.isNotEmpty) {
+            final dt = DateTime.tryParse(paidAt);
+            if (dt != null) {
+              final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+              final m = dt.minute.toString().padLeft(2, '0');
+              timeStr = '$h:$m ${dt.hour >= 12 ? "PM" : "AM"}';
+            }
+          }
+          final roomInfo = getRoomInfo(rno);
+          final guest    = roomInfo['guest_name'] as String? ?? 'Room $rno';
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(children: [
+              Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(rno,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.success)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(guest,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                if (timeStr.isNotEmpty)
+                  Text('Paid at $timeStr',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+              ])),
+              Text('₹${amount.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.success)),
+            ]),
+          );
+        }),
+        const SizedBox(height: 4),
+      ]),
     );
   }
 }
