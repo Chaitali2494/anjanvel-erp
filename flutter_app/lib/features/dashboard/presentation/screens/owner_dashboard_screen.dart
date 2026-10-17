@@ -538,16 +538,19 @@ class _QuickActionsGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cols = (constraints.maxWidth / 110).floor().clamp(3, 6);
-        final tileW = (constraints.maxWidth - (cols - 1) * 10) / cols;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: actions.map((a) => SizedBox(
-            width: tileW,
-            height: 88,
-            child: _QuickActionTile(action: a),
-          )).toList(),
+        const cols = 3;
+        const spacing = 10.0;
+        final tileW = (constraints.maxWidth - (cols - 1) * spacing) / cols;
+        // Fix tile height at 90px regardless of width — prevents stretching on wide screens
+        final ratio = tileW / 90;
+        return GridView.count(
+          crossAxisCount: cols,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          childAspectRatio: ratio,
+          children: actions.map((a) => _QuickActionTile(action: a)).toList(),
         );
       },
     );
