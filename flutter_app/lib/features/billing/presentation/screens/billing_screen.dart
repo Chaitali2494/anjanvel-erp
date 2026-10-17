@@ -186,6 +186,72 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               ),
             ],
           ),
+          // ── Persistent bottom bar: Download + Done when paid ─────────────
+          bottomNavigationBar: isPaid
+              ? SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, -2)),
+                      ],
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _downloadInvoice(
+                            guestName: guestName,
+                            roomNo: _roomNo,
+                            roomType: roomType,
+                            nights: nights,
+                            persons: persons,
+                            residenceCharges: residenceCharges,
+                            foodCharges: foodCharges,
+                            activityCharges: activityCharges,
+                            shopCharges: shopBillCharges,
+                            residenceTotal: residenceTotal,
+                            kitchenTotal: kitchenTotal,
+                            activityTotal: activityTotal,
+                            shopTotal: shopTotal,
+                            subtotal: subtotal,
+                            gst: gst,
+                            discount: discount,
+                            discountPct: _discountPct,
+                            grandTotal: grandTotal,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.download_rounded, color: Colors.white, size: 20),
+                          label: const Text(
+                            'Download Invoice  •  PAID ✓',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 42,
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.pop(),
+                          icon: const Icon(Icons.check_rounded, size: 18),
+                          label: const Text('Done'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.success,
+                            side: const BorderSide(color: AppTheme.success),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                )
+              : null,
           body: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             child: Column(
