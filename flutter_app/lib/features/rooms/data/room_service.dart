@@ -19,20 +19,22 @@ final allRoomsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async 
   final client = ref.watch(supabaseClientProvider);
   List<Map<String, dynamic>> rooms = [];
 
-  // Try JOIN query first so we get the room_types.name from the DB
+  // Use v_room_availability as primary — this view was working before and
+  // already has the right columns. The JOIN on rooms+room_types can fail due
+  // to RLS so we keep it only as a last-resort fallback.
   try {
     rooms = List<Map<String, dynamic>>.from(
       await client
-          .from('rooms')
-          .select('*, room_types(name)')
+          .from('v_room_availability')
+          .select()
           .order('room_number', ascending: true),
     );
   } catch (_) {
-    // Fall back to view
+    // Last-resort: direct table (may be blocked by RLS)
     try {
       rooms = List<Map<String, dynamic>>.from(
         await client
-            .from('v_room_availability')
+            .from('rooms')
             .select()
             .order('room_number', ascending: true),
       );
