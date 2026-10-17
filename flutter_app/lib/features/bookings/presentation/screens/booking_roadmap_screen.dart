@@ -7,61 +7,40 @@ import '../../../../shared/widgets/app_widgets.dart';
 import '../../data/booking_service.dart';
 import '../../data/session_bookings_provider.dart';
 import '../../models/booking_model.dart';
+import '../../../billing/data/billing_state_provider.dart';
+import '../../../activities/data/activity_bookings_provider.dart';
+import '../../../food/data/food_orders_state_provider.dart';
 
-// ─── Stage definition ────────────────────────────────────────────────────────
-class _Stage {
-  final String label;
-  final String subtitle;
-  final List<String> statuses; // Supabase status strings that belong here
-  final Color color;
-  final Color bg;
-  final IconData icon;
-  const _Stage({
-    required this.label,
-    required this.subtitle,
-    required this.statuses,
-    required this.color,
-    required this.bg,
-    required this.icon,
-  });
-}
-
-const _stages = [
-  _Stage(
-    label: 'New Booking',
-    subtitle: 'Just created',
-    statuses: ['INQUIRY', 'PENDING', 'NEW', ''],
-    color: Color(0xFF7B61FF),
-    bg: Color(0xFFF3F1FF),
-    icon: Icons.add_circle_outline_rounded,
-  ),
-  _Stage(
-    label: 'Confirmed',
-    subtitle: 'Advance paid / confirmed',
-    statuses: ['CONFIRMED', 'ADVANCE_PAID'],
-    color: Color(0xFF0288D1),
-    bg: Color(0xFFE1F5FE),
-    icon: Icons.check_circle_outline_rounded,
-  ),
-  _Stage(
-    label: 'Checked In',
-    subtitle: 'Guest is staying',
-    statuses: ['CHECKED_IN'],
-    color: Color(0xFF2E7D32),
-    bg: Color(0xFFE8F5E9),
-    icon: Icons.login_rounded,
-  ),
-  _Stage(
-    label: 'Checked Out',
-    subtitle: 'Stay completed',
-    statuses: ['CHECKED_OUT', 'COMPLETED'],
-    color: Color(0xFFE65100),
-    bg: Color(0xFFFFF3E0),
-    icon: Icons.logout_rounded,
-  ),
+// ─── Stage config ─────────────────────────────────────────────────────────────
+const _stageLabels = ['Created', 'Confirmed', 'Checked In', 'Checked Out'];
+const _stageIcons  = [
+  Icons.person_add_outlined,
+  Icons.check_circle_outline_rounded,
+  Icons.login_rounded,
+  Icons.logout_rounded,
+];
+const _stageColors = [
+  Color(0xFF7B61FF),
+  Color(0xFF0288D1),
+  Color(0xFF2E7D32),
+  Color(0xFFE65100),
 ];
 
-// ─── Helper: convert BookingModel → unified map ───────────────────────────────
+int _stageIndex(String status) {
+  switch (status.toUpperCase()) {
+    case 'CONFIRMED':
+    case 'ADVANCE_PAID':
+      return 1;
+    case 'CHECKED_IN':
+      return 2;
+    case 'CHECKED_OUT':
+    case 'COMPLETED':
+      return 3;
+    default:
+      return 0;
+  }
+}
+
 Map<String, dynamic> _modelToMap(BookingModel b) => {
   'id': b.id,
   'booking_number': b.bookingNumber,
@@ -72,9 +51,24 @@ Map<String, dynamic> _modelToMap(BookingModel b) => {
   'adults': b.numAdults,
   'total_amount': b.totalAmount,
   'guest_name': b.guestName,
-  'room_number': b.roomNumbers?.isNotEmpty == true ? b.roomNumbers!.first : null,
+  'guest_phone': b.guestPhone,
+  'room_number':
+      b.roomNumbers?.isNotEmpty == true ? b.roomNumbers!.first : null,
   'guests': b.guest,
 };
+
+String _fmtDate(String? d) {
+  if (d == null || d.isEmpty) return '—';
+  try { return DateFormat('d MMM yyyy').format(DateTime.parse(d)); } catch (_) { return d; }
+}
+
+String _fmtTime(String? d) {
+  if (d == null || d.isEmpty) return '—';
+  try {
+    final dt = DateTime.parse(d).toLocal();
+    return DateFormat('h:mm a').format(dt);
+  } catch (_) { return '—'; }
+}
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 class BookingRoadmapScreen extends ConsumerWidget {
@@ -82,40 +76,23 @@ class BookingRoadmapScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessionBookings = ref.watch(sessionBookingsProvider);
-    final allBookingsAsync = ref.watch(bookingsProvider(const BookingFilter()));
+    final sessionBookings   = ref.watch(sessionBookingsProvider);
+    final allBookingsAsync  = ref.watch(bookingsProvider(const BookingFilter()));
+    final billingState      = ref.watch(billingStateProvider);
+    final allActivities     = ref.watch(activityBookingsProvider).valueOrNull ?? [];
+    final allFood           = ref.watch(foodOrdersStateProvider);
 
-    // Merge session + Supabase bookings (session takes priority)
     final supaModels = allBookingsAsync.valueOrNull ?? <BookingModel>[];
     final sessionIds = sessionBookings.map((b) => b['id'] as String).toSet();
-    final supaBookings = supaModels
-        .where((b) => !sessionIds.contains(b.id))
-        .map(_modelToMap)
-        .toList();
-    final merged = [...sessionBookings, ...supaBookings];
-
-    // Group by stage
-    List<List<Map<String, dynamic>>> groups = List.generate(_stages.length, (_) => []);
-    for (final b in merged) {
-      final status = (b['status'] as String? ?? '').toUpperCase();
-      int placed = 0;
-      for (int i = 0; i < _stages.length; i++) {
-        if (_stages[i].statuses.contains(status)) {
-          groups[i].add(b);
-          placed = 1;
-          break;
-        }
-      }
-      // Unknown statuses → New Booking column
-      if (placed == 0) groups[0].add(b);
-    }
-
-    final total = merged.length;
+    final merged = [
+      ...sessionBookings,
+      ...supaModels.where((b) => !sessionIds.contains(b.id)).map(_modelToMap),
+    ];
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AnjAppBar(
-        title: 'Booking Roadmap',
+        title: 'Guest Roadmap',
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
@@ -124,57 +101,28 @@ class BookingRoadmapScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Header summary bar ──────────────────────────────────────────
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Row(
-              children: [
-                const Icon(Icons.route_rounded, color: AppTheme.primary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Booking Journey',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$total bookings',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
-                    ),
+      body: allBookingsAsync.isLoading && merged.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          : merged.isEmpty
+              ? EmptyState(
+                  title: 'No Bookings Yet',
+                  subtitle: 'Create a booking to track the guest journey here',
+                  icon: Icons.route_rounded,
+                  buttonLabel: 'New Booking',
+                  onButtonTap: () => context.push('/bookings/create'),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: merged.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  itemBuilder: (ctx, i) => _JourneyCard(
+                    booking: merged[i],
+                    billingState: billingState,
+                    allActivities: allActivities,
+                    allFood: allFood,
+                    ref: ref,
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // ── Stage progress strip ────────────────────────────────────────
-          _StageProgressStrip(groups: groups),
-
-          const SizedBox(height: 4),
-
-          // ── Pipeline columns ────────────────────────────────────────────
-          Expanded(
-            child: allBookingsAsync.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-                : _PipelineView(groups: groups),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.primary,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -185,419 +133,528 @@ class BookingRoadmapScreen extends ConsumerWidget {
   }
 }
 
-// ─── Stage progress strip ─────────────────────────────────────────────────────
-class _StageProgressStrip extends StatelessWidget {
-  final List<List<Map<String, dynamic>>> groups;
-  const _StageProgressStrip({required this.groups});
+// ─── Journey card ─────────────────────────────────────────────────────────────
+class _JourneyCard extends StatelessWidget {
+  final Map<String, dynamic> booking;
+  final Map<String, Map<String, dynamic>> billingState;
+  final List<Map<String, dynamic>> allActivities;
+  final List<Map<String, dynamic>> allFood;
+  final WidgetRef ref;
+
+  const _JourneyCard({
+    required this.booking,
+    required this.billingState,
+    required this.allActivities,
+    required this.allFood,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final id = booking['id']?.toString() ?? '';
+    final guestsMap  = booking['guests'] as Map<String, dynamic>?;
+    final guestName  = guestsMap?['full_name'] as String? ??
+        booking['guest_name'] as String? ?? 'Guest';
+    final guestPhone = guestsMap?['phone'] as String? ??
+        booking['guest_phone'] as String? ?? '—';
+    final bookingNo  = booking['booking_number']?.toString() ??
+        (id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase());
+    final roomNo     = booking['room_number']?.toString() ?? '—';
+    final checkIn    = booking['check_in_date']  as String? ?? booking['check_in']  as String?;
+    final checkOut   = booking['check_out_date'] as String? ?? booking['check_out'] as String?;
+    final status     = (booking['status'] as String? ?? '').toUpperCase();
+    final stage      = _stageIndex(status);
+    final color      = _stageColors[stage];
+    final createdAt  = booking['created_at'] as String?;
+
+    // Bill data
+    final roomInfo       = getRoomInfo(roomNo == '—' ? '' : roomNo);
+    final nights         = getActualNights(roomNo == '—' ? '' : roomNo);
+    final rate           = (roomInfo['rate']    as num?)?.toDouble() ?? 0;
+    final persons        = (roomInfo['persons'] as num?)?.toInt()    ?? 1;
+    final roomCharge     = rate * persons * nights;
+    final foodCharge     = kDemoFoodCharges[roomNo] ?? 0.0;
+    final activityCharge = allActivities
+        .where((a) => a['room_number'] == roomNo && a['status'] != 'CANCELLED')
+        .fold(0.0, (s, a) => s + ((a['total_amount'] as num?)?.toDouble() ?? 0.0));
+    final shopCharge = 0.0; // placeholder — wire to shop provider when ready
+    final subtotal   = roomCharge + foodCharge + activityCharge + shopCharge;
+    final total      = subtotal * 1.12;
+    final isPaid     = billingState[roomNo]?['is_paid'] == true;
+
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
-      child: Row(
-        children: List.generate(_stages.length * 2 - 1, (i) {
-          if (i.isOdd) {
-            // connector arrow
-            return Expanded(
-              child: Container(
-                height: 2,
-                color: const Color(0xFFE0E0E0),
-                margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border(left: BorderSide(color: color, width: 4)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Header ─────────────────────────────────────────────────────
+          GestureDetector(
+            onTap: () { if (id.isNotEmpty) context.push('/bookings/$id'); },
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.07),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               ),
-            );
-          }
-          final idx = i ~/ 2;
-          final stage = _stages[idx];
-          final count = groups[idx].length;
-          return _StageChip(stage: stage, count: count);
-        }),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: color.withOpacity(0.2),
+                    child: Text(
+                      guestName.isNotEmpty ? guestName[0].toUpperCase() : 'G',
+                      style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(guestName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textPrimary)),
+                        Text('#$bookingNo  •  ${_stageLabels[stage]}',
+                            style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: color.withOpacity(0.5)),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Horizontal stepper ─────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: _HorizontalStepper(currentStage: stage),
+          ),
+
+          const Divider(height: 24, indent: 16, endIndent: 16),
+
+          // ── Stage detail ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _StageDetail(
+              stage: stage,
+              guestName: guestName,
+              guestPhone: guestPhone,
+              roomNo: roomNo,
+              roomType: roomInfo['room_type']?.toString() ?? '—',
+              checkIn: checkIn,
+              checkOut: checkOut,
+              nights: nights,
+              createdAt: createdAt,
+              bookingId: id,
+              roomCharge: roomCharge,
+              foodCharge: foodCharge,
+              activityCharge: activityCharge,
+              shopCharge: shopCharge,
+              total: total,
+              isPaid: isPaid,
+              ref: ref,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StageChip extends StatelessWidget {
-  final _Stage stage;
-  final int count;
-  const _StageChip({required this.stage, required this.count});
+// ─── Horizontal stepper ───────────────────────────────────────────────────────
+class _HorizontalStepper extends StatelessWidget {
+  final int currentStage;
+  const _HorizontalStepper({required this.currentStage});
 
   @override
   Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(_stageLabels.length * 2 - 1, (i) {
+        if (i.isOdd) {
+          final segIdx = i ~/ 2;
+          final filled = currentStage > segIdx;
+          return Expanded(
+            child: Container(
+              height: 3,
+              decoration: BoxDecoration(
+                color: filled ? _stageColors[segIdx] : const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          );
+        }
+        final idx    = i ~/ 2;
+        final done   = currentStage > idx;
+        final active = currentStage == idx;
+        final color  = _stageColors[idx];
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: active ? 36 : 28,
+              height: active ? 36 : 28,
+              decoration: BoxDecoration(
+                color: done || active ? color : Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: done || active ? color : const Color(0xFFBDBDBD),
+                  width: active ? 3 : 2,
+                ),
+                boxShadow: active
+                    ? [BoxShadow(color: color.withOpacity(0.35), blurRadius: 8, spreadRadius: 1)]
+                    : null,
+              ),
+              child: Icon(
+                done ? Icons.check_rounded : _stageIcons[idx],
+                size: active ? 18 : 14,
+                color: done || active ? Colors.white : const Color(0xFFBDBDBD),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _stageLabels[idx],
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                color: active ? color : done ? AppTheme.textSecondary : const Color(0xFFBDBDBD),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+// ─── Stage detail section ─────────────────────────────────────────────────────
+class _StageDetail extends StatelessWidget {
+  final int stage;
+  final String guestName, guestPhone, roomNo, roomType, bookingId;
+  final String? checkIn, checkOut, createdAt;
+  final int nights;
+  final double roomCharge, foodCharge, activityCharge, shopCharge, total;
+  final bool isPaid;
+  final WidgetRef ref;
+
+  const _StageDetail({
+    required this.stage,
+    required this.guestName,
+    required this.guestPhone,
+    required this.roomNo,
+    required this.roomType,
+    required this.checkIn,
+    required this.checkOut,
+    required this.nights,
+    required this.createdAt,
+    required this.bookingId,
+    required this.roomCharge,
+    required this.foodCharge,
+    required this.activityCharge,
+    required this.shopCharge,
+    required this.total,
+    required this.isPaid,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    switch (stage) {
+      case 0: return _CreatedDetail(
+          guestName: guestName, guestPhone: guestPhone,
+          roomNo: roomNo, roomType: roomType,
+          checkIn: checkIn, checkOut: checkOut, createdAt: createdAt);
+      case 1: return _ConfirmedDetail(
+          bookingId: bookingId, guestName: guestName,
+          roomNo: roomNo, roomType: roomType,
+          checkIn: checkIn, checkOut: checkOut, ref: ref);
+      case 2: return _CheckedInDetail(
+          checkIn: checkIn, roomNo: roomNo, roomType: roomType,
+          nights: nights, guestName: guestName);
+      case 3: return _CheckedOutDetail(
+          checkOut: checkOut, roomNo: roomNo, roomType: roomType,
+          roomCharge: roomCharge, foodCharge: foodCharge,
+          activityCharge: activityCharge, shopCharge: shopCharge,
+          total: total, isPaid: isPaid);
+      default: return const SizedBox.shrink();
+    }
+  }
+}
+
+// ── Stage 0: Created ──────────────────────────────────────────────────────────
+class _CreatedDetail extends StatelessWidget {
+  final String guestName, guestPhone, roomNo, roomType;
+  final String? checkIn, checkOut, createdAt;
+  const _CreatedDetail({
+    required this.guestName, required this.guestPhone,
+    required this.roomNo, required this.roomType,
+    required this.checkIn, required this.checkOut, required this.createdAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const c = Color(0xFF7B61FF);
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: count > 0 ? stage.color : const Color(0xFFE0E0E0),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(stage.icon, color: Colors.white, size: 18),
-        ),
+        const _SectionLabel('Booking Created', color: c),
+        const SizedBox(height: 8),
+        _InfoRow(icon: Icons.person_outline_rounded, label: 'Guest', value: guestName, color: c),
+        _InfoRow(icon: Icons.phone_outlined, label: 'Phone', value: guestPhone, color: c),
+        _InfoRow(icon: Icons.bed_rounded, label: 'Room', value: roomNo == '—' ? '—' : 'Room $roomNo  •  $roomType', color: c),
+        _InfoRow(icon: Icons.calendar_today_rounded, label: 'Check-in', value: _fmtDate(checkIn), color: c),
+        _InfoRow(icon: Icons.calendar_month_rounded, label: 'Check-out', value: _fmtDate(checkOut), color: c),
+        if (createdAt != null)
+          _InfoRow(icon: Icons.access_time_rounded, label: 'Booked on', value: _fmtDate(createdAt), color: c),
         const SizedBox(height: 4),
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: count > 0 ? stage.color : const Color(0xFF9E9E9E),
-          ),
+        _StatusChip('Awaiting Confirmation', Colors.orange),
+      ],
+    );
+  }
+}
+
+// ── Stage 1: Confirmed ───────────────────────────────────────────────────────
+class _ConfirmedDetail extends StatelessWidget {
+  final String bookingId, guestName, roomNo, roomType;
+  final String? checkIn, checkOut;
+  final WidgetRef ref;
+  const _ConfirmedDetail({
+    required this.bookingId, required this.guestName,
+    required this.roomNo, required this.roomType,
+    required this.checkIn, required this.checkOut, required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const c = Color(0xFF0288D1);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Booking Confirmed', color: c),
+        const SizedBox(height: 8),
+        _InfoRow(icon: Icons.person_outline_rounded, label: 'Guest', value: guestName, color: c),
+        _InfoRow(icon: Icons.bed_rounded, label: 'Room', value: roomNo == '—' ? '—' : 'Room $roomNo  •  $roomType', color: c),
+        _InfoRow(icon: Icons.calendar_today_rounded, label: 'Check-in', value: _fmtDate(checkIn), color: c),
+        _InfoRow(icon: Icons.calendar_month_rounded, label: 'Check-out', value: _fmtDate(checkOut), color: c),
+        const SizedBox(height: 12),
+        const _StatusChip('Confirmed ✓', Color(0xFF0288D1)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  ref.read(sessionBookingsProvider.notifier).updateStatus(bookingId, 'CANCELLED');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Booking cancelled'), backgroundColor: Colors.red));
+                },
+                icon: const Icon(Icons.cancel_outlined, size: 16),
+                label: const Text('Cancel'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/checkin/$bookingId'),
+                icon: const Icon(Icons.login_rounded, size: 16, color: Colors.white),
+                label: const Text('Check In Now', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-// ─── Pipeline view (horizontal scroll with 4 columns) ────────────────────────
-class _PipelineView extends StatelessWidget {
-  final List<List<Map<String, dynamic>>> groups;
-  const _PipelineView({required this.groups});
-
-  @override
-  Widget build(BuildContext context) {
-    final screenW = MediaQuery.of(context).size.width;
-    // On wide screens show all 4, on narrow scroll
-    final colW = screenW > 900 ? (screenW - 32) / 4 : 260.0;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(_stages.length, (i) {
-          return SizedBox(
-            width: colW,
-            child: _PipelineColumn(
-              stage: _stages[i],
-              bookings: groups[i],
-              stageIndex: i,
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-// ─── Single pipeline column ───────────────────────────────────────────────────
-class _PipelineColumn extends StatelessWidget {
-  final _Stage stage;
-  final List<Map<String, dynamic>> bookings;
-  final int stageIndex;
-  const _PipelineColumn({
-    required this.stage,
-    required this.bookings,
-    required this.stageIndex,
-    super.key,
+// ── Stage 2: Checked In ───────────────────────────────────────────────────────
+class _CheckedInDetail extends StatelessWidget {
+  final String? checkIn;
+  final String roomNo, roomType, guestName;
+  final int nights;
+  const _CheckedInDetail({
+    required this.checkIn, required this.roomNo, required this.roomType,
+    required this.nights, required this.guestName,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: BoxDecoration(
-        color: stage.bg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: stage.color.withOpacity(0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Column header
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-            decoration: BoxDecoration(
-              color: stage.color,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
-            ),
-            child: Row(
-              children: [
-                Icon(stage.icon, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stage.label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        stage.subtitle,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${bookings.length}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Cards
-          if (bookings.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Icon(stage.icon, color: stage.color.withOpacity(0.3), size: 36),
-                  const SizedBox(height: 8),
-                  Text(
-                    'No bookings here',
-                    style: TextStyle(
-                      color: stage.color.withOpacity(0.5),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            ...bookings.map((b) => _BookingCard(booking: b, stage: stage)),
-
-          const SizedBox(height: 8),
-        ],
-      ),
+    const c = Color(0xFF2E7D32);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Currently Checked In', color: c),
+        const SizedBox(height: 8),
+        _InfoRow(icon: Icons.person_outline_rounded, label: 'Guest', value: guestName, color: c),
+        _InfoRow(icon: Icons.bed_rounded, label: 'Room', value: roomNo == '—' ? '—' : 'Room $roomNo  •  $roomType', color: c),
+        _InfoRow(icon: Icons.calendar_today_rounded, label: 'Check-in Date', value: _fmtDate(checkIn), color: c),
+        _InfoRow(icon: Icons.access_time_rounded, label: 'Check-in Time', value: _fmtTime(checkIn), color: c),
+        _InfoRow(icon: Icons.nights_stay_rounded, label: 'Duration', value: '$nights night${nights == 1 ? '' : 's'}', color: c),
+        const SizedBox(height: 4),
+        const _StatusChip('In-House 🏠', Color(0xFF2E7D32)),
+      ],
     );
   }
 }
 
-// ─── Booking card ─────────────────────────────────────────────────────────────
-class _BookingCard extends StatelessWidget {
-  final Map<String, dynamic> booking;
-  final _Stage stage;
-  const _BookingCard({required this.booking, required this.stage, super.key});
-
-  static String _fmt(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return '—';
-    try {
-      final dt = DateTime.parse(dateStr);
-      return DateFormat('d MMM yy').format(dt);
-    } catch (_) {
-      return dateStr;
-    }
-  }
+// ── Stage 3: Checked Out ──────────────────────────────────────────────────────
+class _CheckedOutDetail extends StatelessWidget {
+  final String? checkOut;
+  final String roomNo, roomType;
+  final double roomCharge, foodCharge, activityCharge, shopCharge, total;
+  final bool isPaid;
+  const _CheckedOutDetail({
+    required this.checkOut, required this.roomNo, required this.roomType,
+    required this.roomCharge, required this.foodCharge,
+    required this.activityCharge, required this.shopCharge,
+    required this.total, required this.isPaid,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final id = booking['id']?.toString() ?? '';
+    const c = Color(0xFFE65100);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Bills Summary  •  Before Check-out', color: c),
+        const SizedBox(height: 10),
 
-    // Guest name — handle nested Supabase guests or flat session
-    final guestsMap = booking['guests'] as Map<String, dynamic>?;
-    final guestName = guestsMap?['full_name'] as String? ??
-        booking['guest_name'] as String? ??
-        booking['full_name'] as String? ??
-        'Guest';
+        // Bill rows
+        _BillRow('Room Charges',    roomCharge,     icon: Icons.bed_rounded),
+        _BillRow('Food & Dining',   foodCharge,     icon: Icons.restaurant_rounded),
+        _BillRow('Activities',      activityCharge, icon: Icons.hiking_rounded),
+        _BillRow('Shop / Misc',     shopCharge,     icon: Icons.shopping_bag_outlined),
 
-    final bookingNo = booking['booking_number']?.toString() ??
-        booking['id']?.toString().substring(0, 8).toUpperCase() ??
-        '—';
-
-    final roomNo = booking['room_number']?.toString() ??
-        (booking['booking_rooms'] is List && (booking['booking_rooms'] as List).isNotEmpty
-            ? ((booking['booking_rooms'] as List).first['room_number'] ?? '')
-            : '—');
-
-    final checkIn  = booking['check_in_date']  as String? ?? booking['check_in']  as String?;
-    final checkOut = booking['check_out_date'] as String? ?? booking['check_out'] as String?;
-
-    int nights = 1;
-    try {
-      if (checkIn != null && checkOut != null) {
-        nights = DateTime.parse(checkOut).difference(DateTime.parse(checkIn)).inDays;
-        if (nights < 1) nights = 1;
-      }
-    } catch (_) {}
-
-    final pax = (booking['pax_count'] as num?)?.toInt() ??
-        (booking['adults'] as num?)?.toInt() ?? 1;
-
-    final amount = (booking['total_amount'] as num?)?.toDouble() ??
-        (booking['amount'] as num?)?.toDouble() ?? 0;
-
-    return GestureDetector(
-      onTap: () {
-        if (id.isNotEmpty) {
-          context.push('/bookings/$id');
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: stage.color.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 6),
+          child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Total (incl. 12% GST)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text('₹${total.toStringAsFixed(0)}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFE65100))),
           ],
-          border: Border(left: BorderSide(color: stage.color, width: 3)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Guest name + booking number
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: stage.color.withOpacity(0.15),
-                    child: Text(
-                      guestName.isNotEmpty ? guestName[0].toUpperCase() : 'G',
-                      style: TextStyle(
-                        color: stage.color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          guestName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: AppTheme.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '#$bookingNo',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppTheme.textHint,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        const SizedBox(height: 10),
+        isPaid
+            ? const _StatusChip('All Bills Paid ✓  •  Completed', Color(0xFF2E7D32))
+            : _StatusChip('Payment Pending — ₹${total.toStringAsFixed(0)}', Colors.red.shade700),
 
-              const SizedBox(height: 8),
-              const Divider(height: 1, thickness: 1, color: Color(0xFFF5F5F5)),
-              const SizedBox(height: 8),
-
-              // Room + Nights + Pax
-              Row(
-                children: [
-                  _InfoChip(
-                    icon: Icons.bed_rounded,
-                    label: 'Rm $roomNo',
-                    color: stage.color,
-                  ),
-                  const SizedBox(width: 4),
-                  _InfoChip(
-                    icon: Icons.nightlight_round,
-                    label: '${nights}N',
-                    color: stage.color,
-                  ),
-                  const SizedBox(width: 4),
-                  _InfoChip(
-                    icon: Icons.people_outline_rounded,
-                    label: '$pax',
-                    color: stage.color,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Dates
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textHint),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${_fmt(checkIn)}  →  ${_fmt(checkOut)}',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                  ),
-                ],
-              ),
-
-              if (amount > 0) ...[
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.currency_rupee_rounded, size: 12, color: AppTheme.textHint),
-                    const SizedBox(width: 2),
-                    Text(
-                      '₹${amount.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: stage.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+        const SizedBox(height: 8),
+        _InfoRow(icon: Icons.logout_rounded, label: 'Check-out', value: _fmtDate(checkOut), color: c),
+        _InfoRow(icon: Icons.access_time_rounded, label: 'Time', value: _fmtTime(checkOut), color: c),
+      ],
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
+// ─── Shared small widgets ─────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _SectionLabel(this.text, {required this.color});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(width: 4, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+      const SizedBox(width: 6),
+      Text(text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: color)),
+    ],
+  );
+}
+
+class _InfoRow extends StatelessWidget {
   final IconData icon;
+  final String label, value;
+  final Color color;
+  const _InfoRow({required this.icon, required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Icon(icon, size: 15, color: color.withOpacity(0.7)),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 80,
+          child: Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textHint)),
+        ),
+        Expanded(
+          child: Text(value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              overflow: TextOverflow.ellipsis),
+        ),
+      ],
+    ),
+  );
+}
+
+class _BillRow extends StatelessWidget {
+  final String label;
+  final double amount;
+  final IconData icon;
+  const _BillRow(this.label, this.amount, {required this.icon});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      children: [
+        Icon(icon, size: 14, color: AppTheme.textHint),
+        const SizedBox(width: 8),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary))),
+        amount > 0
+            ? Text('₹${amount.toStringAsFixed(0)}',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary))
+            : Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('Not taken', style: TextStyle(fontSize: 11, color: AppTheme.textHint)),
+              ),
+      ],
+    ),
+  );
+}
+
+class _StatusChip extends StatelessWidget {
   final String label;
   final Color color;
-  const _InfoChip({required this.icon, required this.label, required this.color});
+  const _StatusChip(this.label, this.color);
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withOpacity(0.3)),
+    ),
+    child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+  );
 }
