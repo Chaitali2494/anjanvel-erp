@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../data/room_service.dart';
+import '../../../bookings/data/booking_service.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
 import '../../../shop/data/shop_room_charges_provider.dart';
 import '../../../billing/data/billing_state_provider.dart';
@@ -88,25 +89,13 @@ final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, Strin
     room['current_booking'] = null;
   }
 
-  // Inject demo guest info when offline or using room_number navigation
+  // Use real session booking data if a room was assigned via the booking detail screen
   if (room['current_booking'] == null) {
-    final demoRoom = kBillableRooms.firstWhere(
-      (r) => r['room_number'] == _demoRoomNo,
-      orElse: () => {},
-    );
-    if (demoRoom.isNotEmpty) {
-      room['current_booking'] = {
-        'booking_number': 'DEMO-${demoRoom['room_number']}',
-        'status': demoRoom['status'],
-        'check_in_date': demoRoom['check_in'],
-        'check_out_date': demoRoom['check_out'],
-        'num_adults': 2,
-        'num_children': 0,
-        'total_amount': (demoRoom['rate'] as double) * (demoRoom['nights'] as int),
-        'paid_amount': 0,
-        'guests': {'full_name': demoRoom['guest_name'], 'phone': '98765 00000', 'email': null},
-      };
+    final sessionBooking = sessionRoomBookings[_demoRoomNo];
+    if (sessionBooking != null) {
+      room['current_booking'] = sessionBooking;
     }
+    // No fallback to demo data — if no session booking, show "No current guest"
   }
 
   return room;

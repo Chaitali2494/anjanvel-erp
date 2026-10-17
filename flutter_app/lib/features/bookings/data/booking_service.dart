@@ -11,6 +11,15 @@ final _sessionBookingGuests = <String, Map<String, dynamic>>{};
 // Merged into getBookings() so they appear in the booking list
 final _sessionLocalBookings = <BookingModel>[];
 
+// Public: maps room_number → active booking info (guest name, dates, etc.)
+// Populated by booking_detail_screen when a room is locally assigned/unassigned
+// Used by room_detail_screen to show the correct guest instead of demo data
+final sessionRoomBookings = <String, Map<String, dynamic>>{};
+
+// Public: status overrides for local session bookings (keyed by booking id)
+// Written by check_in_screen when staff confirms check-in / check-out
+final sessionStatusOverrides = <String, String>{};
+
 class BookingService {
   final SupabaseClient _client;
   BookingService(this._client);
@@ -26,7 +35,9 @@ class BookingService {
   }) async {
     // Filter local session bookings to match the same filters
     final localMatches = _sessionLocalBookings.where((b) {
-      if (status != null && b.status != status) return false;
+      // Apply any status overrides (e.g. after check-in from front desk)
+      final effectiveStatus = sessionStatusOverrides[b.id] ?? b.status;
+      if (status != null && effectiveStatus != status) return false;
       if (search != null && search.isNotEmpty) {
         final q = search.toLowerCase();
         final nameMatch  = (b.guestName  ?? '').toLowerCase().contains(q);
@@ -215,6 +226,11 @@ class BookingService {
       'status': 'CONFIRMED',
       'confirmed_at': DateTime.now().toIso8601String(),
     }).eq('id', id);
+  }
+
+  // ── Update local booking status ───────────────────────────────────────────────
+  void updateLocalBookingStatus(String id, String newStatus) {
+    sessionStatusOverrides[id] = newStatus;
   }
 
   // ── Check-in ──────────────────────────────────────────────────────────────────

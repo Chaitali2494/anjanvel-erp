@@ -5,47 +5,56 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../../bookings/data/booking_service.dart';
+import '../../../bookings/models/booking_model.dart';
 
-// ── Providers ─────────────────────────────────────────────────────────────────
+// ── Helper: convert BookingModel → raw map for _FrontDeskCard ─────────────────
+Map<String, dynamic> _modelToMap(BookingModel b) => {
+  'id': b.id,
+  'booking_number': b.bookingNumber,
+  'status': sessionStatusOverrides[b.id] ?? b.status,
+  'check_in_date': b.checkInDate,
+  'check_out_date': b.checkOutDate,
+  'num_adults': b.numAdults,
+  'num_children': b.numChildren,
+  'total_amount': b.totalAmount,
+  'paid_amount': b.paidAmount,
+  'cancellation_reason': b.cancellationReason,
+  'guests': {
+    'full_name': b.guestName ?? (b.guest?['full_name'] ?? ''),
+    'phone': b.guestPhone ?? (b.guest?['phone'] ?? ''),
+  },
+};
+
+// ── Providers — merge local session bookings + Supabase ───────────────────────
 
 final pendingCheckInProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
+  final service = ref.watch(bookingServiceProvider);
   final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-  return await client
-      .from('bookings')
-      .select('*, guests:primary_guest_id(full_name, phone)')
-      .eq('status', 'CONFIRMED')
-      .lte('check_in_date', today)
-      .order('check_in_date', ascending: true);
+  // getBookings already merges _sessionLocalBookings + Supabase
+  final bookings = await service.getBookings(status: 'CONFIRMED');
+  return bookings
+      .where((b) => b.checkInDate.compareTo(today) <= 0)
+      .map(_modelToMap)
+      .toList();
 });
 
 final inHouseProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
-  return await client
-      .from('bookings')
-      .select('*, guests:primary_guest_id(full_name, phone)')
-      .eq('status', 'CHECKED_IN')
-      .order('check_in_date', ascending: false);
+  final service = ref.watch(bookingServiceProvider);
+  final bookings = await service.getBookings(status: 'CHECKED_IN');
+  return bookings.map(_modelToMap).toList();
 });
 
 final checkedOutProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
-  return await client
-      .from('bookings')
-      .select('*, guests:primary_guest_id(full_name, phone)')
-      .eq('status', 'CHECKED_OUT')
-      .order('updated_at', ascending: false)
-      .limit(30);
+  final service = ref.watch(bookingServiceProvider);
+  final bookings = await service.getBookings(status: 'CHECKED_OUT');
+  return bookings.map(_modelToMap).toList();
 });
 
 final cancelledProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
-  return await client
-      .from('bookings')
-      .select('*, guests:primary_guest_id(full_name, phone)')
-      .eq('status', 'CANCELLED')
-      .order('cancelled_at', ascending: false)
-      .limit(30);
+  final service = ref.watch(bookingServiceProvider);
+  final bookings = await service.getBookings(status: 'CANCELLED');
+  return bookings.map(_modelToMap).toList();
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -212,19 +221,24 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
         confirmLabel: 'Confirm Check-in',
         confirmColor: AppTheme.success,
         onConfirm: (notes) async {
-          final client = ref.read(supabaseClientProvider);
-          await client.from('bookings').update({
-            'status': 'CHECKED_IN',
-          }).eq('id', bookingId);
-
-          // Mark assigned rooms as OCCUPIED
-          final rooms = await client
-              .from('booking_rooms')
-              .select('room_id')
-              .eq('booking_id', bookingId);
-          for (final r in rooms) {
-            await client.from('rooms')
-                .update({'status': 'OCCUPIED'}).eq('id', r['room_id']);
+          final isLocal = bookingId.startsWith('local_');
+          if (isLocal) {
+            // Local booking — update in-memory status only
+            ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
+          } else {
+            final client = ref.read(supabaseClientProvider);
+            await client.from('bookings').update({
+              'status': 'CHECKED_IN',
+            }).eq('id', bookingId);
+            // Mark assigned rooms as OCCUPIED
+            final rooms = await client
+                .from('booking_rooms')
+                .select('room_id')
+                .eq('booking_id', bookingId);
+            for (final r in rooms) {
+              await client.from('rooms')
+                  .update({'status': 'OCCUPIED'}).eq('id', r['room_id']);
+            }
           }
           _refresh();
         },
@@ -262,19 +276,23 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
         confirmLabel: 'Confirm Check-out',
         confirmColor: AppTheme.info,
         onConfirm: (notes) async {
-          final client = ref.read(supabaseClientProvider);
-          await client.from('bookings').update({
-            'status': 'CHECKED_OUT',
-          }).eq('id', bookingId);
-
-          // Free up the rooms
-          final rooms = await client
-              .from('booking_rooms')
-              .select('room_id')
-              .eq('booking_id', bookingId);
-          for (final r in rooms) {
-            await client.from('rooms')
-                .update({'status': 'CLEANING'}).eq('id', r['room_id']);
+          final isLocal = bookingId.startsWith('local_');
+          if (isLocal) {
+            ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_OUT');
+          } else {
+            final client = ref.read(supabaseClientProvider);
+            await client.from('bookings').update({
+              'status': 'CHECKED_OUT',
+            }).eq('id', bookingId);
+            // Free up the rooms
+            final rooms = await client
+                .from('booking_rooms')
+                .select('room_id')
+                .eq('booking_id', bookingId);
+            for (final r in rooms) {
+              await client.from('rooms')
+                  .update({'status': 'CLEANING'}).eq('id', r['room_id']);
+            }
           }
           _refresh();
         },

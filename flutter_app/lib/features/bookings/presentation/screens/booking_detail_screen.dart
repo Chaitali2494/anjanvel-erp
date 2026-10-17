@@ -1009,6 +1009,27 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
       });
     });
 
+    // Cache room→guest mapping so room_detail_screen shows the correct guest
+    final bookingSnap = ref.read(bookingDetailProvider(widget.bookingId)).valueOrNull;
+    if (bookingSnap != null) {
+      sessionRoomBookings[roomNumber] = {
+        'id': widget.bookingId,
+        'booking_number': bookingSnap.bookingNumber,
+        'status': bookingSnap.status,
+        'check_in_date': bookingSnap.checkInDate?.toIso8601String().split('T')[0],
+        'check_out_date': bookingSnap.checkOutDate?.toIso8601String().split('T')[0],
+        'num_adults': bookingSnap.numAdults,
+        'num_children': bookingSnap.numChildren,
+        'total_amount': bookingSnap.totalAmount,
+        'paid_amount': bookingSnap.paidAmount,
+        'guests': {
+          'full_name': bookingSnap.guestName ?? '',
+          'phone': bookingSnap.guestPhone ?? '',
+          'email': null,
+        },
+      };
+    }
+
     // Try Supabase silently
     try {
       await client.from('booking_rooms').insert({
@@ -1052,6 +1073,9 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
         });
       }
     });
+
+    // Clear room→guest cache so room_detail_screen shows "No current guest"
+    sessionRoomBookings.remove(roomNumber);
 
     // Try Supabase silently
     try {
