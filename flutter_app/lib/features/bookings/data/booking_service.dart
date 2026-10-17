@@ -233,6 +233,33 @@ class BookingService {
     sessionStatusOverrides[id] = newStatus;
   }
 
+  // ── Local session bookings as raw maps (for check-in screen) ─────────────────
+  // Returns local bookings filtered by effective status, in the same map format
+  // that _FrontDeskCard expects (guests.full_name populated from guestName)
+  List<Map<String, dynamic>> localBookingMaps({required String status}) {
+    return _sessionLocalBookings
+        .where((b) => (sessionStatusOverrides[b.id] ?? b.status) == status)
+        .map((b) => {
+              'id': b.id,
+              'booking_number': b.bookingNumber,
+              'status': sessionStatusOverrides[b.id] ?? b.status,
+              'check_in_date': b.checkInDate,
+              'check_out_date': b.checkOutDate,
+              'num_adults': b.numAdults,
+              'num_children': b.numChildren,
+              'total_amount': b.totalAmount,
+              'paid_amount': b.paidAmount,
+              'cancellation_reason': b.cancellationReason,
+              'guests': {
+                'full_name': (b.guestName?.isNotEmpty == true)
+                    ? b.guestName!
+                    : ((_sessionBookingGuests[b.id]?['name'] as String?) ?? ''),
+                'phone': b.guestPhone ?? _sessionBookingGuests[b.id]?['phone'] ?? '',
+              },
+            })
+        .toList();
+  }
+
   // ── Check-in ──────────────────────────────────────────────────────────────────
   Future<void> checkIn(String bookingId, Map<String, dynamic> checkinData) async {
     await _client.rpc('process_checkin', params: {

@@ -6,55 +6,96 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../bookings/data/booking_service.dart';
-import '../../../bookings/models/booking_model.dart';
 
-// ── Helper: convert BookingModel → raw map for _FrontDeskCard ─────────────────
-Map<String, dynamic> _modelToMap(BookingModel b) => {
-  'id': b.id,
-  'booking_number': b.bookingNumber,
-  'status': sessionStatusOverrides[b.id] ?? b.status,
-  'check_in_date': b.checkInDate,
-  'check_out_date': b.checkOutDate,
-  'num_adults': b.numAdults,
-  'num_children': b.numChildren,
-  'total_amount': b.totalAmount,
-  'paid_amount': b.paidAmount,
-  'cancellation_reason': b.cancellationReason,
-  'guests': {
-    'full_name': b.guestName ?? (b.guest?['full_name'] ?? ''),
-    'phone': b.guestPhone ?? (b.guest?['phone'] ?? ''),
-  },
-};
-
-// ── Providers — merge local session bookings + Supabase ───────────────────────
+// ── Providers — Supabase JOIN query (guest names) + local session bookings ────
 
 final pendingCheckInProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client  = ref.watch(supabaseClientProvider);
   final service = ref.watch(bookingServiceProvider);
-  final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-  // getBookings already merges _sessionLocalBookings + Supabase
-  final bookings = await service.getBookings(status: 'CONFIRMED');
-  return bookings
-      .where((b) => b.checkInDate.compareTo(today) <= 0)
-      .map(_modelToMap)
+  final today   = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+  // Local session bookings with CONFIRMED status (guest name from session cache)
+  final localMaps = service
+      .localBookingMaps(status: 'CONFIRMED')
+      .where((m) => (m['check_in_date'] as String).compareTo(today) <= 0)
       .toList();
+
+  // Supabase: JOIN with guests table so full_name is populated
+  List<Map<String, dynamic>> supaResults = [];
+  try {
+    supaResults = List<Map<String, dynamic>>.from(
+      await client
+          .from('bookings')
+          .select('*, guests:primary_guest_id(full_name, phone)')
+          .eq('status', 'CONFIRMED')
+          .lte('check_in_date', today)
+          .order('check_in_date', ascending: true),
+    );
+  } catch (_) {}
+
+  return [...localMaps, ...supaResults];
 });
 
 final inHouseProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client  = ref.watch(supabaseClientProvider);
   final service = ref.watch(bookingServiceProvider);
-  final bookings = await service.getBookings(status: 'CHECKED_IN');
-  return bookings.map(_modelToMap).toList();
+
+  final localMaps = service.localBookingMaps(status: 'CHECKED_IN');
+
+  List<Map<String, dynamic>> supaResults = [];
+  try {
+    supaResults = List<Map<String, dynamic>>.from(
+      await client
+          .from('bookings')
+          .select('*, guests:primary_guest_id(full_name, phone)')
+          .eq('status', 'CHECKED_IN')
+          .order('check_in_date', ascending: false),
+    );
+  } catch (_) {}
+
+  return [...localMaps, ...supaResults];
 });
 
 final checkedOutProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client  = ref.watch(supabaseClientProvider);
   final service = ref.watch(bookingServiceProvider);
-  final bookings = await service.getBookings(status: 'CHECKED_OUT');
-  return bookings.map(_modelToMap).toList();
+
+  final localMaps = service.localBookingMaps(status: 'CHECKED_OUT');
+
+  List<Map<String, dynamic>> supaResults = [];
+  try {
+    supaResults = List<Map<String, dynamic>>.from(
+      await client
+          .from('bookings')
+          .select('*, guests:primary_guest_id(full_name, phone)')
+          .eq('status', 'CHECKED_OUT')
+          .order('updated_at', ascending: false)
+          .limit(30),
+    );
+  } catch (_) {}
+
+  return [...localMaps, ...supaResults];
 });
 
 final cancelledProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client  = ref.watch(supabaseClientProvider);
   final service = ref.watch(bookingServiceProvider);
-  final bookings = await service.getBookings(status: 'CANCELLED');
-  return bookings.map(_modelToMap).toList();
+
+  final localMaps = service.localBookingMaps(status: 'CANCELLED');
+
+  List<Map<String, dynamic>> supaResults = [];
+  try {
+    supaResults = List<Map<String, dynamic>>.from(
+      await client
+          .from('bookings')
+          .select('*, guests:primary_guest_id(full_name, phone)')
+          .eq('status', 'CANCELLED')
+          .order('cancelled_at', ascending: false)
+          .limit(30),
+    );
+  } catch (_) {}
+
+  return [...localMaps, ...supaResults];
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
