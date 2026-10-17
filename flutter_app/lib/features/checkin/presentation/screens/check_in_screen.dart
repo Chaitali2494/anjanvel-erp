@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../bookings/data/booking_service.dart';
+import '../../../rooms/data/room_service.dart';
 
 // ── Providers — Supabase JOIN query (guest names) + local session bookings ────
 
@@ -134,6 +135,17 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
     ref.invalidate(inHouseProvider);
     ref.invalidate(checkedOutProvider);
     ref.invalidate(cancelledProvider);
+    ref.invalidate(allRoomsProvider); // update room statuses in dashboard
+  }
+
+  // Update sessionRoomBookings status for all rooms assigned to this booking
+  void _syncRoomStatus(String bookingId, String newStatus) {
+    for (final entry in sessionRoomBookings.entries.toList()) {
+      final b = entry.value;
+      if ((b['id'] as String? ?? '') == bookingId) {
+        sessionRoomBookings[entry.key] = {...b, 'status': newStatus};
+      }
+    }
   }
 
   @override
@@ -281,6 +293,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
                   .update({'status': 'OCCUPIED'}).eq('id', r['room_id']);
             }
           }
+          // Sync session room bookings so room detail reflects CHECKED_IN
+          _syncRoomStatus(bookingId, 'CHECKED_IN');
           _refresh();
         },
         successMessage: 'Guest checked in! Rooms marked Occupied.',
@@ -335,6 +349,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
                   .update({'status': 'CLEANING'}).eq('id', r['room_id']);
             }
           }
+          // Remove from session room bookings so room detail shows as vacant
+          sessionRoomBookings.removeWhere((_, b) => (b['id'] as String? ?? '') == bookingId);
           _refresh();
         },
         successMessage: 'Check-out done! Rooms moved to Cleaning.',

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/supabase_provider.dart';
+import '../../bookings/data/booking_service.dart';
 
 // Client-side room name override map
 // Maps room_number (String) → display label shown in the app
@@ -38,23 +39,45 @@ final allRoomsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async 
     } catch (_) {}
   }
 
-  // Apply display name overrides / enrich with correct room type names
+  // Apply display name overrides + session-based status overrides
   return rooms.map((r) {
     final num = r['room_number']?.toString() ?? '';
-    final override = _roomNameOverrides[num];
-    if (override != null) {
-      return {
-        ...r,
-        'room_type_name': override,     // used by _RoomCard
-        'type_name': override,           // fallback key
-      };
+    Map<String, dynamic> enriched = Map<String, dynamic>.from(r);
+
+    // Room type display name
+    final nameOverride = _roomNameOverrides[num];
+    if (nameOverride != null) {
+      enriched['room_type_name'] = nameOverride;
+      enriched['type_name']      = nameOverride;
+    } else {
+      final dbName = (r['room_types'] as Map<String, dynamic>?)?['name'] as String?;
+      if (dbName != null && dbName.isNotEmpty && dbName != 'Room') {
+        enriched['room_type_name'] = dbName;
+        enriched['type_name']      = dbName;
+      }
     }
-    // Use whatever the DB JOIN returned
-    final dbName = (r['room_types'] as Map<String, dynamic>?)?['name'] as String?;
-    if (dbName != null && dbName.isNotEmpty && dbName != 'Room') {
-      return {...r, 'room_type_name': dbName, 'type_name': dbName};
+
+    // Session status override — so local check-ins show room as OCCUPIED/RESERVED
+    final sessionBooking = sessionRoomBookings[num];
+    if (sessionBooking != null) {
+      final bId     = sessionBooking['id'] as String? ?? '';
+      final bStatus = sessionStatusOverrides[bId] ?? sessionBooking['status'] as String? ?? '';
+      final roomStatus = () {
+        switch (bStatus) {
+          case 'CHECKED_IN': return 'OCCUPIED';
+          case 'CONFIRMED':  return 'RESERVED';
+          default:           return null;
+        }
+      }();
+      if (roomStatus != null) enriched['status'] = roomStatus;
+      // Expose guest name for room cards
+      final guestName = (sessionBooking['guests'] as Map<String,dynamic>?)?['full_name'] as String?;
+      if (guestName != null && guestName.isNotEmpty) {
+        enriched['current_guest'] = guestName;
+      }
     }
-    return r;
+
+    return enriched;
   }).toList();
 });
 

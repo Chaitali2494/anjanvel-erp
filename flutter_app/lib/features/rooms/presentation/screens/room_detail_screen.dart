@@ -89,11 +89,27 @@ final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, Strin
     room['current_booking'] = null;
   }
 
-  // Use real session booking data if a room was assigned via the booking detail screen
+  // Use real session booking data if a room was assigned via the booking detail screen.
+  // First try exact room-number match; then scan all values as fallback (covers
+  // cases where demo room codes like TS-1 were assigned but Supabase rooms like 101
+  // are displayed in the dashboard).
   if (room['current_booking'] == null) {
-    final sessionBooking = sessionRoomBookings[_demoRoomNo];
-    if (sessionBooking != null) {
-      room['current_booking'] = sessionBooking;
+    final byRoomNo = sessionRoomBookings[_demoRoomNo];
+    if (byRoomNo != null) {
+      room['current_booking'] = byRoomNo;
+    } else {
+      // Broader scan — find the most-recently assigned active booking
+      Map<String, dynamic>? fallback;
+      for (final b in sessionRoomBookings.values) {
+        final bStatus = (sessionStatusOverrides[b['id'] as String? ?? ''] ?? b['status'] as String? ?? '');
+        if (bStatus != 'CHECKED_OUT' && bStatus != 'CANCELLED') {
+          fallback = b;
+          break; // take first active one
+        }
+      }
+      if (fallback != null) {
+        room['current_booking'] = fallback;
+      }
     }
     // No fallback to demo data — if no session booking, show "No current guest"
   }
