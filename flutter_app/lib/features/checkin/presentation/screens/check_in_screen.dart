@@ -295,8 +295,42 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
                   .update({'status': 'OCCUPIED'}).eq('id', r['room_id']);
             }
           }
-          // Sync session room bookings so room detail reflects CHECKED_IN
+
+          // Sync existing sessionRoomBookings entries (updates status to CHECKED_IN)
           _syncRoomStatus(bookingId, 'CHECKED_IN');
+
+          // If the booking had rooms assigned via booking_detail_screen, make sure
+          // sessionRoomBookings is populated even if _syncRoomStatus found no entries
+          final assignedRooms = sessionBookingRoomAssignments[bookingId] ?? [];
+          if (assignedRooms.isNotEmpty) {
+            final service = ref.read(bookingServiceProvider);
+            // Find the booking from local session bookings to get guest info
+            final localMaps = service.localBookingMaps(status: 'CONFIRMED')
+              ..addAll(service.localBookingMaps(status: 'CHECKED_IN'));
+            final bMap = localMaps.firstWhere(
+              (m) => m['id'] == bookingId,
+              orElse: () => <String, dynamic>{},
+            );
+            for (final room in assignedRooms) {
+              final roomNo = room['room_number'] as String? ?? '';
+              if (roomNo.isEmpty) continue;
+              sessionRoomBookings[roomNo] = {
+                'id': bookingId,
+                'booking_number': bMap['booking_number'] ?? '',
+                'status': 'CHECKED_IN',
+                'check_in_date':  bMap['check_in_date']  ?? '',
+                'check_out_date': bMap['check_out_date'] ?? '',
+                'num_adults':  bMap['num_adults']  ?? 1,
+                'num_children': bMap['num_children'] ?? 0,
+                'total_amount': bMap['total_amount'] ?? 0,
+                'paid_amount':  bMap['paid_amount']  ?? 0,
+                'room_type_name': room['type_name'] ?? '',
+                'rate': room['rate'] ?? 3500.0,
+                'guests': bMap['guests'] ?? {'full_name': '', 'phone': ''},
+              };
+            }
+          }
+
           _refresh();
         },
         successMessage: 'Guest checked in! Rooms marked Occupied.',

@@ -954,22 +954,24 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
     _load();
   }
 
-  // Demo rooms shown when Supabase has no data
+  // Demo rooms — use real DB room numbers so sessionRoomBookings keys align
+  // with room_service.dart and billing_state_provider.dart
   static const _demoRooms = [
-    {'id': 'rTS1', 'room_number': 'TS-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent Stay'}},
-    {'id': 'rDS1', 'room_number': 'DS-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Dormitory (Small) Stay'}},
-    {'id': 'rDL1', 'room_number': 'DL-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Dormitory (Large) Stay'}},
-    {'id': 'rAV1', 'room_number': 'AV-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Anjanpushp Villa'}},
-    {'id': 'rDC1', 'room_number': 'DC-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Deluxe/Cottage Room'}},
-    {'id': 'rTV1', 'room_number': 'TV-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Premium Room- Tikona View'}},
-    {'id': 'rDB1', 'room_number': 'DB-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Premium Room- Deck Bed'}},
+    {'id': 'r101', 'room_number': '101', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent Stay'},               'rate': 1500.0},
+    {'id': 'r102', 'room_number': '102', 'status': 'AVAILABLE', 'room_types': {'name': 'Dormitory (Small) Stay'},   'rate': 3000.0},
+    {'id': 'r103', 'room_number': '103', 'status': 'AVAILABLE', 'room_types': {'name': 'Dormitory (Large) Stay'},   'rate': 6000.0},
+    {'id': 'r201', 'room_number': '201', 'status': 'AVAILABLE', 'room_types': {'name': 'Anjanpushp Villa'},         'rate': 8000.0},
+    {'id': 'r202', 'room_number': '202', 'status': 'AVAILABLE', 'room_types': {'name': 'Deluxe/Cottage Room'},      'rate': 3500.0},
+    {'id': 'r301', 'room_number': '301', 'status': 'AVAILABLE', 'room_types': {'name': 'Premium Room - Tikona View'},'rate': 5000.0},
+    {'id': 'r302', 'room_number': '302', 'status': 'AVAILABLE', 'room_types': {'name': 'Premium Room - Deck Bed'},  'rate': 5500.0},
   ];
-
-  // Local assigned rooms (for demo mode when Supabase is unavailable)
-  final List<Map<String, dynamic>> _localAssigned = [];
 
   Future<void> _load() async {
     final client = ref.read(supabaseClientProvider);
+
+    // Restore any session-assigned rooms first (survives navigation)
+    final sessionAssigned = sessionBookingRoomAssignments[widget.bookingId] ?? [];
+
     try {
       final assigned = await client
           .from('booking_rooms')
@@ -983,30 +985,68 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
           .order('room_number');
 
       if (mounted) {
+        // Merge Supabase assigned rooms with session-assigned ones (deduplicate by room_number)
+        final supaAssigned = List<Map<String, dynamic>>.from(assigned);
+        final merged = <String, Map<String, dynamic>>{};
+        for (final r in supaAssigned) {
+          final num = ((r['rooms'] as Map?)??{})['room_number'] as String? ?? '';
+          merged[num] = r;
+        }
+        for (final r in sessionAssigned) {
+          final num = r['room_number'] as String? ?? '';
+          if (!merged.containsKey(num)) {
+            merged[num] = {
+              'room_id': r['room_id'],
+              'rooms': {'room_number': num, 'room_types': {'name': r['type_name'] ?? ''}},
+            };
+          }
+        }
+        final allAssigned = merged.values.toList();
+        final assignedNums = allAssigned
+            .map((r) => ((r['rooms'] as Map?)??{})['room_number'] as String? ?? '')
+            .toSet();
+
+        // Remove already-assigned rooms from available list
+        final availableList = available.isNotEmpty
+            ? List<Map<String, dynamic>>.from(available)
+                .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? ''))
+                .toList()
+            : List<Map<String, dynamic>>.from(_demoRooms)
+                .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? ''))
+                .toList();
+
         setState(() {
-          _assignedRooms = List<Map<String, dynamic>>.from(assigned);
-          // Use demo rooms if Supabase returns nothing
-          _availableRooms = available.isNotEmpty
-              ? List<Map<String, dynamic>>.from(available)
-              : List<Map<String, dynamic>>.from(_demoRooms);
+          _assignedRooms  = allAssigned;
+          _availableRooms = availableList;
           _loading = false;
         });
       }
     } catch (_) {
-      // Supabase unavailable — use demo data
+      // Supabase unavailable — use session + demo
+      final assignedNums = sessionAssigned
+          .map((r) => r['room_number'] as String? ?? '')
+          .toSet();
+      final sessionCards = sessionAssigned.map((r) => <String, dynamic>{
+        'room_id': r['room_id'],
+        'rooms': {'room_number': r['room_number'], 'room_types': {'name': r['type_name'] ?? ''}},
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _availableRooms = List<Map<String, dynamic>>.from(_demoRooms);
+          _assignedRooms  = sessionCards;
+          _availableRooms = List<Map<String, dynamic>>.from(_demoRooms)
+              .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? ''))
+              .toList();
           _loading = false;
         });
       }
     }
   }
 
-  Future<void> _assignRoom(String roomId, String roomNumber, String typeName) async {
+  Future<void> _assignRoom(String roomId, String roomNumber, String typeName, double rate) async {
     final client = ref.read(supabaseClientProvider);
 
-    // Update local state immediately
+    // Update local widget state immediately
     setState(() {
       _availableRooms.removeWhere((r) => r['id'] == roomId);
       _assignedRooms.add({
@@ -1015,22 +1055,31 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
       });
     });
 
-    // Cache room→guest mapping so room_detail_screen shows the correct guest
+    // Persist assignment to session map (survives navigation)
+    final entry = {'room_id': roomId, 'room_number': roomNumber, 'type_name': typeName, 'rate': rate};
+    sessionBookingRoomAssignments.putIfAbsent(widget.bookingId, () => []);
+    sessionBookingRoomAssignments[widget.bookingId]!
+        .removeWhere((r) => r['room_number'] == roomNumber); // deduplicate
+    sessionBookingRoomAssignments[widget.bookingId]!.add(entry);
+
+    // Cache room→guest mapping so room cards and room_detail_screen show the correct guest
     final bookingSnap = ref.read(bookingDetailProvider(widget.bookingId)).valueOrNull;
     if (bookingSnap != null) {
       sessionRoomBookings[roomNumber] = {
         'id': widget.bookingId,
         'booking_number': bookingSnap.bookingNumber,
-        'status': bookingSnap.status,
-        'check_in_date': bookingSnap.checkInDate,
+        'status': sessionStatusOverrides[bookingSnap.id] ?? bookingSnap.status,
+        'check_in_date':  bookingSnap.checkInDate,
         'check_out_date': bookingSnap.checkOutDate,
-        'num_adults': bookingSnap.numAdults,
+        'num_adults':   bookingSnap.numAdults,
         'num_children': bookingSnap.numChildren,
         'total_amount': bookingSnap.totalAmount,
-        'paid_amount': bookingSnap.paidAmount,
+        'paid_amount':  bookingSnap.paidAmount,
+        'room_type_name': typeName,
+        'rate': rate,
         'guests': {
           'full_name': bookingSnap.guestName ?? '',
-          'phone': bookingSnap.guestPhone ?? '',
+          'phone':     bookingSnap.guestPhone ?? '',
           'email': null,
         },
       };
@@ -1082,6 +1131,9 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
 
     // Clear room→guest cache so room_detail_screen shows "No current guest"
     sessionRoomBookings.remove(roomNumber);
+    // Clear from session assignments map
+    sessionBookingRoomAssignments[widget.bookingId]
+        ?.removeWhere((r) => r['room_number'] == roomNumber);
 
     // Try Supabase silently
     try {
@@ -1177,6 +1229,7 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
                       r['id'] as String,
                       r['room_number'] as String,
                       ((r['room_types'] as Map<String, dynamic>?)?['name'] ?? '') as String,
+                      (r['rate'] as num?)?.toDouble() ?? 3500.0,
                     ),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

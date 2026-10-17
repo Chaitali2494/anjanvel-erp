@@ -20,6 +20,11 @@ final sessionRoomBookings = <String, Map<String, dynamic>>{};
 // Written by check_in_screen when staff confirms check-in / check-out
 final sessionStatusOverrides = <String, String>{};
 
+// Public: maps bookingId → list of assigned room maps
+// Persists room assignments across navigation (local session, no Supabase write required)
+// Each entry: {'room_id': ..., 'room_number': ..., 'type_name': ..., 'rate': ...}
+final sessionBookingRoomAssignments = <String, List<Map<String, dynamic>>>{};
+
 class BookingService {
   final SupabaseClient _client;
   BookingService(this._client);

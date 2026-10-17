@@ -2,11 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../activities/data/activity_bookings_provider.dart';
 import '../../bookings/data/booking_service.dart';
 
-// ── Demo rooms eligible for billing (booked / advance-paid / checked-in) ───────
+// ── Demo rooms eligible for billing — keyed by DB room number (101–302) ────────
+// Room numbers match v_room_availability + room_service.dart + sessionRoomBookings
 
 final kBillableRooms = <Map<String, dynamic>>[
   {
-    'room_number': 'TS-1',
+    'room_number': '101',
     'guest_name': 'Priya Sharma',
     'room_type': 'Tent Stay',
     'nights': 3,
@@ -16,7 +17,7 @@ final kBillableRooms = <Map<String, dynamic>>[
     'check_out': '2026-10-09',
   },
   {
-    'room_number': 'DS-1',
+    'room_number': '102',
     'guest_name': 'Rajesh Kumar',
     'room_type': 'Dormitory (Small) Stay',
     'nights': 2,
@@ -26,7 +27,7 @@ final kBillableRooms = <Map<String, dynamic>>[
     'check_out': '2026-10-09',
   },
   {
-    'room_number': 'DL-1',
+    'room_number': '103',
     'guest_name': 'Anita Patel',
     'room_type': 'Dormitory (Large) Stay',
     'nights': 1,
@@ -36,7 +37,7 @@ final kBillableRooms = <Map<String, dynamic>>[
     'check_out': '2026-10-09',
   },
   {
-    'room_number': 'AV-1',
+    'room_number': '201',
     'guest_name': 'Vikram Singh',
     'room_type': 'Anjanpushp Villa',
     'nights': 4,
@@ -46,7 +47,7 @@ final kBillableRooms = <Map<String, dynamic>>[
     'check_out': '2026-10-09',
   },
   {
-    'room_number': 'DC-1',
+    'room_number': '202',
     'guest_name': 'Meena Gupta',
     'room_type': 'Deluxe/Cottage Room',
     'nights': 2,
@@ -56,9 +57,9 @@ final kBillableRooms = <Map<String, dynamic>>[
     'check_out': '2026-10-10',
   },
   {
-    'room_number': 'TV-1',
+    'room_number': '301',
     'guest_name': 'Suresh Patil',
-    'room_type': 'Premium Room- Tikona View',
+    'room_type': 'Premium Room - Tikona View',
     'nights': 3,
     'rate': 5000.0,
     'status': 'ADVANCE_PAID',
@@ -66,9 +67,9 @@ final kBillableRooms = <Map<String, dynamic>>[
     'check_out': '2026-10-10',
   },
   {
-    'room_number': 'DB-1',
+    'room_number': '302',
     'guest_name': 'Kavita Desai',
-    'room_type': 'Premium Room- Deck Bed',
+    'room_type': 'Premium Room - Deck Bed',
     'nights': 2,
     'rate': 5500.0,
     'status': 'CHECKED_IN',
@@ -77,15 +78,15 @@ final kBillableRooms = <Map<String, dynamic>>[
   },
 ];
 
-// Demo food charges per room
+// Demo food charges per room (keyed by DB room number)
 const Map<String, double> kDemoFoodCharges = {
-  'TS-1': 1380.0,
-  'DS-1': 2100.0,
-  'DL-1': 3200.0,
-  'AV-1': 4800.0,
-  'DC-1': 780.0,
-  'TV-1': 960.0,
-  'DB-1': 1150.0,
+  '101': 1380.0,
+  '102': 2100.0,
+  '103': 3200.0,
+  '201': 4800.0,
+  '202': 780.0,
+  '301': 960.0,
+  '302': 1150.0,
 };
 
 // ── Session state for payment tracking ────────────────────────────────────────
