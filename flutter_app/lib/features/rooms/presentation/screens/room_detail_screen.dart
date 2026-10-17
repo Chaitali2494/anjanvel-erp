@@ -15,15 +15,15 @@ import '../../../food/data/food_orders_state_provider.dart';
 
 // ── Demo SHG shop charges keyed by room number ────────────────────────────────
 final _demoShopByRoom = <String, List<Map<String, dynamic>>>{
-  'T-1': [
+  'TS-1': [
     {'product': 'Indrayani Rice',  'qty': 2, 'price': 180.0},
     {'product': 'Kurdai Papadi',   'qty': 1, 'price': 60.0},
   ],
-  'C-2': [
+  'AV-1': [
     {'product': 'Fresh Mangoes',   'qty': 2, 'price': 120.0},
     {'product': 'Warli Art Frame', 'qty': 1, 'price': 350.0},
   ],
-  'V-2': [
+  'DC-1': [
     {'product': 'Mixed Vegetables','qty': 1, 'price': 80.0},
   ],
 };

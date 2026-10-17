@@ -956,12 +956,13 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
 
   // Demo rooms shown when Supabase has no data
   static const _demoRooms = [
-    {'id': 'rT1', 'room_number': 'T-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent'}},
-    {'id': 'rT2', 'room_number': 'T-2', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent'}},
-    {'id': 'rC1', 'room_number': 'C-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Cottage'}},
-    {'id': 'rC2', 'room_number': 'C-2', 'status': 'AVAILABLE', 'room_types': {'name': 'Cottage'}},
-    {'id': 'rV1', 'room_number': 'V-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Villa'}},
-    {'id': 'rV2', 'room_number': 'V-2', 'status': 'AVAILABLE', 'room_types': {'name': 'Villa'}},
+    {'id': 'rTS1', 'room_number': 'TS-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent Stay'}},
+    {'id': 'rDS1', 'room_number': 'DS-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Dormitory (Small) Stay'}},
+    {'id': 'rDL1', 'room_number': 'DL-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Dormitory (Large) Stay'}},
+    {'id': 'rAV1', 'room_number': 'AV-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Anjanpushp Villa'}},
+    {'id': 'rDC1', 'room_number': 'DC-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Deluxe/Cottage Room'}},
+    {'id': 'rTV1', 'room_number': 'TV-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Premium Room- Tikona View'}},
+    {'id': 'rDB1', 'room_number': 'DB-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Premium Room- Deck Bed'}},
   ];
 
   // Local assigned rooms (for demo mode when Supabase is unavailable)

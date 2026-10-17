@@ -12,7 +12,7 @@ final List<Map<String, dynamic>> _sessionOrders = [
     'meal_type': 'BREAKFAST',
     'ordered_at': DateTime.now().toIso8601String(),
     'guests': {'full_name': 'Priya Sharma'},
-    'bookings': {'booking_number': 'BK-001', 'room_number': 'T-1'},
+    'bookings': {'booking_number': 'BK-001', 'room_number': 'TS-1'},
     'items': [
       {'name': 'Veg Breakfast Thali', 'qty': 2, 'price': 320.0},
       {'name': 'Masala Chai',         'qty': 2, 'price': 40.0},
@@ -27,7 +27,7 @@ final List<Map<String, dynamic>> _sessionOrders = [
     'meal_type': 'LUNCH',
     'ordered_at': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
     'guests': {'full_name': 'Rajesh Kumar'},
-    'bookings': {'booking_number': 'BK-002', 'room_number': 'T-2'},
+    'bookings': {'booking_number': 'BK-002', 'room_number': 'DS-1'},
     'items': [
       {'name': 'Veg Thali',   'qty': 2, 'price': 350.0},
       {'name': 'Fresh Juice', 'qty': 2, 'price': 80.0},
@@ -42,7 +42,7 @@ final List<Map<String, dynamic>> _sessionOrders = [
     'meal_type': 'DINNER',
     'ordered_at': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
     'guests': {'full_name': 'Anita Patel'},
-    'bookings': {'booking_number': 'BK-003', 'room_number': 'C-1'},
+    'bookings': {'booking_number': 'BK-003', 'room_number': 'DC-1'},
     'items': [
       {'name': 'BBQ Chicken', 'qty': 1, 'price': 380.0},
       {'name': 'Veg Starter', 'qty': 1, 'price': 220.0},
@@ -57,7 +57,7 @@ final List<Map<String, dynamic>> _sessionOrders = [
     'meal_type': 'LUNCH',
     'ordered_at': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
     'guests': {'full_name': 'Suresh Mehta'},
-    'bookings': {'booking_number': 'BK-004', 'room_number': 'V-1'},
+    'bookings': {'booking_number': 'BK-004', 'room_number': 'AV-1'},
     'items': [
       {'name': 'Veg Thali',   'qty': 2, 'price': 250.0},
       {'name': 'Masala Chai', 'qty': 2, 'price': 40.0},
