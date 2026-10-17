@@ -14,6 +14,7 @@ import '../../features/bookings/presentation/screens/booking_list_screen.dart';
 import '../../features/bookings/presentation/screens/booking_detail_screen.dart';
 import '../../features/bookings/presentation/screens/create_booking_screen.dart';
 import '../../features/bookings/presentation/screens/booking_calendar_screen.dart';
+import '../../features/bookings/presentation/screens/booking_roadmap_screen.dart';
 import '../../features/guests/presentation/screens/guest_list_screen.dart';
 import '../../features/guests/presentation/screens/guest_profile_screen.dart';
 import '../../features/rooms/presentation/screens/room_dashboard_screen.dart';
@@ -89,7 +90,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/role-selection', '/help',
         '/dashboard/owner', '/dashboard/manager',
         '/dashboard/kitchen', '/dashboard/housekeeping',
-        '/bookings', '/guests', '/rooms', '/checkin', '/checkout',
+        '/bookings', '/bookings/roadmap', '/guests', '/rooms', '/checkin', '/checkout',
         '/housekeeping', '/food', '/activities', '/heritage',
         '/inventory', '/shop', '/maintenance', '/billing', '/billing/room', '/payment',
         '/feedback', '/reports', '/settings', '/notifications',
@@ -162,6 +163,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: 'create',   builder: (_, __) => const CreateBookingScreen()),
           GoRoute(path: 'calendar', builder: (_, __) => const BookingCalendarScreen()),
+          GoRoute(path: 'roadmap',  builder: (_, __) => const BookingRoadmapScreen()),
           GoRoute(path: ':id',      builder: (_, state) => BookingDetailScreen(bookingId: state.pathParameters['id']!)),
         ],
       ),

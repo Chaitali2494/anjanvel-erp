@@ -525,15 +525,15 @@ class _QuickActionsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _Action('New Booking', Icons.add_circle_outline_rounded, '/bookings/create', AppTheme.primary,  0),
-      _Action('Check-in',    Icons.login_rounded,              '/checkin',          AppTheme.info,     pendingCheckIns),
-      _Action('Rooms',       Icons.bed_outlined,               '/rooms',            AppTheme.secondary,occupiedRooms),
-      _Action('Food Orders', Icons.restaurant_menu_outlined,   '/food',             AppTheme.warning,  pendingFood),
+      _Action('New Booking', Icons.add_circle_outline_rounded, '/bookings/create',   AppTheme.primary,  0),
+      _Action('Roadmap',     Icons.route_rounded,              '/bookings/roadmap',  const Color(0xFF7B61FF), 0),
+      _Action('Check-in',    Icons.login_rounded,              '/checkin',           AppTheme.info,     pendingCheckIns),
+      _Action('Rooms',       Icons.bed_outlined,               '/rooms',             AppTheme.secondary,occupiedRooms),
+      _Action('Food Orders', Icons.restaurant_menu_outlined,   '/food',              AppTheme.warning,  pendingFood),
       _Action('Activities',  Icons.hiking_outlined,            '/activities/tracker',const Color(0xFF00695C), activeActivities),
-      _Action('Billing',     Icons.receipt_long_rounded,       '/billing',          const Color(0xFF00838F), unpaidBills),
-      _Action('Staff',       Icons.people_rounded,             '/staff',            const Color(0xFF1565C0), 0),
-      _Action('Reports',     Icons.bar_chart_rounded,          '/reports',          AppTheme.accent,   0),
-      _Action('Inventory',   Icons.inventory_2_outlined,       '/inventory',        const Color(0xFF00796B), 0),
+      _Action('Billing',     Icons.receipt_long_rounded,       '/billing',           const Color(0xFF00838F), unpaidBills),
+      _Action('Staff',       Icons.people_rounded,             '/staff',             const Color(0xFF1565C0), 0),
+      _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent,   0),
     ];
 
     return GridView.count(

@@ -75,7 +75,13 @@ class _BookingListScreenState extends ConsumerState<BookingListScreen>
           ),
           IconButton(
             icon: const Icon(Icons.calendar_month_outlined),
+            tooltip: 'Calendar',
             onPressed: () => context.push(AppRoutes.bookingCalendar),
+          ),
+          IconButton(
+            icon: const Icon(Icons.route_rounded),
+            tooltip: 'Roadmap',
+            onPressed: () => context.push('/bookings/roadmap'),
           ),
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
