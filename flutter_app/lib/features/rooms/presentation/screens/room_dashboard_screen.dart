@@ -271,6 +271,17 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+// ── Room name map — authoritative Anjanvel names by room number ───────────────
+const _kRoomNames = <String, String>{
+  '101': 'Tent Stay',
+  '102': 'Dormitory (Small)',
+  '103': 'Dormitory (Large)',
+  '201': 'Anjanpushp Villa',
+  '202': 'Deluxe/Cottage Room',
+  '301': 'Premium - Tikona View',
+  '302': 'Premium - Deck Bed',
+};
+
 // ── Room Card ─────────────────────────────────────────────────────────────────
 
 class _RoomCard extends StatelessWidget {
@@ -302,7 +313,14 @@ class _RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final typeName = room['room_type_name'] ?? room['type_name'] ?? 'Room';
+    // Look up name directly from authoritative map first, then fall back to
+    // whatever the provider enriched onto the map, then generic 'Room'.
+    final roomNo   = room['room_number']?.toString() ?? '';
+    final typeName = _kRoomNames[roomNo]
+        ?? room['room_type_name']
+        ?? room['type_name']
+        ?? (room['room_types'] as Map<String,dynamic>?)?['name']
+        ?? 'Room';
     final guestName = room['current_guest'] as String?;
 
     return GestureDetector(
