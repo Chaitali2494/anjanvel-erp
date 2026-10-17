@@ -214,12 +214,19 @@ class OwnerDashboardScreen extends ConsumerWidget {
 
 // ── Today's Stats ──────────────────────────────────────────────────────────────
 
-class _TodayStatsGrid extends StatelessWidget {
+class _TodayStatsGrid extends ConsumerWidget {
   final DashboardStats stats;
   const _TodayStatsGrid({required this.stats});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Sum all paid bills from billingStateProvider
+    final billingState = ref.watch(billingStateProvider);
+    final paidRevenue  = billingState.values
+        .where((b) => b['is_paid'] == true)
+        .fold(0.0, (sum, b) => sum + ((b['amount'] as num?)?.toDouble() ?? 0.0));
+    final totalRevenue = stats.revenueToday + paidRevenue;
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -230,10 +237,10 @@ class _TodayStatsGrid extends StatelessWidget {
       children: [
         StatCard(
           label: "Today's Revenue",
-          value: '₹${stats.revenueToday.toStringAsFixed(0)}',
+          value: '₹${totalRevenue.toStringAsFixed(0)}',
           icon: Icons.currency_rupee_rounded,
           color: AppTheme.success,
-          subtitle: '+12%',
+          subtitle: paidRevenue > 0 ? '₹${paidRevenue.toStringAsFixed(0)} from billing' : '+12%',
           onTap: () {},
         ),
         StatCard(
