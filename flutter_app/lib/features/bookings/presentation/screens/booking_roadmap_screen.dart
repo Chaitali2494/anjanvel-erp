@@ -165,7 +165,8 @@ class _JourneyCard extends StatelessWidget {
     final status     = (booking['status'] as String? ?? '').toUpperCase();
     final stage      = _stageIndex(status);
     final color      = _stageColors[stage];
-    final createdAt  = booking['created_at'] as String?;
+    final createdAt    = booking['created_at']    as String?;
+    final checkedInAt  = booking['checked_in_at'] as String?;
 
     // Bill data
     final roomInfo       = getRoomInfo(roomNo == '—' ? '' : roomNo);
@@ -252,7 +253,9 @@ class _JourneyCard extends StatelessWidget {
               checkOut: checkOut,
               nights: nights,
               createdAt: createdAt,
+              checkedInAt: checkedInAt,
               bookingId: id,
+              booking: booking,
               roomCharge: roomCharge,
               foodCharge: foodCharge,
               activityCharge: activityCharge,
@@ -340,7 +343,8 @@ class _HorizontalStepper extends StatelessWidget {
 class _StageDetail extends StatelessWidget {
   final int stage;
   final String guestName, guestPhone, roomNo, roomType, bookingId;
-  final String? checkIn, checkOut, createdAt;
+  final String? checkIn, checkOut, createdAt, checkedInAt;
+  final Map<String, dynamic> booking;
   final int nights;
   final double roomCharge, foodCharge, activityCharge, shopCharge, total;
   final bool isPaid;
@@ -356,7 +360,9 @@ class _StageDetail extends StatelessWidget {
     required this.checkOut,
     required this.nights,
     required this.createdAt,
+    required this.checkedInAt,
     required this.bookingId,
+    required this.booking,
     required this.roomCharge,
     required this.foodCharge,
     required this.activityCharge,
@@ -376,9 +382,11 @@ class _StageDetail extends StatelessWidget {
       case 1: return _ConfirmedDetail(
           bookingId: bookingId, guestName: guestName,
           roomNo: roomNo, roomType: roomType,
-          checkIn: checkIn, checkOut: checkOut, ref: ref);
+          checkIn: checkIn, checkOut: checkOut,
+          booking: booking, ref: ref);
       case 2: return _CheckedInDetail(
-          checkIn: checkIn, roomNo: roomNo, roomType: roomType,
+          checkIn: checkIn, checkedInAt: checkedInAt,
+          roomNo: roomNo, roomType: roomType,
           nights: nights, guestName: guestName);
       case 3: return _CheckedOutDetail(
           checkOut: checkOut, roomNo: roomNo, roomType: roomType,
@@ -426,11 +434,13 @@ class _CreatedDetail extends StatelessWidget {
 class _ConfirmedDetail extends StatelessWidget {
   final String bookingId, guestName, roomNo, roomType;
   final String? checkIn, checkOut;
+  final Map<String, dynamic> booking;
   final WidgetRef ref;
   const _ConfirmedDetail({
     required this.bookingId, required this.guestName,
     required this.roomNo, required this.roomType,
-    required this.checkIn, required this.checkOut, required this.ref,
+    required this.checkIn, required this.checkOut,
+    required this.booking, required this.ref,
   });
 
   @override
@@ -470,8 +480,29 @@ class _ConfirmedDetail extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  ref.read(sessionBookingsProvider.notifier).updateStatus(bookingId, 'CHECKED_IN');
+                  // 1. Update session bookings with status + timestamp
+                  ref.read(sessionBookingsProvider.notifier).setCheckedIn(bookingId);
+                  // 2. Update booking service cache (for Front Desk screen)
                   ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
+                  // 3. Sync sessionRoomBookings so room detail shows the guest
+                  if (roomNo != '—' && roomNo.isNotEmpty) {
+                    final guest = booking['guests'] as Map<String, dynamic>? ?? {};
+                    sessionRoomBookings[roomNo] = {
+                      'id': bookingId,
+                      'booking_number': booking['booking_number'] ?? '',
+                      'status': 'CHECKED_IN',
+                      'check_in_date':  booking['check_in_date']  ?? '',
+                      'check_out_date': booking['check_out_date'] ?? '',
+                      'num_adults':   (booking['num_adults']   as num?)?.toInt()    ?? 1,
+                      'num_children': (booking['num_children'] as num?)?.toInt()    ?? 0,
+                      'total_amount': (booking['total_amount'] as num?)?.toDouble() ?? 0,
+                      'paid_amount':  (booking['paid_amount']  as num?)?.toDouble() ?? 0,
+                      'room_type_name': roomType,
+                      'rate': 3500.0,
+                      'guests': guest.isNotEmpty ? guest
+                          : {'full_name': guestName, 'phone': booking['guest_phone'] ?? ''},
+                    };
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Guest checked in successfully! 🏠'),
                     backgroundColor: Color(0xFF2E7D32),
@@ -494,17 +525,20 @@ class _ConfirmedDetail extends StatelessWidget {
 
 // ── Stage 2: Checked In ───────────────────────────────────────────────────────
 class _CheckedInDetail extends StatelessWidget {
-  final String? checkIn;
+  final String? checkIn, checkedInAt;
   final String roomNo, roomType, guestName;
   final int nights;
   const _CheckedInDetail({
-    required this.checkIn, required this.roomNo, required this.roomType,
+    required this.checkIn, required this.checkedInAt,
+    required this.roomNo, required this.roomType,
     required this.nights, required this.guestName,
   });
 
   @override
   Widget build(BuildContext context) {
     const c = Color(0xFF2E7D32);
+    // Use actual check-in timestamp if available, otherwise fall back to date
+    final timeSource = checkedInAt ?? checkIn;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -513,7 +547,7 @@ class _CheckedInDetail extends StatelessWidget {
         _InfoRow(icon: Icons.person_outline_rounded, label: 'Guest', value: guestName, color: c),
         _InfoRow(icon: Icons.bed_rounded, label: 'Room', value: roomNo == '—' ? '—' : 'Room $roomNo  •  $roomType', color: c),
         _InfoRow(icon: Icons.calendar_today_rounded, label: 'Check-in Date', value: _fmtDate(checkIn), color: c),
-        _InfoRow(icon: Icons.access_time_rounded, label: 'Check-in Time', value: _fmtTime(checkIn), color: c),
+        _InfoRow(icon: Icons.access_time_rounded, label: 'Check-in Time', value: _fmtTime(timeSource), color: c),
         _InfoRow(icon: Icons.nights_stay_rounded, label: 'Duration', value: '$nights night${nights == 1 ? '' : 's'}', color: c),
         const SizedBox(height: 4),
         const _StatusChip('In-House 🏠', Color(0xFF2E7D32)),

@@ -26,6 +26,19 @@ class SessionBookingsNotifier
     }
   }
 
+  /// Sets status to CHECKED_IN and stores the actual check-in timestamp.
+  void setCheckedIn(String id) {
+    final idx = _sessionBookings.indexWhere((b) => b['id'] == id);
+    if (idx >= 0) {
+      _sessionBookings[idx] = {
+        ..._sessionBookings[idx],
+        'status': 'CHECKED_IN',
+        'checked_in_at': DateTime.now().toIso8601String(),
+      };
+      state = List.from(_sessionBookings);
+    }
+  }
+
   List<Map<String, dynamic>> get all => List.from(_sessionBookings);
 }
 
