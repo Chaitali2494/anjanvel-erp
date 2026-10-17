@@ -917,7 +917,7 @@ class _DashboardBillCard extends ConsumerWidget {
           final checkOutStr = roomInfo['check_out'] as String? ?? room['check_out'] as String? ?? '';
 
           return InkWell(
-            onTap: () => context.push('/billing', extra: {
+            onTap: () => context.push('/billing/room', extra: {
               'room_number':   rno,
               'check_in_date':  checkInStr,
               'check_out_date': checkOutStr,

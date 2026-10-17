@@ -39,6 +39,7 @@ import '../../features/shop/presentation/screens/shop_cart_screen.dart';
 import '../../features/shop/presentation/screens/shop_checkout_screen.dart';
 import '../../features/shop/presentation/screens/shop_dashboard_screen.dart';
 import '../../features/shop/presentation/screens/product_detail_screen.dart';
+import '../../features/billing/presentation/screens/billing_list_screen.dart';
 import '../../features/billing/presentation/screens/billing_screen.dart';
 import '../../features/billing/presentation/screens/payment_screen.dart';
 import '../../features/feedback/presentation/screens/feedback_dashboard_screen.dart';
@@ -90,7 +91,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/dashboard/kitchen', '/dashboard/housekeeping',
         '/bookings', '/guests', '/rooms', '/checkin', '/checkout',
         '/housekeeping', '/food', '/activities', '/heritage',
-        '/inventory', '/shop', '/maintenance', '/billing', '/payment',
+        '/inventory', '/shop', '/maintenance', '/billing', '/billing/room', '/payment',
         '/feedback', '/reports', '/settings', '/notifications',
         '/profile', '/staff', '/leads', '/staff/portal', '/staff/access', '/staff/leaves',
         '/activities/tracker', '/dashboard/activity-coordinator',
@@ -267,15 +268,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Billing & Payment
       GoRoute(
         path: '/billing',
-        builder: (_, state) {
-          final extra = state.extra is Map ? state.extra as Map : null;
-          return BillingScreen(
-            bookingId:    extra?['booking_id']     as String?,
-            roomNumber:   extra?['room_number']    as String?,
-            checkInDate:  extra?['check_in_date']  as String?,
-            checkOutDate: extra?['check_out_date'] as String?,
-          );
-        },
+        builder: (_, __) => const BillingListScreen(),
+        routes: [
+          GoRoute(
+            path: 'room',
+            builder: (_, state) {
+              final extra = state.extra is Map ? state.extra as Map : null;
+              return BillingScreen(
+                bookingId:    extra?['booking_id']     as String?,
+                roomNumber:   extra?['room_number']    as String?,
+                checkInDate:  extra?['check_in_date']  as String?,
+                checkOutDate: extra?['check_out_date'] as String?,
+              );
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/payment',
