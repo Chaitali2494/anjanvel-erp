@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/providers/auth_provider.dart';
 
-class RoleSelectionScreen extends StatelessWidget {
+class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
   static const _roles = [
@@ -17,7 +19,7 @@ class RoleSelectionScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
@@ -51,7 +53,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 itemCount: _roles.length,
                 itemBuilder: (_, i) {
                   final role = _roles[i];
-                  return _RoleCard(role: role);
+                  return _RoleCard(role: role, ref: ref);
                 },
               ),
             ),
@@ -64,12 +66,17 @@ class RoleSelectionScreen extends StatelessWidget {
 
 class _RoleCard extends StatelessWidget {
   final _RoleItem role;
-  const _RoleCard({required this.role});
+  final WidgetRef ref;
+  const _RoleCard({required this.role, required this.ref});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go(role.route),
+      onTap: () {
+        // Remember this role's dashboard so Home button returns here
+        ref.read(activeRoleDashboardProvider.notifier).state = role.route;
+        context.go(role.route);
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),

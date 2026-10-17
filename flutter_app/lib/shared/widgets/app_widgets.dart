@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/providers/auth_provider.dart';
 
 // ─── Status Badge ──────────────────────────────────────────────────────────────
 
@@ -304,7 +306,7 @@ class LoadingOverlay extends StatelessWidget {
 
 // ─── ANJ App Bar ──────────────────────────────────────────────────────────────
 
-class AnjAppBar extends StatelessWidget implements PreferredSizeWidget {
+class AnjAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final bool showBack;
@@ -319,10 +321,12 @@ class AnjAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
     final isOnDashboard = location.startsWith('/dashboard');
     final canPop = Navigator.of(context).canPop();
+    // Read the active role's dashboard so Home always returns to the right place
+    final homeDashboard = ref.watch(activeRoleDashboardProvider);
 
     return AppBar(
       title: Text(title),
@@ -339,7 +343,7 @@ class AnjAppBar extends StatelessWidget implements PreferredSizeWidget {
           IconButton(
             icon: const Icon(Icons.home_rounded),
             tooltip: 'Home',
-            onPressed: () => context.go('/dashboard/owner'),
+            onPressed: () => context.go(homeDashboard),
           ),
         ...?actions,
       ],

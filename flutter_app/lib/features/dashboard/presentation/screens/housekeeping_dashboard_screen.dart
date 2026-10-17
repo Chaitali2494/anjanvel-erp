@@ -59,9 +59,9 @@ class HousekeepingDashboardScreen extends ConsumerWidget {
                         icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                       ),
                       IconButton(
-                        onPressed: () => context.go('/dashboard/owner'),
-                        icon: const Icon(Icons.home_rounded, color: Colors.white),
-                        tooltip: 'Home',
+                        onPressed: () => context.go('/role-selection'),
+                        icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
+                        tooltip: 'Switch Role',
                       ),
                     ],
                   ),

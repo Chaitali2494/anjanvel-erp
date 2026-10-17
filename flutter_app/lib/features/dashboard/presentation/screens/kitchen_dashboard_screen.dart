@@ -32,9 +32,9 @@ class KitchenDashboardScreen extends ConsumerWidget {
         title: const Text('Kitchen Dashboard', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.home_rounded, color: Colors.white),
-            tooltip: 'Home',
-            onPressed: () => context.go('/dashboard/owner'),
+            icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
+            tooltip: 'Switch Role',
+            onPressed: () => context.go('/role-selection'),
           ),
           IconButton(
             icon: const Icon(Icons.restaurant_menu_outlined, color: Colors.white),

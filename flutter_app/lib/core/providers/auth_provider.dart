@@ -3,6 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/app_user.dart';
 import 'supabase_provider.dart';
 
+/// Tracks which dashboard the user last navigated to via role selection.
+/// Used by AnjAppBar's Home button so it always returns to the correct dashboard.
+final activeRoleDashboardProvider = StateProvider<String>((ref) => '/dashboard/owner');
+
 final authStateProvider = StreamProvider<AppUser?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   return client.auth.onAuthStateChange.asyncMap((event) async {
