@@ -55161,7 +55161,7 @@ g=h?null:j.h(0,"name")
 if(g==null)g="Demo Guest"
 h=h?null:j.h(0,"phone")
 if(h==null)h="+91 98765 43210"
-f=A.H(["id",a0,"booking_number","ANJ-DEMO-001","status","CONFIRMED","check_in_date",e,"check_out_date",i,"num_adults",2,"num_children",0,"total_amount",7000,"paid_amount",3500,"source","DIRECT","primary_guest_id",null,"payments",[],"guest_name",g,"guest_phone",h],t.N,t.z)}q=A.anm(f)
+f=A.H(["id",a0,"booking_number","ANJ-DEMO-001","status","CONFIRMED","check_in_date",e,"check_out_date",i,"num_adults",2,"num_children",0,"total_amount",7000,"paid_amount",0,"payment_status","PENDING","source","DIRECT","primary_guest_id",null,"payments",[],"guest_name",g,"guest_phone",h],t.N,t.z)}q=A.anm(f)
 s=1
 break
 case 1:return A.B(q,r)
