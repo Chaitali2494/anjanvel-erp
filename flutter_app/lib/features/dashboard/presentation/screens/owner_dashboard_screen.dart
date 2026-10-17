@@ -701,7 +701,7 @@ class _RoomStatusPanel extends ConsumerWidget {
                   'room_type_name': booking['room_type_name'] ?? 'Room',
                   'type_name': booking['room_type_name'] ?? 'Room',
                   'status': bEff == 'CHECKED_IN' ? 'OCCUPIED' : 'RESERVED',
-                  'current_guest': (booking['guests'] as Map?)?.['full_name'] ?? '',
+                  'current_guest': ((booking['guests'] as Map?)?['full_name']) ?? '',
                 });
               }
             }
@@ -794,7 +794,7 @@ class _RoomStatusPanel extends ConsumerWidget {
         final bId  = booking['id'] as String? ?? '';
         final bEff = sessionStatusOverrides[bId] ?? booking['status'] as String? ?? '';
         status = bEff == 'CHECKED_IN' ? 'OCCUPIED' : 'RESERVED';
-        guest  = (booking['guests'] as Map?)?.['full_name'] as String?;
+        guest  = ((booking['guests'] as Map?)?['full_name']) as String?;
       }
       return {
         'id': rno,
