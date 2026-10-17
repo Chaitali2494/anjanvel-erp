@@ -536,19 +536,13 @@ class _QuickActionsGrid extends StatelessWidget {
       _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent,   0),
     ];
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 1.15,
-          children: actions.map((a) => _QuickActionTile(action: a)).toList(),
-        ),
-      ),
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      children: actions.map((a) => _QuickActionTile(action: a)).toList(),
     );
   }
 }
@@ -571,12 +565,9 @@ class _QuickActionTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(action.route),
       child: Stack(
-        fit: StackFit.expand,
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: double.infinity,
-            height: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
