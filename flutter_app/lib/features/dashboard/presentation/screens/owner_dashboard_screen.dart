@@ -911,9 +911,17 @@ class _DashboardBillCard extends ConsumerWidget {
           final status   = room['status'] as String;
           final stColor  = _statusColors[status] ?? AppTheme.textPrimary;
           final stLabel  = _statusLabels[status] ?? status;
+          // Pull dates: session data takes priority, fall back to demo
+          final roomInfo   = getRoomInfo(rno);
+          final checkInStr  = roomInfo['check_in']  as String? ?? room['check_in']  as String? ?? '';
+          final checkOutStr = roomInfo['check_out'] as String? ?? room['check_out'] as String? ?? '';
 
           return InkWell(
-            onTap: () => context.push('/billing', extra: {'room_number': rno}),
+            onTap: () => context.push('/billing', extra: {
+              'room_number':   rno,
+              'check_in_date':  checkInStr,
+              'check_out_date': checkOutStr,
+            }),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
               child: Row(children: [

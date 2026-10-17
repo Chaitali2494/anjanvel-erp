@@ -201,9 +201,10 @@ Map<String, dynamic> getRoomInfo(String roomNumber) {
 double calcRoomTotal(String roomNumber, List<Map<String, dynamic>> activityBookings) {
   final room = getRoomInfo(roomNumber);
 
-  final nights     = room['nights'] as int;
-  final rate       = (room['rate'] as num).toDouble();
-  final roomCharge = rate * nights;
+  final nights     = (room['nights']  as num?)?.toInt()    ?? 1;
+  final persons    = (room['persons'] as num?)?.toInt()    ?? 1;
+  final rate       = (room['rate']    as num?)?.toDouble() ?? 3500.0;
+  final roomCharge = rate * persons * nights;
   final foodCharge = kDemoFoodCharges[roomNumber] ?? 0.0;
   final activityCharge = activityBookings
       .where((b) => b['room_number'] == roomNumber && b['status'] != 'CANCELLED')

@@ -270,8 +270,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) {
           final extra = state.extra is Map ? state.extra as Map : null;
           return BillingScreen(
-            bookingId:  extra?['booking_id']  as String?,
-            roomNumber: extra?['room_number'] as String?,
+            bookingId:    extra?['booking_id']     as String?,
+            roomNumber:   extra?['room_number']    as String?,
+            checkInDate:  extra?['check_in_date']  as String?,
+            checkOutDate: extra?['check_out_date'] as String?,
           );
         },
       ),
