@@ -48,121 +48,114 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     super.dispose();
   }
 
+  // Format a date string as dd/mm/yyyy for display
+  static String _fmtDate(String d) {
+    final dt = DateTime.tryParse(d);
+    if (dt == null) return d;
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Use .valueOrNull so the screen renders immediately with session/demo data
-    // while Supabase loads in the background (avoids full-screen spinner)
-    final allBookings  = ref.watch(activityBookingsProvider).valueOrNull ?? <Map<String, dynamic>>[];
-    final billingState = ref.watch(billingStateProvider);
-    final shopCharges  = ref.watch(shopRoomChargesProvider);
+    // Never block rendering: use .valueOrNull so screen shows immediately
+    final allActivities = ref.watch(activityBookingsProvider).valueOrNull
+        ?? <Map<String, dynamic>>[];
+    final billingState  = ref.watch(billingStateProvider);
+    final shopCharges   = ref.watch(shopRoomChargesProvider);
     final allFoodOrders = ref.watch(foodOrdersStateProvider);
     final isPaid        = billingState[_roomNo]?['is_paid'] == true;
 
-    // ── Find room info (session data takes priority over demo) ──────
-    final roomInfo   = getRoomInfo(_roomNo);
-    final guestName  = roomInfo['guest_name'] as String? ?? 'Guest';
-    final roomType   = roomInfo['room_type']  as String? ?? 'Room';
-    final baseNights = roomInfo['nights']     as int?    ?? 1;
-    final nights     = _calcNights(baseNights);
-    final rate       = (roomInfo['rate']      as num?)?.toDouble() ?? 3500.0;
-    // Persons: staff override (from +/− buttons) takes priority over booking value
-    final basePersons = (roomInfo['persons']  as int?)  ?? 1;
+    // Room info — session data takes priority over demo data
+    final roomInfo    = getRoomInfo(_roomNo);
+    final guestName   = roomInfo['guest_name'] as String? ?? 'Guest';
+    final roomType    = roomInfo['room_type']  as String? ?? 'Room';
+    final baseNights  = (roomInfo['nights']    as num?)?.toInt() ?? 1;
+    final nights      = _calcNights(baseNights);
+    final rate        = (roomInfo['rate']      as num?)?.toDouble() ?? 3500.0;
+    final basePersons = (roomInfo['persons']   as num?)?.toInt() ?? 1;
     final persons     = _personsOverride ?? basePersons;
+    final checkIn     = widget.checkInDate  ?? (roomInfo['check_in']  as String?) ?? '';
+    final checkOut    = widget.checkOutDate ?? (roomInfo['check_out'] as String?) ?? '';
 
-        // Check-in / check-out label for display
-        final checkIn  = widget.checkInDate ?? roomInfo['check_in']  as String? ?? '';
-        final checkOut = widget.checkOutDate ?? roomInfo['check_out'] as String? ?? '';
-        String _fmt(String d) {
-          final dt = DateTime.tryParse(d);
-          if (dt == null) return d;
-          return '${dt.day}/${dt.month}/${dt.year}';
+    // ── 1. Residence charges ─────────────────────────────────────────────────
+    final roomCharge    = rate * persons * nights;
+    final mattressTotal = _extraMattress * _mattressRate * nights;
+    final residenceCharges = <_Charge>[
+      _Charge(
+        '$roomType × $persons pax × $nights night${nights != 1 ? "s" : ""}'
+        '  (₹${rate.toInt()}/pax/night)'
+        '${checkIn.isNotEmpty && checkOut.isNotEmpty ? "\n${_fmtDate(checkIn)} – ${_fmtDate(checkOut)}" : ""}',
+        roomCharge,
+        Icons.bed_outlined,
+        const Color(0xFF1565C0),
+      ),
+      if (_extraMattress > 0)
+        _Charge(
+          'Extra Mattress ×$_extraMattress × $nights night${nights != 1 ? "s" : ""}'
+          ' (₹${_mattressRate.toInt()}/mattress/night)',
+          mattressTotal,
+          Icons.hotel_outlined,
+          const Color(0xFF6A1B9A),
+        ),
+    ];
+
+    // ── 2. Food charges ──────────────────────────────────────────────────────
+    final roomFoodOrders = allFoodOrders
+        .where((o) =>
+            ((o['bookings'] as Map<String, dynamic>?)?['room_number'] as String? ?? '') == _roomNo
+            && o['status'] != 'CANCELLED')
+        .toList();
+    final foodCharges = <_Charge>[];
+    for (final order in roomFoodOrders) {
+      final items = order['items'] as List<dynamic>? ?? [];
+      if (items.isNotEmpty) {
+        for (final item in items) {
+          final nm  = item['name']  as String? ?? 'Item';
+          final qty = (item['qty']  as num?)?.toInt()    ?? 1;
+          final prc = (item['price'] as num?)?.toDouble() ?? 0.0;
+          foodCharges.add(_Charge('$nm × $qty', prc * qty,
+              Icons.restaurant_outlined, const Color(0xFFE64A19)));
         }
+      } else {
+        final amt  = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
+        final meal = order['meal_type'] as String? ?? 'Food';
+        final oNo  = order['order_number'] as String? ?? '';
+        foodCharges.add(_Charge('$meal ($oNo)', amt,
+            Icons.restaurant_outlined, const Color(0xFFE64A19)));
+      }
+    }
 
-        // ── Charge categories ────────────────────────────────────────────
-        // 1. Residence: rate × persons × nights  (+mattresses)
-        final roomCharge    = rate * persons * nights;
-        final mattressTotal = _extraMattress * _mattressRate * nights;
-        final residenceCharges = <_Charge>[
-          _Charge(
-            '$roomType × $persons person${persons > 1 ? 's' : ''} × $nights night${nights > 1 ? 's' : ''}'
-            '  (₹${rate.toInt()}/person/night)'
-            '${checkIn.isNotEmpty && checkOut.isNotEmpty ? '\n${_fmt(checkIn)} – ${_fmt(checkOut)}' : ''}',
-            roomCharge,
-            Icons.bed_outlined,
-            const Color(0xFF1565C0),
-          ),
-          if (_extraMattress > 0)
-            _Charge(
-              'Extra Mattress × $_extraMattress × $nights night${nights > 1 ? 's' : ''} (₹${_mattressRate.toInt()}/mattress/night)',
-              mattressTotal,
-              Icons.hotel_outlined,
-              const Color(0xFF6A1B9A),
-            ),
-        ];
+    // ── 3. Activity charges (actPax avoids shadowing outer `persons`) ────────
+    final activityCharges = allActivities
+        .where((b) => b['room_number'] == _roomNo && b['status'] != 'CANCELLED')
+        .map((b) {
+          final nm     = b['activity_name']  as String? ?? 'Activity';
+          final emoji  = b['activity_emoji'] as String? ?? '🎯';
+          final actPax = (b['persons'] as num?)?.toInt() ?? 1;
+          final total  = (b['total_amount']  as num?)?.toDouble() ?? 0.0;
+          return _Charge('$emoji $nm × $actPax pax', total,
+              Icons.hiking_outlined, const Color(0xFF00838F));
+        })
+        .toList();
 
-        // 2. Kitchen / Food — live from foodOrdersStateProvider
-        final roomFoodOrders = allFoodOrders
-            .where((o) =>
-                ((o['bookings'] as Map<String, dynamic>?)?['room_number'] as String? ?? '') == _roomNo &&
-                o['status'] != 'CANCELLED')
-            .toList();
-        // Build _Charge list for PDF (one charge per item in each order)
-        final foodCharges = <_Charge>[];
-        for (final order in roomFoodOrders) {
-          final items = order['items'] as List<dynamic>? ?? [];
-          if (items.isNotEmpty) {
-            for (final item in items) {
-              final name  = item['name'] as String? ?? 'Item';
-              final qty   = (item['qty'] as num?)?.toInt() ?? 1;
-              final price = (item['price'] as num?)?.toDouble() ?? 0.0;
-              foodCharges.add(_Charge('$name × $qty', price * qty, Icons.restaurant_outlined, const Color(0xFFE64A19)));
-            }
-          } else {
-            final amount   = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
-            final mealType = order['meal_type'] as String? ?? 'Food';
-            final orderNo  = order['order_number'] as String? ?? '';
-            foodCharges.add(_Charge('$mealType ($orderNo)', amount, Icons.restaurant_outlined, const Color(0xFFE64A19)));
-          }
-        }
+    // ── 4. Shop charges ──────────────────────────────────────────────────────
+    final shopBillCharges = shopCharges
+        .where((c) => c.roomNumber == _roomNo)
+        .map((c) => _Charge('${c.product} × ${c.qty}', c.total,
+            Icons.storefront_rounded, const Color(0xFF558B2F)))
+        .toList();
 
-        // 3. Activities
-        final activityCharges = allBookings
-            .where((b) => b['room_number'] == _roomNo && b['status'] != 'CANCELLED')
-            .map((b) {
-              final name    = b['activity_name'] as String? ?? 'Activity';
-              final emoji   = b['activity_emoji'] as String? ?? '🎯';
-              final persons = b['persons'] as int? ?? 1;
-              final total   = (b['total_amount'] as num?)?.toDouble() ?? 0.0;
-              return _Charge(
-                '$emoji $name × $persons person${persons > 1 ? 's' : ''}',
-                total,
-                Icons.hiking_outlined,
-                const Color(0xFF00838F),
-              );
-            })
-            .toList();
+    // ── Totals ───────────────────────────────────────────────────────────────
+    final residenceTotal = residenceCharges.fold(0.0, (s, c) => s + c.amount);
+    final kitchenTotal   = foodCharges.fold(0.0, (s, c) => s + c.amount);
+    final activityTotal  = activityCharges.fold(0.0, (s, c) => s + c.amount);
+    final shopTotal      = shopBillCharges.fold(0.0, (s, c) => s + c.amount);
+    final subtotal       = residenceTotal + kitchenTotal + activityTotal + shopTotal;
+    final gst            = subtotal * 0.12;
+    final discount       = subtotal * (_discountPct / 100);
+    final grandTotal     = subtotal + gst - discount;
 
-        // 4. SHG Shop charges for this room
-        final roomShopCharges = shopCharges
-            .where((c) => c.roomNumber == _roomNo)
-            .toList();
-        final shopBillCharges = roomShopCharges.map((c) => _Charge(
-          '${c.product} × ${c.qty}',
-          c.total,
-          Icons.storefront_rounded,
-          const Color(0xFF558B2F),
-        )).toList();
-
-        final residenceTotal = residenceCharges.fold(0.0, (s, c) => s + c.amount);
-        final kitchenTotal   = foodCharges.fold(0.0, (s, c) => s + c.amount);
-        final activityTotal  = activityCharges.fold(0.0, (s, c) => s + c.amount);
-        final shopTotal      = shopBillCharges.fold(0.0, (s, c) => s + c.amount);
-        final subtotal       = residenceTotal + kitchenTotal + activityTotal + shopTotal;
-        final gst            = subtotal * 0.12;
-        final discount       = subtotal * (_discountPct / 100);
-        final grandTotal     = subtotal + gst - discount;
-
-        return Scaffold(
+    return Scaffold(
           backgroundColor: AppTheme.background,
           appBar: const AnjAppBar(title: 'Billing'),
           body: SingleChildScrollView(
