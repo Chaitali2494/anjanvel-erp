@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -173,6 +174,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
             icon: const Icon(Icons.download_outlined),
             tooltip: 'Download Report',
             onPressed: () => _downloadReport(context, ref),
+          ),
+          IconButton(
+            icon: const Icon(Icons.switch_account_rounded),
+            tooltip: 'Switch Role',
+            onPressed: () => context.go('/role-selection'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Profile & Sign Out',
+            onPressed: () => context.push('/profile'),
           ),
         ],
       ),

@@ -56,14 +56,23 @@ class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => context.go('/role-selection'),
-                      icon: const Icon(Icons.home_rounded, color: Colors.white),
-                      tooltip: 'Home',
-                    ),
-                    IconButton(
                       onPressed: () => context.push('/notifications'),
                       icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                     ),
+                    IconButton(
+                      onPressed: () => context.go('/role-selection'),
+                      icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
+                      tooltip: 'Switch Role',
+                    ),
+                    GestureDetector(
+                      onTap: () => context.push('/profile'),
+                      child: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                   ]),
                   const SizedBox(height: 16),
                   Text(today,

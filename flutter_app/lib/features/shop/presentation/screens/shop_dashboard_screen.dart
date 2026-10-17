@@ -128,9 +128,24 @@ class ShopDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => context.go('/role-selection'),
-                      icon: const Icon(Icons.home_rounded, color: Colors.white),
+                      onPressed: () => context.push('/notifications'),
+                      icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                      tooltip: 'Notifications',
                     ),
+                    IconButton(
+                      onPressed: () => context.go('/role-selection'),
+                      icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
+                      tooltip: 'Switch Role',
+                    ),
+                    GestureDetector(
+                      onTap: () => context.push('/profile'),
+                      child: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
                   ]),
                   const SizedBox(height: 16),
                   const Text('Self Help Group — Maharashtra Products',
