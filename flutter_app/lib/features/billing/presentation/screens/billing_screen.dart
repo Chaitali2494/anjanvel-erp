@@ -157,7 +157,35 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
     return Scaffold(
           backgroundColor: AppTheme.background,
-          appBar: const AnjAppBar(title: 'Billing'),
+          appBar: AnjAppBar(
+            title: 'Billing',
+            actions: [
+              IconButton(
+                tooltip: 'Download Invoice',
+                icon: const Icon(Icons.picture_as_pdf_rounded),
+                onPressed: () => _downloadInvoice(
+                  guestName: guestName,
+                  roomNo: _roomNo,
+                  roomType: roomType,
+                  nights: nights,
+                  persons: persons,
+                  residenceCharges: residenceCharges,
+                  foodCharges: foodCharges,
+                  activityCharges: activityCharges,
+                  shopCharges: shopBillCharges,
+                  residenceTotal: residenceTotal,
+                  kitchenTotal: kitchenTotal,
+                  activityTotal: activityTotal,
+                  shopTotal: shopTotal,
+                  subtotal: subtotal,
+                  gst: gst,
+                  discount: discount,
+                  discountPct: _discountPct,
+                  grandTotal: grandTotal,
+                ),
+              ),
+            ],
+          ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             child: Column(
