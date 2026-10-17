@@ -480,11 +480,20 @@ class _ConfirmedDetail extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // 1. Update session bookings with status + timestamp
-                  ref.read(sessionBookingsProvider.notifier).setCheckedIn(bookingId);
-                  // 2. Update booking service cache (for Front Desk screen)
-                  ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
-                  // 3. Sync sessionRoomBookings so room detail shows the guest
+                  final now = DateTime.now().toIso8601String();
+                  // addBooking works for BOTH session & Supabase bookings:
+                  // it removes the old entry and inserts the updated one,
+                  // so the merged list immediately shows CHECKED_IN.
+                  ref.read(sessionBookingsProvider.notifier).addBooking({
+                    ...booking,
+                    'status': 'CHECKED_IN',
+                    'checked_in_at': now,
+                  });
+                  // Also update booking service cache (for Front Desk screen)
+                  if (bookingId.startsWith('local_')) {
+                    ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
+                  }
+                  // Sync sessionRoomBookings so room detail shows the guest
                   if (roomNo != '—' && roomNo.isNotEmpty) {
                     final guest = booking['guests'] as Map<String, dynamic>? ?? {};
                     sessionRoomBookings[roomNo] = {
