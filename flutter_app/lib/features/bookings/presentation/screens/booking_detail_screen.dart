@@ -390,6 +390,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   Future<void> _updateStatus(String id, String status) async {
     if (_isLocalBooking) {
       setState(() => (_sessionEdits[id] ??= {})['status'] = status);
+      // Also sync to booking_service so check-in list can filter by status
+      sessionStatusOverrides[id] = status;
       return;
     }
     setState(() => _isLoading = true);
@@ -406,6 +408,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
   Future<void> _confirmBooking(String id) async {
     if (_isLocalBooking) {
       setState(() => (_sessionEdits[id] ??= {})['status'] = 'CONFIRMED');
+      sessionStatusOverrides[id] = 'CONFIRMED';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Booking confirmed!'), backgroundColor: AppTheme.success),
@@ -434,6 +437,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     if (reason == null) return;
     if (_isLocalBooking) {
       setState(() => (_sessionEdits[id] ??= {})['status'] = 'CANCELLED');
+      sessionStatusOverrides[id] = 'CANCELLED';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Booking cancelled'), backgroundColor: AppTheme.warning),
@@ -952,11 +956,12 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
 
   // Demo rooms shown when Supabase has no data
   static const _demoRooms = [
-    {'id': 'r101', 'room_number': '101', 'status': 'AVAILABLE', 'room_types': {'name': 'Deluxe Room'}},
-    {'id': 'r102', 'room_number': '102', 'status': 'AVAILABLE', 'room_types': {'name': 'Suite'}},
-    {'id': 'r201', 'room_number': '201', 'status': 'AVAILABLE', 'room_types': {'name': 'Standard Room'}},
-    {'id': 'r301', 'room_number': '301', 'status': 'AVAILABLE', 'room_types': {'name': 'Cottage'}},
-    {'id': 'r302', 'room_number': '302', 'status': 'AVAILABLE', 'room_types': {'name': 'Cottage'}},
+    {'id': 'rT1', 'room_number': 'T-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent'}},
+    {'id': 'rT2', 'room_number': 'T-2', 'status': 'AVAILABLE', 'room_types': {'name': 'Tent'}},
+    {'id': 'rC1', 'room_number': 'C-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Cottage'}},
+    {'id': 'rC2', 'room_number': 'C-2', 'status': 'AVAILABLE', 'room_types': {'name': 'Cottage'}},
+    {'id': 'rV1', 'room_number': 'V-1', 'status': 'AVAILABLE', 'room_types': {'name': 'Villa'}},
+    {'id': 'rV2', 'room_number': 'V-2', 'status': 'AVAILABLE', 'room_types': {'name': 'Villa'}},
   ];
 
   // Local assigned rooms (for demo mode when Supabase is unavailable)

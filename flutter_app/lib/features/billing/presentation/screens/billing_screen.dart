@@ -25,7 +25,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
   double _discountPct = 0;
   final _discountCtrl = TextEditingController(text: '0');
 
-  String get _roomNo => widget.roomNumber ?? '205';
+  String get _roomNo => widget.roomNumber ?? 'T-1';
 
   @override
   void dispose() {
