@@ -1,0 +1,66 @@
+name: Build & Deploy Flutter Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Fix pubspec
+        working-directory: flutter_app
+        run: |
+          python3 -c "
+          content = open('pubspec.yaml').read()
+          import re
+          content = re.sub(r'(flutter:\s*\n\s*uses-material-design: true\s*\n).*', r'\1\n', content, flags=re.DOTALL)
+          content = re.sub(r'\s*flutter_dotenv:.*\n', '\n', content)
+          open('pubspec.yaml', 'w').write(content)
+          print('Done')
+          "
+
+      - name: Clean and install dependencies
+        working-directory: flutter_app
+        run: |
+          flutter clean
+          flutter pub get
+
+
+      - name: Build web
+        working-directory: flutter_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build web --release --base-href=/anjanvel-erp/ \
+            "--dart-define=SUPABASE_URL=$SUPABASE_URL" \
+            "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+
+      - name: Inject .env into build
+        run: |
+          mkdir -p flutter_app/build/web/assets
+          printf "SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n" \
+            "${{ secrets.SUPABASE_URL }}" \
+            "${{ secrets.SUPABASE_ANON_KEY }}" \
+            > flutter_app/build/web/assets/.env
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: flutter_app/build/web
