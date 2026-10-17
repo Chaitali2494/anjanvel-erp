@@ -536,14 +536,30 @@ class _QuickActionsGrid extends StatelessWidget {
       _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent,   0),
     ];
 
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      children: actions.map((a) => _QuickActionTile(action: a)).toList(),
-    );
+    return LayoutBuilder(builder: (context, box) {
+      // Always 3 columns; tile width fills available space (capped at 150px each)
+      const cols     = 3;
+      const spacing  = 10.0;
+      const tileH    = 100.0;
+      final maxGridW = (150.0 * cols) + (spacing * (cols - 1)); // 470px max
+      final gridW    = box.maxWidth < maxGridW ? box.maxWidth : maxGridW;
+      final tileW    = (gridW - spacing * (cols - 1)) / cols;
+
+      return Center(
+        child: SizedBox(
+          width: gridW,
+          child: Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: actions.map((a) => SizedBox(
+              width: tileW,
+              height: tileH,
+              child: _QuickActionTile(action: a),
+            )).toList(),
+          ),
+        ),
+      );
+    });
   }
 }
 
@@ -567,52 +583,55 @@ class _QuickActionTile extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [action.color, action.color.withOpacity(0.75)],
+          // Full-size coloured background
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [action.color, action.color.withOpacity(0.75)],
+                ),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                boxShadow: [
+                  BoxShadow(
+                    color: action.color.withOpacity(0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-              boxShadow: [
-                BoxShadow(
-                  color: action.color.withOpacity(0.35),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(action.icon, color: Colors.white, size: 22),
-                ),
-                const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    action.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      shape: BoxShape.circle,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
+                    child: Icon(action.icon, color: Colors.white, size: 22),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      action.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          // Live badge — only shown when count > 0
+          // Live badge
           if (action.badge > 0)
             Positioned(
               top: -5,
