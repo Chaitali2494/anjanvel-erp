@@ -469,7 +469,14 @@ class _ConfirmedDetail extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/checkin/$bookingId'),
+                onPressed: () {
+                  ref.read(sessionBookingsProvider.notifier).updateStatus(bookingId, 'CHECKED_IN');
+                  ref.read(bookingServiceProvider).updateLocalBookingStatus(bookingId, 'CHECKED_IN');
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Guest checked in successfully! 🏠'),
+                    backgroundColor: Color(0xFF2E7D32),
+                  ));
+                },
                 icon: const Icon(Icons.login_rounded, size: 16, color: Colors.white),
                 label: const Text('Check In Now', style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(

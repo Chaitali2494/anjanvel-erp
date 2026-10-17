@@ -257,6 +257,29 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
   // ── Check-in Sheet ──────────────────────────────────────────────────────────
 
   void _showCheckInSheet(String bookingId) {
+    // Look up booking info (for local session bookings navigated from roadmap)
+    final service = ref.read(bookingServiceProvider);
+    final allLocal = [
+      ...service.localBookingMaps(status: 'CONFIRMED'),
+      ...service.localBookingMaps(status: 'CHECKED_IN'),
+    ];
+    final bMap = allLocal.firstWhere(
+      (m) => m['id'] == bookingId,
+      orElse: () => <String, dynamic>{},
+    );
+    final guest = bMap['guests'] as Map<String, dynamic>? ?? {};
+    final guestName = (guest['full_name'] as String?)?.isNotEmpty == true
+        ? guest['full_name'] as String
+        : (bMap['guest_name'] as String? ?? '');
+    final phone = (guest['phone'] as String? ?? bMap['guest_phone'] as String? ?? '');
+    final roomNo = bMap['room_number'] as String? ?? '';
+
+    final parts = <String>[];
+    if (guestName.isNotEmpty) parts.add(guestName);
+    if (roomNo.isNotEmpty) parts.add('Room $roomNo');
+    if (phone.isNotEmpty) parts.add(phone);
+    final subtitle = parts.isNotEmpty ? parts.join('  ·  ') : 'Mark this guest as checked in';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -264,7 +287,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => _ActionSheet(
         title: 'Confirm Check-in',
-        subtitle: 'Mark this guest as checked in',
+        subtitle: subtitle,
         icon: Icons.login_rounded,
         iconColor: AppTheme.success,
         checklist: const [
