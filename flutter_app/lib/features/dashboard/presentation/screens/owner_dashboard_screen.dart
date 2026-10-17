@@ -536,14 +536,20 @@ class _QuickActionsGrid extends StatelessWidget {
       _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent,   0),
     ];
 
-    return GridView.extent(
-      maxCrossAxisExtent: 130,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.0,
-      children: actions.map((a) => _QuickActionTile(action: a)).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = (constraints.maxWidth / 110).floor().clamp(3, 6);
+        final tileW = (constraints.maxWidth - (cols - 1) * 10) / cols;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: actions.map((a) => SizedBox(
+            width: tileW,
+            height: 88,
+            child: _QuickActionTile(action: a),
+          )).toList(),
+        );
+      },
     );
   }
 }
