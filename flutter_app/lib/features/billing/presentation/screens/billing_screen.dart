@@ -386,7 +386,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       Row(children: [
                         const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textHint),
                         const SizedBox(width: 6),
-                        Text('${_fmt(checkIn)} → ${_fmt(checkOut)}  ·  $nights night${nights > 1 ? 's' : ''}',
+                        Text('${_fmtDate(checkIn)} → ${_fmtDate(checkOut)}  ·  $nights night${nights > 1 ? 's' : ''}',
                             style: const TextStyle(fontSize: 12, color: AppTheme.textHint)),
                       ]),
                       const SizedBox(height: 10),
