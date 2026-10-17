@@ -84,7 +84,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         guestId = guest['id'] as String;
       }
 
-      final totalAmount = _basePrice * _numAdults + (_basePrice * 0.5) * _numChildren;
+      final numNights = (_checkInDate != null && _checkOutDate != null)
+          ? _checkOutDate!.difference(_checkInDate!).inDays.clamp(1, 365)
+          : 1;
+      final totalAmount = numNights * (_basePrice * _numAdults + (_basePrice * 0.5) * _numChildren);
       final taxAmount = totalAmount * 0.05; // 5% GST
 
       final booking = await ref.read(bookingServiceProvider).createBooking({
@@ -780,7 +783,11 @@ class _SummaryStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = basePrice * numAdults + (basePrice * 0.5) * numChildren;
+    // Calculate nights: clamp to min 1; null checkOut = day visit (1 night equivalent)
+    final nights = (checkInDate != null && checkOutDate != null)
+        ? checkOutDate!.difference(checkInDate!).inDays.clamp(1, 365)
+        : 1;
+    final subtotal = nights.toDouble() * (basePrice * numAdults + (basePrice * 0.5) * numChildren);
     final tax = subtotal * 0.05; // 5% GST
     final total = subtotal + tax;
 
@@ -791,7 +798,8 @@ class _SummaryStep extends StatelessWidget {
         _SummaryRow('Phone', guestPhone.isEmpty ? '—' : '+91 $guestPhone'),
         _SummaryRow('Check-in', checkInDate != null ? DateFormat('d MMM yyyy').format(checkInDate!) : '—'),
         _SummaryRow('Check-out', checkOutDate != null ? DateFormat('d MMM yyyy').format(checkOutDate!) : 'Day Visit'),
-        _SummaryRow('Guests', '$numAdults adults, $numChildren children'),
+        _SummaryRow('Nights', checkOutDate != null ? '$nights night${nights != 1 ? "s" : ""}' : 'Day Visit'),
+        _SummaryRow('Guests', '$numAdults adults${numChildren > 0 ? ", $numChildren children" : ""}'),
         if (packageName != null) _SummaryRow('Package', packageName!),
         const Divider(height: 24),
         _SummaryRow('Subtotal', '₹${subtotal.toStringAsFixed(0)}'),
