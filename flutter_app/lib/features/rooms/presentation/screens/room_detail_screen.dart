@@ -28,6 +28,19 @@ final _demoShopByRoom = <String, List<Map<String, dynamic>>>{
   ],
 };
 
+// ── Room name + type details keyed by Supabase room_number ───────────────────
+// Mirrors _roomNameOverrides in room_service.dart so room detail shows the
+// correct Anjanvel accommodation name regardless of what DB room_types holds.
+const _roomDetailNames = <String, Map<String, dynamic>>{
+  '101': {'name': 'Tent Stay',                    'base_price': 1500, 'max_occupancy': 2,  'amenities': ['Mattress', 'Fan', 'Lantern', 'Common Bathroom']},
+  '102': {'name': 'Dormitory (Small) Stay',       'base_price': 3000, 'max_occupancy': 6,  'amenities': ['Bunk Beds', 'Fan', 'Common Bathroom', 'Locker']},
+  '103': {'name': 'Dormitory (Large) Stay',       'base_price': 6000, 'max_occupancy': 12, 'amenities': ['Bunk Beds', 'Fan', 'Common Bathroom', 'Locker', 'Common Hall']},
+  '201': {'name': 'Anjanpushp Villa',             'base_price': 8000, 'max_occupancy': 4,  'amenities': ['AC', 'Private Bathroom', 'Wi-Fi', 'Mini Kitchen', 'Garden View']},
+  '202': {'name': 'Deluxe/Cottage Room',          'base_price': 3500, 'max_occupancy': 2,  'amenities': ['AC', 'Private Bathroom', 'Wi-Fi', 'TV', 'Hot Water']},
+  '301': {'name': 'Premium Room - Tikona View',   'base_price': 5000, 'max_occupancy': 2,  'amenities': ['AC', 'Private Bathroom', 'Wi-Fi', 'TV', 'Tikona Fort View', 'Hot Water']},
+  '302': {'name': 'Premium Room - Deck Bed',      'base_price': 5500, 'max_occupancy': 2,  'amenities': ['AC', 'Private Bathroom', 'Wi-Fi', 'TV', 'Deck Bed', 'Scenic View', 'Hot Water']},
+};
+
 // ── Provider ───────────────────────────────────────────────────────────────────
 final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, roomId) async {
   final client = ref.watch(supabaseClientProvider);
@@ -70,6 +83,24 @@ final roomDetailFullProvider = FutureProvider.family<Map<String, dynamic>, Strin
       'amenities': ['AC', 'Wi-Fi', 'Hot Water', 'TV'],
     },
   };
+
+  // Apply Anjanvel room name/amenity overrides based on room_number.
+  // This ensures the correct name always shows regardless of what the DB holds.
+  final roomNum = (room['room_number'] ?? _demoRoomNo).toString();
+  final nameOverride = _roomDetailNames[roomNum];
+  if (nameOverride != null) {
+    final existing = (room['room_types'] as Map<String, dynamic>?) ?? {};
+    room['room_types'] = {
+      ...existing,
+      'name':          nameOverride['name'],
+      'base_price':    nameOverride['base_price'],
+      'max_occupancy': nameOverride['max_occupancy'],
+      // Only override amenities if the DB returned none or generic ones
+      'amenities': (existing['amenities'] as List?)?.isNotEmpty == true
+          ? existing['amenities']
+          : nameOverride['amenities'],
+    };
+  }
 
   try {
     // booking_rooms uses UUID; only query if we have a UUID
