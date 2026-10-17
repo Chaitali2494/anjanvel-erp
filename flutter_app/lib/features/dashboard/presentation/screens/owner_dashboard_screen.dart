@@ -18,11 +18,36 @@ import '../../../bookings/data/booking_service.dart';
 import '../../../food/data/food_orders_state_provider.dart';
 import 'package:intl/intl.dart';
 
-class OwnerDashboardScreen extends ConsumerWidget {
+class OwnerDashboardScreen extends ConsumerStatefulWidget {
   const OwnerDashboardScreen({super.key});
+  @override
+  ConsumerState<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
+}
+
+class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
+  DateTime _lastRefreshed = DateTime.now();
+
+  void _refresh() {
+    setState(() => _lastRefreshed = DateTime.now());
+    ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(allRoomsProvider);
+    ref.invalidate(activityBookingsProvider);
+  }
+
+  String get _lastRefreshedLabel {
+    final now = DateTime.now();
+    final diff = now.difference(_lastRefreshed);
+    if (diff.inSeconds < 60) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    final h = _lastRefreshed.hour;
+    final m = _lastRefreshed.minute.toString().padLeft(2, '0');
+    final ampm = h >= 12 ? 'PM' : 'AM';
+    final h12 = h % 12 == 0 ? 12 : h % 12;
+    return 'Updated $h12:$m $ampm';
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final dashboardAsync = ref.watch(dashboardStatsProvider);
 
@@ -93,7 +118,10 @@ class OwnerDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        color: AppTheme.primary,
+        onRefresh: () async => _refresh(),
+        child: CustomScrollView(
         slivers: [
           // App Bar
           SliverAppBar(
@@ -133,11 +161,30 @@ class OwnerDashboardScreen extends ConsumerWidget {
                         ),
                         Row(
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.refresh_outlined, color: Colors.white),
-                              tooltip: 'Refresh',
-                              onPressed: () => ref.invalidate(dashboardStatsProvider),
+                            // Last updated chip
+                            GestureDetector(
+                              onTap: _refresh,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.refresh_rounded, color: Colors.white70, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _lastRefreshedLabel,
+                                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
+                            const SizedBox(width: 4),
                             IconButton(
                               icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
                               tooltip: 'Switch Role',
@@ -301,7 +348,8 @@ class OwnerDashboardScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
+        ),  // closes CustomScrollView
+      ),    // closes RefreshIndicator
       bottomNavigationBar: _OwnerBottomNav(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.createBooking),
