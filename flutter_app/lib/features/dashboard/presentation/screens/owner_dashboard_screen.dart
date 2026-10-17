@@ -13,6 +13,8 @@ import '../../../billing/data/billing_state_provider.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
 import '../../../rooms/data/room_service.dart';
 import '../../../guest/data/guest_requests_provider.dart';
+import '../../../bookings/data/session_bookings_provider.dart';
+import '../../../bookings/data/booking_service.dart';
 import 'package:intl/intl.dart';
 
 class OwnerDashboardScreen extends ConsumerWidget {
@@ -28,6 +30,38 @@ class OwnerDashboardScreen extends ConsumerWidget {
     final paidBills    = billingState.values.where((b) => b['is_paid'] == true).toList();
     final paidRevenue  = paidBills.fold(0.0, (s, b) => s + ((b['amount'] as num?)?.toDouble() ?? 0.0));
     final paidCount    = paidBills.length;
+
+    // ── Live session stats — reactive to every booking/check-in action ────────
+    final sessionBookings = ref.watch(sessionBookingsProvider);
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
+    // Arrivals today = bookings with check_in_date == today (any active status)
+    final arrivalsToday = sessionBookings.where((b) {
+      final ci  = b['check_in_date'] as String? ?? '';
+      final eff = sessionStatusOverrides[b['id']] ?? b['status'] as String? ?? '';
+      return ci == today && ['CONFIRMED', 'CHECKED_IN', 'ADVANCE_PAID'].contains(eff);
+    }).length;
+
+    // Checked-in today = status CHECKED_IN with check_in_date == today
+    final checkInsToday = sessionBookings.where((b) {
+      final ci  = b['check_in_date'] as String? ?? '';
+      final eff = sessionStatusOverrides[b['id']] ?? b['status'] as String? ?? '';
+      return ci == today && eff == 'CHECKED_IN';
+    }).length;
+
+    // Check-outs today = check_out_date == today with CHECKED_OUT or CHECKED_IN status
+    final checkOutsToday = sessionBookings.where((b) {
+      final co  = b['check_out_date'] as String? ?? '';
+      final eff = sessionStatusOverrides[b['id']] ?? b['status'] as String? ?? '';
+      return co == today && (eff == 'CHECKED_OUT' || eff == 'CHECKED_IN');
+    }).length;
+
+    // Guests in-house = rooms currently occupied from sessionRoomBookings
+    final guestsInHouse = sessionRoomBookings.values.where((b) {
+      final bId = b['id'] as String? ?? '';
+      final eff = sessionStatusOverrides[bId] ?? b['status'] as String? ?? '';
+      return eff == 'CHECKED_IN';
+    }).fold(0, (sum, b) => sum + ((b['num_adults'] as num?)?.toInt() ?? 1) + ((b['num_children'] as num?)?.toInt() ?? 0));
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -122,7 +156,15 @@ class OwnerDashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Today's Stats
-                      _TodayStatsGrid(stats: stats, paidRevenue: paidRevenue, paidCount: paidCount),
+                      _TodayStatsGrid(
+                        stats: stats,
+                        paidRevenue: paidRevenue,
+                        paidCount: paidCount,
+                        liveArrivals: arrivalsToday,
+                        liveCheckIns: checkInsToday,
+                        liveCheckOuts: checkOutsToday,
+                        liveGuestsInHouse: guestsInHouse,
+                      ),
                       const SizedBox(height: AppTheme.spaceLG),
 
                       // Revenue Chart
@@ -233,12 +275,31 @@ class OwnerDashboardScreen extends ConsumerWidget {
 class _TodayStatsGrid extends StatelessWidget {
   final DashboardStats stats;
   final double paidRevenue;
-  final int paidCount;
-  const _TodayStatsGrid({required this.stats, this.paidRevenue = 0, this.paidCount = 0});
+  final int    paidCount;
+  final int    liveArrivals;
+  final int    liveCheckIns;
+  final int    liveCheckOuts;
+  final int    liveGuestsInHouse;
+
+  const _TodayStatsGrid({
+    required this.stats,
+    this.paidRevenue       = 0,
+    this.paidCount         = 0,
+    this.liveArrivals      = 0,
+    this.liveCheckIns      = 0,
+    this.liveCheckOuts     = 0,
+    this.liveGuestsInHouse = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
     final totalRevenue = stats.revenueToday + paidRevenue;
+
+    // Prefer live session counts; fall back to Supabase counts
+    final guestsInHouse  = liveGuestsInHouse > 0 ? liveGuestsInHouse  : stats.guestsInhouse;
+    final arrivalsToday  = liveArrivals  > 0 ? liveArrivals   : stats.checkinsToday;
+    final checkInsToday  = liveCheckIns  > 0 ? liveCheckIns   : stats.checkinsToday;
+    final checkOutsToday = liveCheckOuts > 0 ? liveCheckOuts  : stats.checkoutsToday;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -246,7 +307,7 @@ class _TodayStatsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.4,
+      childAspectRatio: 1.35,
       children: [
         StatCard(
           label: "Today's Revenue",
@@ -260,31 +321,32 @@ class _TodayStatsGrid extends StatelessWidget {
         ),
         StatCard(
           label: 'Guests In-House',
-          value: '${stats.guestsInhouse}',
+          value: '$guestsInHouse',
           icon: Icons.people_outline_rounded,
           color: AppTheme.primary,
-          subtitle: '${stats.checkinsToday} arriving',
+          subtitle: '$arrivalsToday arriving today',
+          onTap: () {},
+        ),
+        StatCard(
+          label: 'Arrivals Today',
+          value: '$arrivalsToday',
+          icon: Icons.flight_land_rounded,
+          color: const Color(0xFF00838F),
+          subtitle: '$checkInsToday checked in',
           onTap: () {},
         ),
         StatCard(
           label: 'Check-ins Today',
-          value: '${stats.checkinsToday}',
+          value: '$checkInsToday',
           icon: Icons.login_rounded,
           color: AppTheme.info,
           onTap: () {},
         ),
         StatCard(
           label: 'Check-outs Today',
-          value: '${stats.checkoutsToday}',
+          value: '$checkOutsToday',
           icon: Icons.logout_rounded,
           color: AppTheme.secondary,
-          onTap: () {},
-        ),
-        StatCard(
-          label: 'New Leads',
-          value: '${stats.newLeads}',
-          icon: Icons.person_add_outlined,
-          color: AppTheme.accent,
           onTap: () {},
         ),
         StatCard(
