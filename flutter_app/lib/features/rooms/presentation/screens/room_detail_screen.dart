@@ -209,11 +209,9 @@ class RoomDetailScreen extends ConsumerWidget {
                 _ActivitiesCard(activities: roomActivities, roomNo: roomNo),
                 const SizedBox(height: 12),
 
-                // Food orders (hide when empty)
-                if (foodOrders.isNotEmpty) ...[
-                  _FoodOrdersCard(orders: foodOrders, roomNo: roomNo),
-                  const SizedBox(height: 12),
-                ],
+                // Food orders — always visible with "Order Food" button
+                _FoodOrdersCard(orders: foodOrders, roomNo: roomNo),
+                const SizedBox(height: 12),
 
                 // SHG Shop charges
                 if (roomShopCharges.isNotEmpty || _demoShopByRoom.containsKey(roomNo)) ...[
@@ -495,133 +493,335 @@ class _ActivitiesCard extends StatelessWidget {
   }
 }
 
-// ── Food Orders Card — table format ──────────────────────────────────────────
+// ── Food Menu items available to order ────────────────────────────────────────
+const _kFoodMenu = [
+  {'name': 'Veg Breakfast Thali', 'category': 'Breakfast', 'price': 160.0, 'emoji': '🍛'},
+  {'name': 'Non-Veg Breakfast',   'category': 'Breakfast', 'price': 220.0, 'emoji': '🍳'},
+  {'name': 'Masala Chai',         'category': 'Beverages', 'price': 40.0,  'emoji': '☕'},
+  {'name': 'Mango Lassi',         'category': 'Beverages', 'price': 90.0,  'emoji': '🥭'},
+  {'name': 'Fresh Juice',         'category': 'Beverages', 'price': 80.0,  'emoji': '🍹'},
+  {'name': 'Veg Thali (Lunch)',   'category': 'Lunch',     'price': 180.0, 'emoji': '🍽️'},
+  {'name': 'Non-Veg Thali',       'category': 'Lunch',     'price': 280.0, 'emoji': '🍗'},
+  {'name': 'Veg Starter',         'category': 'Snacks',    'price': 120.0, 'emoji': '🥗'},
+  {'name': 'Veg Dinner Thali',    'category': 'Dinner',    'price': 200.0, 'emoji': '🌙'},
+  {'name': 'BBQ Chicken',         'category': 'Dinner',    'price': 380.0, 'emoji': '🍖'},
+  {'name': 'Papad & Pickle',      'category': 'Snacks',    'price': 50.0,  'emoji': '🫙'},
+  {'name': 'Buttermilk',          'category': 'Beverages', 'price': 30.0,  'emoji': '🥛'},
+];
 
-class _FoodOrdersCard extends StatelessWidget {
+// ── Food Orders Card — always visible, with Order Food button ─────────────────
+
+class _FoodOrdersCard extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> orders;
   final String roomNo;
   const _FoodOrdersCard({required this.orders, required this.roomNo});
 
   @override
+  ConsumerState<_FoodOrdersCard> createState() => _FoodOrdersCardState();
+}
+
+class _FoodOrdersCardState extends ConsumerState<_FoodOrdersCard> {
+
+  void _showOrderSheet() {
+    final Map<String, int> cart = {};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final cartTotal = cart.entries.fold(0.0, (s, e) {
+            final item = _kFoodMenu.firstWhere((m) => m['name'] == e.key, orElse: () => {});
+            return s + ((item['price'] as double? ?? 0.0) * e.value);
+          });
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16, right: 16, top: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              // Header
+              Row(children: [
+                const Icon(Icons.restaurant_menu_rounded, color: Color(0xFFE64A19), size: 22),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text('Order Food',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                Text('Room ${widget.roomNo}',
+                    style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+              ]),
+              const SizedBox(height: 4),
+              const Text('Select items and quantities',
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+              const Divider(height: 20),
+
+              // Menu list
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.45,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _kFoodMenu.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final item = _kFoodMenu[i];
+                    final name  = item['name'] as String;
+                    final price = item['price'] as double;
+                    final emoji = item['emoji'] as String;
+                    final qty   = cart[name] ?? 0;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(children: [
+                        Text(emoji, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 10),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          Text('₹${price.toStringAsFixed(0)}',
+                              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
+                        ])),
+                        // Qty control
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          if (qty > 0) ...[
+                            GestureDetector(
+                              onTap: () => setSheet(() {
+                                if (qty == 1) cart.remove(name);
+                                else cart[name] = qty - 1;
+                              }),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.error.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.remove, size: 16, color: AppTheme.error),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text('$qty',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                          ],
+                          GestureDetector(
+                            onTap: () => setSheet(() => cart[name] = qty + 1),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.success.withOpacity(0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.add, size: 16, color: AppTheme.success),
+                            ),
+                          ),
+                        ]),
+                      ]),
+                    );
+                  },
+                ),
+              ),
+
+              // Cart summary + Place Order
+              if (cart.isNotEmpty) ...[
+                const Divider(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE64A19).withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(children: [
+                    Text('${cart.values.fold(0, (s, v) => s + v)} items',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const Spacer(),
+                    Text('Total: ₹${cartTotal.toStringAsFixed(0)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFFE64A19))),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Build order items list
+                      final items = cart.entries.map((e) {
+                        final item = _kFoodMenu.firstWhere((m) => m['name'] == e.key);
+                        return {'name': e.key, 'qty': e.value, 'price': item['price']};
+                      }).toList();
+
+                      final now = DateTime.now();
+                      final orderId = 'FO-${now.millisecondsSinceEpoch}';
+                      final order = {
+                        'id': orderId,
+                        'order_number': 'FO-${now.millisecondsSinceEpoch.toString().substring(7)}',
+                        'status': 'PENDING',
+                        'total_amount': cartTotal,
+                        'meal_type': 'ROOM_ORDER',
+                        'ordered_at': now.toIso8601String(),
+                        'guests': {'full_name': 'Staff Order'},
+                        'bookings': {'booking_number': '', 'room_number': widget.roomNo},
+                        'items': items,
+                        'source': 'STAFF',
+                      };
+                      ref.read(foodOrdersStateProvider.notifier).addOrder(order);
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✅ Order placed for Room ${widget.roomNo}'),
+                          backgroundColor: AppTheme.success,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                    label: const Text('Place Order', style: TextStyle(color: Colors.white, fontSize: 15)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE64A19),
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                ),
+              ],
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Flatten orders → individual item rows
+    final orders = widget.orders;
+
+    // Flatten all order items into table rows
     final List<Map<String, dynamic>> tableRows = [];
     for (final order in orders) {
       final items = order['items'] as List<dynamic>? ?? [];
       final orderedAt = order['ordered_at'] as String?;
-      String dateStr = '';
       String timeStr = '';
       if (orderedAt != null) {
         final dt = DateTime.tryParse(orderedAt);
-        if (dt != null) {
-          dateStr = DateFormat('dd MMM').format(dt);
-          timeStr = DateFormat('hh:mm a').format(dt);
-        }
+        if (dt != null) timeStr = DateFormat('hh:mm a').format(dt);
       }
       if (items.isNotEmpty) {
         for (final item in items) {
           tableRows.add({
-            'name': item['name'] as String? ?? 'Item',
-            'qty': (item['qty'] as num?)?.toInt() ?? 1,
-            'price': (item['price'] as num?)?.toDouble() ?? 0.0,
-            'date': dateStr,
-            'time': timeStr,
+            'name':   item['name']  as String? ?? 'Item',
+            'qty':    (item['qty']  as num?)?.toInt() ?? 1,
+            'price':  (item['price'] as num?)?.toDouble() ?? 0.0,
+            'time':   timeStr,
             'status': order['status'] as String? ?? 'PENDING',
           });
         }
-      } else {
-        final amount = (order['total_amount'] as num?)?.toDouble() ?? 0.0;
-        final mealType = order['meal_type'] as String? ?? 'Food';
-        tableRows.add({
-          'name': '$mealType (${order['order_number'] ?? ''})',
-          'qty': 1,
-          'price': amount,
-          'date': dateStr,
-          'time': timeStr,
-          'status': order['status'] as String? ?? 'PENDING',
-        });
       }
     }
 
     final total = tableRows.fold(0.0, (s, r) => s + (r['price'] as double) * (r['qty'] as int));
 
     return _SectionCard(
-      title: 'Food & Beverage Orders',
+      title: 'Food & Beverage',
       icon: Icons.restaurant_menu_rounded,
-      child: tableRows.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('No food orders yet', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
-            )
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Table header
-              Container(
-                color: const Color(0xFFE64A19).withOpacity(0.07),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                child: const Row(children: [
-                  SizedBox(width: 22, child: Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
-                  Expanded(flex: 3, child: Text('Food Item', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
-                  SizedBox(width: 55, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
-                  SizedBox(width: 24, child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
-                  SizedBox(width: 52, child: Text('Price', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
-                ]),
-              ),
-              ...tableRows.asMap().entries.map((entry) {
-                final i = entry.key;
-                final row = entry.value;
-                final qty    = row['qty'] as int;
-                final price  = row['price'] as double;
-                final rowAmt = price * qty;
-                final status = row['status'] as String;
-                final isPending = status == 'PENDING';
-                return Container(
-                  color: i.isEven ? Colors.transparent : const Color(0xFFE64A19).withOpacity(0.03),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Row(children: [
-                    SizedBox(width: 22, child: Text('${i + 1}', style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary))),
-                    Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(row['name'] as String, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
-                      Row(children: [
-                        if ((row['time'] as String).isNotEmpty) ...[
-                          Text(row['time'] as String, style: TextStyle(fontSize: 10, color: AppTheme.textPrimary.withOpacity(0.55))),
-                          const SizedBox(width: 4),
-                        ],
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: isPending ? AppTheme.warning.withOpacity(0.12) : AppTheme.success.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            isPending ? 'Pending' : status.replaceAll('_', ' ').toLowerCase().split(' ').map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1) : w).join(' '),
-                            style: TextStyle(fontSize: 9, color: isPending ? AppTheme.warning : AppTheme.success, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ]),
-                    ])),
-                    SizedBox(width: 55, child: Text(row['date'] as String, style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary))),
-                    SizedBox(width: 24, child: Text('$qty', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary))),
-                    SizedBox(width: 52, child: Text('₹${rowAmt.toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
-                  ]),
-                );
-              }),
-              const SizedBox(height: 6),
-              // Total
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE64A19).withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(children: [
-                  const Text('Food & Bev Total',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
-                  const Spacer(),
-                  Text('₹${total.toStringAsFixed(0)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFE64A19))),
-                ]),
-              ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Order Food button — always visible
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _showOrderSheet,
+            icon: const Icon(Icons.add_shopping_cart_rounded, size: 18, color: Color(0xFFE64A19)),
+            label: const Text('Order Food',
+                style: TextStyle(color: Color(0xFFE64A19), fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFE64A19)),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+        ),
+
+        if (tableRows.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: Text('No orders yet — tap Order Food to place one',
+                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 13)),
+            ),
+          )
+        else ...[
+          const SizedBox(height: 10),
+          // Table header
+          Container(
+            color: const Color(0xFFE64A19).withOpacity(0.07),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            child: const Row(children: [
+              SizedBox(width: 22, child: Text('#',    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
+              Expanded(flex: 3, child: Text('Item',  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
+              SizedBox(width: 52, child: Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
+              SizedBox(width: 24, child: Text('Qty',  textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
+              SizedBox(width: 52, child: Text('Amt',  textAlign: TextAlign.right,  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: AppTheme.textPrimary))),
             ]),
+          ),
+          ...tableRows.asMap().entries.map((entry) {
+            final i    = entry.key;
+            final row  = entry.value;
+            final qty    = row['qty']   as int;
+            final price  = row['price'] as double;
+            final status = row['status'] as String;
+            final isPending = status == 'PENDING';
+            final statusColors = {
+              'PENDING':   AppTheme.warning,
+              'PREPARING': const Color(0xFF1565C0),
+              'SERVED':    AppTheme.success,
+              'DELIVERED': AppTheme.success,
+              'CANCELLED': AppTheme.error,
+            };
+            final sc = statusColors[status] ?? AppTheme.textPrimary;
+            return Container(
+              color: i.isEven ? Colors.transparent : const Color(0xFFE64A19).withOpacity(0.03),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(children: [
+                SizedBox(width: 22, child: Text('${i + 1}', style: const TextStyle(fontSize: 11, color: AppTheme.textPrimary))),
+                Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(row['name'] as String, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: sc.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      status.replaceAll('_', ' ').toLowerCase().split(' ')
+                          .map((w) => w.isNotEmpty ? w[0].toUpperCase() + w.substring(1) : w).join(' '),
+                      style: TextStyle(fontSize: 9, color: sc, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ])),
+                SizedBox(width: 52, child: Text(row['time'] as String, style: const TextStyle(fontSize: 10, color: AppTheme.textPrimary))),
+                SizedBox(width: 24, child: Text('$qty', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary))),
+                SizedBox(width: 52, child: Text('₹${(price * qty).toStringAsFixed(0)}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
+              ]),
+            );
+          }),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE64A19).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(children: [
+              const Text('Food & Bev Total',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary)),
+              const Spacer(),
+              Text('₹${total.toStringAsFixed(0)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFFE64A19))),
+            ]),
+          ),
+        ],
+      ]),
     );
   }
 }
