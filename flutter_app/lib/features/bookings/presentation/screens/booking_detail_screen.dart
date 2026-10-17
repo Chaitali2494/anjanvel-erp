@@ -10,37 +10,14 @@ import '../../data/booking_service.dart';
 import '../../models/booking_model.dart';
 
 // Module-level session payments — persists across rebuilds, keyed by booking id
-// Pre-seeded with demo data so payment history always shows something
-final _sessionPayments = <String, List<Map<String, dynamic>>>{
-  // demo booking gets a pre-seeded advance payment
-  'demo': [
-    {
-      'amount': 3500.0,
-      'method': 'CASH',
-      'status': 'COMPLETED',
-      'note': 'Advance payment at check-in',
-      'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-    },
-  ],
-};
+// Starts empty; payments are only added when staff explicitly records them
+final _sessionPayments = <String, List<Map<String, dynamic>>>{};
 
 List<Map<String, dynamic>> _paymentsForBooking(String bookingId, List<Map<String, dynamic>> supaPayments) {
-  // Use supabase payments if available, else fall back to session
+  // Use Supabase payments first, then layer any local session payments on top
   final local = _sessionPayments[bookingId] ?? [];
   if (supaPayments.isNotEmpty) return [...supaPayments, ...local];
-  // For any demo booking (no real supabase payments), seed initial advance if nothing recorded yet
-  if (local.isEmpty && bookingId.length < 20) {
-    _sessionPayments[bookingId] = [
-      {
-        'amount': 3500.0,
-        'method': 'CASH',
-        'status': 'COMPLETED',
-        'note': 'Advance payment',
-        'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-      },
-    ];
-  }
-  return _sessionPayments[bookingId] ?? [];
+  return local;
 }
 
 double _sessionPaidExtra(String bookingId) =>
@@ -657,7 +634,13 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectivePaid   = booking.paidAmount + extraPaid;
     final balance         = (booking.totalAmount - effectivePaid).clamp(0.0, double.infinity);
-    final effectivePayStatus = balance <= 0 ? 'PAID' : (effectivePaid > 0 ? 'PARTIAL' : booking.paymentStatus);
+    // Payment status is purely what's been recorded — no auto-overriding to PARTIAL
+    // Only upgrade to PAID if fully settled; otherwise use the booking's own payment_status
+    final effectivePayStatus = balance <= 0
+        ? 'PAID'
+        : (extraPaid > 0 && (booking.paymentStatus == 'PENDING' || booking.paymentStatus == 'PARTIAL'))
+            ? 'PARTIAL'
+            : booking.paymentStatus;
     final payColor = effectivePayStatus == 'PAID'
         ? AppTheme.success
         : (effectivePayStatus == 'PARTIAL' ? AppTheme.warning : AppTheme.error);
