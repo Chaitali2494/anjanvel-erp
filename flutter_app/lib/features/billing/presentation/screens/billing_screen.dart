@@ -485,16 +485,49 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     ),
                   ])
                 else
-                  OutlinedButton.icon(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(Icons.check_rounded),
-                    label: const Text('Checkout Complete'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.success,
-                      side: const BorderSide(color: AppTheme.success),
-                      minimumSize: const Size(double.infinity, 50),
+                  Column(children: [
+                    // Download invoice button (shown after payment)
+                    ElevatedButton.icon(
+                      onPressed: () => _downloadInvoice(
+                        guestName: guestName,
+                        roomNo: _roomNo,
+                        roomType: roomType,
+                        nights: nights,
+                        persons: persons,
+                        residenceCharges: residenceCharges,
+                        foodCharges: foodCharges,
+                        activityCharges: activityCharges,
+                        shopCharges: shopBillCharges,
+                        residenceTotal: residenceTotal,
+                        kitchenTotal: kitchenTotal,
+                        activityTotal: activityTotal,
+                        shopTotal: shopTotal,
+                        subtotal: subtotal,
+                        gst: gst,
+                        discount: discount,
+                        discountPct: _discountPct,
+                        grandTotal: grandTotal,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1565C0),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      icon: const Icon(Icons.download_rounded, color: Colors.white, size: 20),
+                      label: const Text('Download Invoice',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text('Done'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.success,
+                        side: const BorderSide(color: AppTheme.success),
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                  ]),
               ],
             ),
           ),
