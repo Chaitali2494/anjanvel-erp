@@ -45,14 +45,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (allBookings) {
-        // ── Find room info ───────────────────────────────────────────────
-        final roomInfo = kBillableRooms.firstWhere(
-          (r) => r['room_number'] == _roomNo,
-          orElse: () => {
-            'guest_name': 'Guest', 'room_type': 'Room',
-            'nights': 1, 'rate': 3500.0, 'status': 'CHECKED_IN',
-          },
-        );
+        // ── Find room info (session data takes priority over demo) ──────
+        final roomInfo  = getRoomInfo(_roomNo);
         final guestName = roomInfo['guest_name'] as String? ?? 'Guest';
         final roomType  = roomInfo['room_type']  as String? ?? 'Room';
         final nights    = roomInfo['nights']      as int?    ?? 1;

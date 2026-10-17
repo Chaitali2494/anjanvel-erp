@@ -7,6 +7,7 @@ import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../bookings/data/booking_service.dart';
 import '../../../rooms/data/room_service.dart';
+import '../../../dashboard/data/dashboard_provider.dart';
 
 // ── Providers — Supabase JOIN query (guest names) + local session bookings ────
 
@@ -135,7 +136,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen>
     ref.invalidate(inHouseProvider);
     ref.invalidate(checkedOutProvider);
     ref.invalidate(cancelledProvider);
-    ref.invalidate(allRoomsProvider); // update room statuses in dashboard
+    ref.invalidate(allRoomsProvider);        // update room statuses in rooms screen
+    ref.invalidate(dashboardStatsProvider);  // update counts/revenue on dashboard
   }
 
   // Update sessionRoomBookings status for all rooms assigned to this booking

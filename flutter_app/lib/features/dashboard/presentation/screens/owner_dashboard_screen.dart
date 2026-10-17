@@ -66,6 +66,11 @@ class OwnerDashboardScreen extends ConsumerWidget {
                         Row(
                           children: [
                             IconButton(
+                              icon: const Icon(Icons.refresh_outlined, color: Colors.white),
+                              tooltip: 'Refresh',
+                              onPressed: () => ref.invalidate(dashboardStatsProvider),
+                            ),
+                            IconButton(
                               icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
                               tooltip: 'Switch Role',
                               onPressed: () => context.go('/role-selection'),

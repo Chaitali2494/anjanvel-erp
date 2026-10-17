@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../activities/data/activity_bookings_provider.dart';
+import '../../bookings/data/booking_service.dart';
 
 // ── Demo rooms eligible for billing (booked / advance-paid / checked-in) ───────
 
@@ -117,16 +118,72 @@ class BillingStateNotifier
 final billingStateProvider = StateNotifierProvider<BillingStateNotifier,
     Map<String, Map<String, dynamic>>>((ref) => BillingStateNotifier());
 
-// ── Helper: calculate total bill for a room ───────────────────────────────────
+// ── Helper: get actual nights from session booking or fall back to demo ────────
 
-double calcRoomTotal(String roomNumber, List<Map<String, dynamic>> activityBookings) {
+int getActualNights(String roomNumber) {
+  // Check session room bookings first (populated when room is assigned)
+  final session = sessionRoomBookings[roomNumber];
+  if (session != null) {
+    final ci  = DateTime.tryParse((session['check_in_date']  as String?) ?? '');
+    final co  = DateTime.tryParse((session['check_out_date'] as String?) ?? '');
+    if (ci != null && co != null && co.isAfter(ci)) {
+      return co.difference(ci).inDays;
+    }
+  }
+  // Fall back to kBillableRooms hardcoded nights
   final room = kBillableRooms.firstWhere(
     (r) => r['room_number'] == roomNumber,
     orElse: () => {},
   );
-  if (room.isEmpty) return 0;
+  return (room['nights'] as int?) ?? 1;
+}
 
-  final roomCharge = (room['rate'] as num).toDouble() * (room['nights'] as int);
+// ── Helper: get room info, merging session data over demo data ────────────────
+
+Map<String, dynamic> getRoomInfo(String roomNumber) {
+  final demo = kBillableRooms.firstWhere(
+    (r) => r['room_number'] == roomNumber,
+    orElse: () => <String, dynamic>{
+      'room_number': roomNumber,
+      'guest_name': 'Guest',
+      'room_type': 'Room',
+      'nights': 1,
+      'rate': 3500.0,
+      'status': 'CHECKED_IN',
+    },
+  );
+
+  final session = sessionRoomBookings[roomNumber];
+  if (session == null) return Map<String, dynamic>.from(demo);
+
+  // Merge: session data takes priority for guest name and dates
+  final ci  = DateTime.tryParse((session['check_in_date']  as String?) ?? '');
+  final co  = DateTime.tryParse((session['check_out_date'] as String?) ?? '');
+  final actualNights = (ci != null && co != null && co.isAfter(ci))
+      ? co.difference(ci).inDays
+      : (demo['nights'] as int? ?? 1);
+
+  final guestName = (session['guests'] as Map<String, dynamic>?)?['full_name']
+      as String?
+      ?? demo['guest_name'] as String? ?? 'Guest';
+
+  return {
+    ...demo,
+    'guest_name': guestName,
+    'nights':     actualNights,
+    'check_in':   session['check_in_date']  ?? demo['check_in'],
+    'check_out':  session['check_out_date'] ?? demo['check_out'],
+  };
+}
+
+// ── Helper: calculate total bill for a room ───────────────────────────────────
+
+double calcRoomTotal(String roomNumber, List<Map<String, dynamic>> activityBookings) {
+  final room = getRoomInfo(roomNumber);
+
+  final nights     = room['nights'] as int;
+  final rate       = (room['rate'] as num).toDouble();
+  final roomCharge = rate * nights;
   final foodCharge = kDemoFoodCharges[roomNumber] ?? 0.0;
   final activityCharge = activityBookings
       .where((b) => b['room_number'] == roomNumber && b['status'] != 'CANCELLED')

@@ -233,6 +233,71 @@ class BookingService {
     sessionStatusOverrides[id] = newStatus;
   }
 
+  // ── Session stats for dashboard ───────────────────────────────────────────────
+  // Returns counts/totals derived purely from in-memory session data so the
+  // dashboard reflects local bookings even when Supabase is unreachable.
+  Map<String, dynamic> getSessionStats(String today) {
+    int checkinsToday  = 0;
+    int checkoutsToday = 0;
+    int guestsInhouse  = 0;
+    double revenueToday = 0;
+
+    for (final b in _sessionLocalBookings) {
+      final eff = sessionStatusOverrides[b.id] ?? b.status;
+      if (eff == 'CHECKED_IN') {
+        guestsInhouse++;
+        // Count check-in date to today's check-in tally
+        if (b.checkInDate == today) checkinsToday++;
+        // Add paid amount to today's revenue (simple heuristic)
+        revenueToday += (b.paidAmount ?? 0);
+      }
+      if (eff == 'CONFIRMED' && b.checkInDate == today) checkinsToday++;
+      if (eff == 'CHECKED_OUT' && b.checkOutDate == today) checkoutsToday++;
+    }
+
+    // Room occupancy from session room assignments
+    int sessionOccupied = 0;
+    int sessionReserved = 0;
+    for (final entry in sessionRoomBookings.entries) {
+      final b   = entry.value;
+      final bId = b['id'] as String? ?? '';
+      final eff = sessionStatusOverrides[bId] ?? (b['status'] as String? ?? '');
+      if (eff == 'CHECKED_IN')  sessionOccupied++;
+      if (eff == 'CONFIRMED' || eff == 'RESERVED') sessionReserved++;
+    }
+
+    // Today's check-in list items for dashboard
+    final todayCheckins = _sessionLocalBookings
+        .where((b) {
+          final eff = sessionStatusOverrides[b.id] ?? b.status;
+          return b.checkInDate == today &&
+              (eff == 'CONFIRMED' || eff == 'CHECKED_IN');
+        })
+        .map((b) => {
+              'booking_number': b.bookingNumber,
+              'status': sessionStatusOverrides[b.id] ?? b.status,
+              'check_in_date': b.checkInDate,
+              'check_out_date': b.checkOutDate,
+              'num_adults': b.numAdults,
+              'num_children': b.numChildren,
+              'guests': {
+                'full_name': b.guestName ?? (_sessionBookingGuests[b.id]?['name'] ?? ''),
+                'phone': b.guestPhone ?? (_sessionBookingGuests[b.id]?['phone'] ?? ''),
+              },
+            })
+        .toList();
+
+    return {
+      'checkinsToday':  checkinsToday,
+      'checkoutsToday': checkoutsToday,
+      'guestsInhouse':  guestsInhouse,
+      'revenueToday':   revenueToday,
+      'sessionOccupied': sessionOccupied,
+      'sessionReserved': sessionReserved,
+      'todayCheckins':  todayCheckins,
+    };
+  }
+
   // ── Local session bookings as raw maps (for check-in screen) ─────────────────
   // Returns local bookings filtered by effective status, in the same map format
   // that _FrontDeskCard expects (guests.full_name populated from guestName)
