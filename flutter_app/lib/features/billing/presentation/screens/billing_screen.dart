@@ -15,17 +15,34 @@ import '../../data/billing_state_provider.dart';
 class BillingScreen extends ConsumerStatefulWidget {
   final String? bookingId;
   final String? roomNumber;
-  const BillingScreen({super.key, this.bookingId, this.roomNumber});
+  final String? checkInDate;
+  final String? checkOutDate;
+  const BillingScreen({super.key, this.bookingId, this.roomNumber, this.checkInDate, this.checkOutDate});
 
   @override
   ConsumerState<BillingScreen> createState() => _BillingScreenState();
 }
 
 class _BillingScreenState extends ConsumerState<BillingScreen> {
-  double _discountPct = 0;
+  double _discountPct  = 0;
+  int    _extraMattress = 0;
+  static const double _mattressRate = 200.0; // ₹200 per mattress per night
+
   final _discountCtrl = TextEditingController(text: '0');
 
   String get _roomNo => widget.roomNumber ?? 'TS-1';
+
+  /// Calculate actual nights from widget dates, then session booking, then demo data
+  int _calcNights(int fallbackNights) {
+    // 1. Dates passed directly to the screen
+    final ci = DateTime.tryParse(widget.checkInDate ?? '');
+    final co = DateTime.tryParse(widget.checkOutDate ?? '');
+    if (ci != null && co != null && co.isAfter(ci)) {
+      return co.difference(ci).inDays;
+    }
+    // 2. Session booking for this room
+    return getActualNights(_roomNo) > 0 ? getActualNights(_roomNo) : fallbackNights;
+  }
 
   @override
   void dispose() {
@@ -49,14 +66,37 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         final roomInfo  = getRoomInfo(_roomNo);
         final guestName = roomInfo['guest_name'] as String? ?? 'Guest';
         final roomType  = roomInfo['room_type']  as String? ?? 'Room';
-        final nights    = roomInfo['nights']      as int?    ?? 1;
+        final baseNights = roomInfo['nights'] as int? ?? 1;
+        final nights    = _calcNights(baseNights);
         final rate      = (roomInfo['rate']       as num?)?.toDouble() ?? 3500.0;
 
+        // Check-in / check-out label for display
+        final checkIn  = widget.checkInDate ?? roomInfo['check_in']  as String? ?? '';
+        final checkOut = widget.checkOutDate ?? roomInfo['check_out'] as String? ?? '';
+        String _fmt(String d) {
+          final dt = DateTime.tryParse(d);
+          if (dt == null) return d;
+          return '${dt.day}/${dt.month}/${dt.year}';
+        }
+
         // ── Charge categories ────────────────────────────────────────────
-        // 1. Residence
+        // 1. Residence (room + extra mattresses)
+        final mattressTotal = _extraMattress * _mattressRate * nights;
         final residenceCharges = <_Charge>[
-          _Charge('$roomType Room × $nights night${nights > 1 ? 's' : ''}',
-              rate * nights, Icons.bed_outlined, const Color(0xFF1565C0)),
+          _Charge(
+            '$roomType × $nights night${nights > 1 ? 's' : ''}'
+            '${checkIn.isNotEmpty && checkOut.isNotEmpty ? '  (${ _fmt(checkIn)} – ${_fmt(checkOut)})' : ''}',
+            rate * nights,
+            Icons.bed_outlined,
+            const Color(0xFF1565C0),
+          ),
+          if (_extraMattress > 0)
+            _Charge(
+              'Extra Mattress × $_extraMattress × $nights night${nights > 1 ? 's' : ''} (₹${_mattressRate.toInt()}/mattress/night)',
+              mattressTotal,
+              Icons.hotel_outlined,
+              const Color(0xFF6A1B9A),
+            ),
         ];
 
         // 2. Kitchen / Food — live from foodOrdersStateProvider
@@ -173,6 +213,56 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                   total: residenceTotal,
                   color: const Color(0xFF1565C0),
                 ),
+                const SizedBox(height: 8),
+
+                // ── Extra Mattress ───────────────────────────────────────
+                if (!isPaid)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                      border: Border.all(color: const Color(0xFF6A1B9A).withOpacity(0.25)),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.hotel_outlined, color: Color(0xFF6A1B9A), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('Extra Mattress',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          Text('₹${_mattressRate.toInt()}/mattress/night',
+                              style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                        ]),
+                      ),
+                      Row(children: [
+                        IconButton(
+                          onPressed: _extraMattress > 0
+                              ? () => setState(() => _extraMattress--)
+                              : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                          color: const Color(0xFF6A1B9A),
+                          iconSize: 22,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        ),
+                        Container(
+                          width: 36,
+                          alignment: Alignment.center,
+                          child: Text('$_extraMattress',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => _extraMattress++),
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: const Color(0xFF6A1B9A),
+                          iconSize: 22,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        ),
+                      ]),
+                    ]),
+                  ),
                 const SizedBox(height: 10),
 
                 // ── Kitchen Bill ─────────────────────────────────────────
@@ -211,40 +301,46 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                 const SizedBox(height: 16),
 
                 // ── Discount ─────────────────────────────────────────────
-                if (!isPaid)
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMD),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.local_offer_outlined, color: Color(0xFF6A1B9A), size: 20),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Discount',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        Text('Enter % to apply on subtotal',
+                            style: TextStyle(fontSize: 11, color: AppTheme.textHint)),
+                      ]),
                     ),
-                    child: Row(children: [
-                      const Icon(Icons.local_offer_outlined, color: Color(0xFF6A1B9A), size: 20),
-                      const SizedBox(width: 10),
-                      const Text('Discount (%)',
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      const Spacer(),
-                      SizedBox(
-                        width: 80,
-                        child: TextField(
-                          controller: _discountCtrl,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          onChanged: (v) => setState(() => _discountPct = double.tryParse(v) ?? 0),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade200),
-                            ),
-                            suffixText: '%',
+                    SizedBox(
+                      width: 90,
+                      child: TextField(
+                        controller: _discountCtrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        enabled: !isPaid,
+                        onChanged: (v) => setState(() => _discountPct = double.tryParse(v) ?? 0),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
                           ),
+                          suffixText: '%',
+                          hintText: '0',
                         ),
                       ),
-                    ]),
-                  ),
+                    ),
+                  ]),
+                ),
                 const SizedBox(height: 16),
 
                 // ── Summary ──────────────────────────────────────────────
@@ -256,17 +352,39 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     border: Border.all(color: const Color(0xFF1A237E).withOpacity(0.15)),
                   ),
                   child: Column(children: [
-                    _SummaryRow('🏨 Residence',  '₹${residenceTotal.toStringAsFixed(0)}', false, const Color(0xFF1565C0)),
-                    _SummaryRow('🍽️ Kitchen',    '₹${kitchenTotal.toStringAsFixed(0)}',   false, const Color(0xFFE64A19)),
-                    _SummaryRow('🎯 Activities', '₹${activityTotal.toStringAsFixed(0)}',  false, const Color(0xFF00838F)),
+                    // Stay detail header
+                    if (checkIn.isNotEmpty && checkOut.isNotEmpty) ...[
+                      Row(children: [
+                        const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.textHint),
+                        const SizedBox(width: 6),
+                        Text('${_fmt(checkIn)} → ${_fmt(checkOut)}  ·  $nights night${nights > 1 ? 's' : ''}',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textHint)),
+                      ]),
+                      const SizedBox(height: 10),
+                    ],
+                    _SummaryRow('🏨 Room (${nights}N × ₹${rate.toInt()})',
+                        '₹${(rate * nights).toStringAsFixed(0)}', false, const Color(0xFF1565C0)),
+                    if (_extraMattress > 0)
+                      _SummaryRow('🛏️ Mattress (×$_extraMattress × ${nights}N)',
+                          '₹${mattressTotal.toStringAsFixed(0)}', false, const Color(0xFF6A1B9A)),
+                    if (kitchenTotal > 0)
+                      _SummaryRow('🍽️ Kitchen',    '₹${kitchenTotal.toStringAsFixed(0)}', false, const Color(0xFFE64A19)),
+                    if (activityTotal > 0)
+                      _SummaryRow('🎯 Activities', '₹${activityTotal.toStringAsFixed(0)}', false, const Color(0xFF00838F)),
+                    if (shopTotal > 0)
+                      _SummaryRow('🏪 Shop',       '₹${shopTotal.toStringAsFixed(0)}', false, const Color(0xFF558B2F)),
                     const Divider(height: 16),
-                    _SummaryRow('Subtotal',  '₹${subtotal.toStringAsFixed(0)}',    false, AppTheme.textPrimary),
-                    _SummaryRow('GST (12%)', '₹${gst.toStringAsFixed(0)}',         false, AppTheme.textPrimary),
-                    if (_discountPct > 0)
-                      _SummaryRow(
-                          'Discount (${_discountPct.toStringAsFixed(0)}%)',
-                          '−₹${discount.toStringAsFixed(0)}',
-                          false, AppTheme.success),
+                    _SummaryRow('Subtotal',  '₹${subtotal.toStringAsFixed(0)}',  false, AppTheme.textPrimary),
+                    _SummaryRow('GST (12%)', '₹${gst.toStringAsFixed(0)}',       false, AppTheme.textPrimary),
+                    _SummaryRow(
+                        _discountPct > 0
+                            ? 'Discount (${_discountPct.toStringAsFixed(0)}%)'
+                            : 'Discount',
+                        _discountPct > 0
+                            ? '−₹${discount.toStringAsFixed(0)}'
+                            : '—',
+                        false,
+                        _discountPct > 0 ? AppTheme.success : AppTheme.textHint),
                     const Divider(height: 20),
                     Row(children: [
                       const Text('Grand Total',
