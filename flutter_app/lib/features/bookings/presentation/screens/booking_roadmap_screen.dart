@@ -669,6 +669,19 @@ class _CheckedInDetail extends StatelessWidget {
         const SizedBox(height: 8),
         const _StatusChip('In-House 🏠', Color(0xFF2E7D32)),
         const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onViewBill,
+            icon: const Icon(Icons.receipt_long_rounded, size: 16, color: Colors.white),
+            label: const Text('Process Bill', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0288D1),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
