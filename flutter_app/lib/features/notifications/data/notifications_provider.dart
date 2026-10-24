@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/department_provider.dart';
+export '../../../core/providers/department_provider.dart';
 import '../../../core/providers/supabase_provider.dart';
 import '../../activities/data/activity_bookings_provider.dart';
 import '../../bookings/data/session_bookings_provider.dart';
@@ -368,46 +370,6 @@ const _deptCategories = <String, Set<NotificationCategory>>{
   'housekeeping': {NotificationCategory.housekeeping, NotificationCategory.maintenance},
   'activity': {NotificationCategory.activity},
 };
-
-/// Department for a staff role. Null for Owner/Manager (= see everything).
-String? departmentForRole(String? role) {
-  switch ((role ?? '').toUpperCase()) {
-    case 'KITCHEN':
-      return 'kitchen';
-    case 'HOUSEKEEPING':
-      return 'housekeeping';
-    case 'ACTIVITY_COORDINATOR':
-    case 'GUIDE':
-      return 'activity';
-    default:
-      return null;
-  }
-}
-
-/// Department for a dashboard route, e.g. '/dashboard/kitchen' → 'kitchen'.
-String departmentForLocation(String location) {
-  if (location.contains('kitchen')) return 'kitchen';
-  if (location.contains('housekeeping')) return 'housekeeping';
-  if (location.contains('activity')) return 'activity';
-  return 'all'; // owner / manager dashboards
-}
-
-/// Final department to show, given the dashboard the bell was opened from.
-/// A logged-in user's role always wins:
-///   • Owner/Manager accounts see everything, on any dashboard.
-///   • Department staff only ever see their own department.
-/// Without a login (demo / role-selection mode) the dashboard decides.
-final effectiveDepartmentProvider = Provider.family<String, String?>((ref, fromDashboard) {
-  final user = ref.watch(currentUserProvider);
-  if (user != null) {
-    final role = user.role.toUpperCase();
-    if (role == 'OWNER' || role == 'MANAGER') return 'all';
-    final dept = departmentForRole(role);
-    if (dept != null) return dept;
-  }
-  return fromDashboard ??
-      departmentForLocation(ref.watch(activeRoleDashboardProvider));
-});
 
 /// Notifications for a department key ('all', 'kitchen', 'housekeeping', 'activity').
 final notificationsForDepartmentProvider =

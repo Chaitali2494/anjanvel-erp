@@ -157,6 +157,12 @@ class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
                       const Color(0xFF1565C0),
                       () => context.push('/activities/tracker'),
                     ),
+                    _QuickAction(
+                      Icons.inventory_2_outlined,
+                      'Inventory',
+                      const Color(0xFF6D4C41),
+                      () => context.push('/inventory?dept=activity'),
+                    ),
                   ]),
                 ],
               ),

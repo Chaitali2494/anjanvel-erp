@@ -116,7 +116,7 @@ class HousekeepingDashboardScreen extends ConsumerWidget {
                   Row(children: [
                     _QuickAction(Icons.list_alt_rounded,        'Task List',   const Color(0xFF6A1B9A), () => context.push('/housekeeping')),
                     _QuickAction(Icons.checklist_rounded,        'Checklist',   const Color(0xFF1565C0), () => context.push('/housekeeping/checklist')),
-                    _QuickAction(Icons.inventory_2_outlined,     'Inventory',   const Color(0xFF2E7D32), () => context.push('/inventory')),
+                    _QuickAction(Icons.inventory_2_outlined,     'Inventory',   const Color(0xFF2E7D32), () => context.push('/inventory?dept=housekeeping')),
                     _QuickAction(Icons.build_outlined,           'Maintenance', const Color(0xFF37474F), () => context.push('/maintenance')),
                   ]),
                 ],

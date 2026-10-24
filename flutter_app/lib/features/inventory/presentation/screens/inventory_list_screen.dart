@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../../core/services/cloud_store.dart';
+import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/department_provider.dart';
 
 const _cloudInventory = 'inventory_items';
 
@@ -61,10 +63,27 @@ const _categoryConfig = {
   'Maintenance':  {'color': Color(0xFF37474F), 'icon': Icons.build_outlined},
 };
 
+// ── Department access ─────────────────────────────────────────────────────────
+// Owner & Manager see every category. Each department sees only its own stock.
+
+const _allCategories = ['Kitchen', 'Housekeeping', 'Activities', 'F&B', 'Maintenance'];
+
+const _deptInventoryCategories = <String, List<String>>{
+  'kitchen': ['Kitchen', 'F&B'],
+  'housekeeping': ['Housekeeping', 'Maintenance'],
+  'activity': ['Activities'],
+};
+
+List<String> inventoryCategoriesFor(String dept) =>
+    _deptInventoryCategories[dept] ?? _allCategories;
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 class InventoryListScreen extends ConsumerStatefulWidget {
-  const InventoryListScreen({super.key});
+  /// Department the screen was opened from ('all', 'kitchen', 'housekeeping',
+  /// 'activity'). A logged-in user's role overrides it.
+  final String? department;
+  const InventoryListScreen({super.key, this.department});
   @override
   ConsumerState<InventoryListScreen> createState() => _InventoryListScreenState();
 }
@@ -84,18 +103,21 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   @override
   Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(inventoryProvider);
+    final dept = ref.watch(effectiveDepartmentProvider(widget.department));
+    final allowed = inventoryCategoriesFor(dept);
+    final home = dashboardForDepartment(dept, ref.watch(activeRoleDashboardProvider));
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Inventory'),
+        title: Text(dept == 'all' ? 'Inventory' : '${departmentLabel(dept)} Inventory'),
         backgroundColor: const Color(0xFF00796B),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.home_rounded),
             tooltip: 'Home',
-            onPressed: () => context.go('/dashboard/owner'),
+            onPressed: () => context.go(home),
           ),
           IconButton(
             icon: Icon(_lowStockOnly ? Icons.warning_rounded : Icons.warning_outlined,
@@ -156,7 +178,13 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
             child: inventoryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF00796B))),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (items) {
+        data: (allItems) {
+          // Only this department's categories (everything for owner/manager)
+          final items = dept == 'all'
+              ? allItems
+              : allItems
+                  .where((i) => allowed.contains(i['category'] as String? ?? ''))
+                  .toList();
           final q = _search.toLowerCase().trim();
           final lowStock = items.where((i) {
             final qty = (i['quantity'] as num?)?.toDouble() ?? 0;
@@ -180,6 +208,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
           }).toList();
 
           final categories = items.map((i) => i['category'] as String? ?? 'Other').toSet().toList()..sort();
+          final showCategoryChips = categories.length > 1;
           final totalValue = items.fold<double>(0, (s, i) =>
               s + ((i['quantity'] as num?)?.toDouble() ?? 0) * ((i['unit_price'] as num?)?.toDouble() ?? 0));
 
@@ -189,6 +218,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
               _InventoryStats(total: items.length, lowStock: lowStock, totalValue: totalValue),
 
               // Category filter
+              if (showCategoryChips)
               SizedBox(
                 height: 44,
                 child: ListView(
@@ -240,7 +270,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                           }
                           return grouped.entries.map((e) =>
                               _CategorySection(category: e.key, items: e.value,
-                                  onEdit: (item) => _showEditSheet(item))).toList();
+                                  onEdit: (item) => _showEditSheet(item, allowed))).toList();
                         })(),
                       ),
               ),
@@ -252,7 +282,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
   ],              // closes outer Column children
 ),                // closes outer Column (body:)
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddSheet(),
+        onPressed: () => _showAddSheet(allowed),
         icon: const Icon(Icons.add),
         label: const Text('Add Item'),
         backgroundColor: const Color(0xFF00796B),
@@ -260,16 +290,18 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
     );
   }
 
-  void _showAddSheet() => _showItemSheet(null);
-  void _showEditSheet(Map<String, dynamic> item) => _showItemSheet(item);
+  void _showAddSheet(List<String> allowed) => _showItemSheet(null, allowed);
+  void _showEditSheet(Map<String, dynamic> item, List<String> allowed) =>
+      _showItemSheet(item, allowed);
 
-  void _showItemSheet(Map<String, dynamic>? existing) {
+  void _showItemSheet(Map<String, dynamic>? existing, List<String> allowed) {
     final nameCtrl = TextEditingController(text: existing?['name'] as String? ?? '');
     final qtyCtrl = TextEditingController(text: existing?['quantity']?.toString() ?? '');
     final minCtrl = TextEditingController(text: existing?['min_quantity']?.toString() ?? '');
     final priceCtrl = TextEditingController(text: existing?['unit_price']?.toString() ?? '');
     String unit = existing?['unit'] as String? ?? 'pcs';
-    String category = existing?['category'] as String? ?? 'Kitchen';
+    String category = existing?['category'] as String? ?? allowed.first;
+    if (!allowed.contains(category)) category = allowed.first;
 
     showModalBottomSheet(
       context: context,
@@ -293,7 +325,7 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                 Expanded(child: DropdownButtonFormField<String>(
                   value: category,
                   decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                  items: ['Kitchen', 'Housekeeping', 'Activities', 'F&B', 'Maintenance']
+                  items: allowed
                       .map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setModal(() => category = v!),
                 )),

@@ -323,7 +323,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
                           icon: Icons.inventory_2_outlined,
                           message: '${stats.lowStockAlerts} inventory items below minimum stock',
                           color: AppTheme.warning,
-                          onTap: () => context.push(AppRoutes.inventory),
+                          onTap: () => context.push('${AppRoutes.inventory}?dept=all'),
                         ),
                       ],
 
@@ -577,7 +577,7 @@ class _QuickActionsGrid extends StatelessWidget {
       _Action('Activities',  Icons.hiking_outlined,            '/activities/tracker',const Color(0xFF00695C), activeActivities),
       _Action('Billing',     Icons.receipt_long_rounded,       '/billing',           const Color(0xFF00838F), unpaidBills),
       _Action('Staff',       Icons.people_rounded,             '/staff',             const Color(0xFF1565C0), 0),
-      _Action('Inventory',   Icons.inventory_2_outlined,       '/inventory',         const Color(0xFF6D4C41), 0),
+      _Action('Inventory',   Icons.inventory_2_outlined,       '/inventory?dept=all', const Color(0xFF6D4C41), 0),
       _Action('Reports',     Icons.bar_chart_rounded,          '/reports',           AppTheme.accent,   0),
     ];
 

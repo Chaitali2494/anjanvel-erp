@@ -133,7 +133,7 @@ class FoodDashboardScreen extends ConsumerWidget {
               Row(children: [
                 Expanded(child: _ActionTile('Menu', Icons.menu_book_rounded, const Color(0xFF2E7D32), () => context.push('/food'))),
                 const SizedBox(width: 10),
-                Expanded(child: _ActionTile('Inventory', Icons.inventory_2_outlined, const Color(0xFF00796B), () => context.push('/inventory'))),
+                Expanded(child: _ActionTile('Inventory', Icons.inventory_2_outlined, const Color(0xFF00796B), () => context.push('/inventory?dept=kitchen'))),
               ]),
             ],
           ),

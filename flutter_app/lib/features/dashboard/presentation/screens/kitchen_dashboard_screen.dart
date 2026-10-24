@@ -39,6 +39,11 @@ class KitchenDashboardScreen extends ConsumerWidget {
             onPressed: () => context.go('/role-selection'),
           ),
           IconButton(
+            icon: const Icon(Icons.inventory_2_outlined, color: Colors.white),
+            tooltip: 'Kitchen Inventory',
+            onPressed: () => context.push('/inventory?dept=kitchen'),
+          ),
+          IconButton(
             icon: const Icon(Icons.restaurant_menu_outlined, color: Colors.white),
             onPressed: () => context.push('/food'),
           ),

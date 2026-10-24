@@ -151,7 +151,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
                           icon: Icons.inventory_2_outlined,
                           message: '${stats.lowStockAlerts} inventory items low',
                           color: AppTheme.warning,
-                          onTap: () => context.push(AppRoutes.inventory),
+                          onTap: () => context.push('${AppRoutes.inventory}?dept=all'),
                         ),
                       if (stats.maintenanceOpen > 0)
                         _AlertTile(
@@ -190,7 +190,7 @@ class _ManagerActionGrid extends StatelessWidget {
     _MgrAction('Housekeeping',Icons.cleaning_services_rounded,   '/dashboard/housekeeping', Color(0xFF6A1B9A)),
     _MgrAction('Staff',       Icons.people_rounded,              '/staff',                  Color(0xFF37474F)),
     _MgrAction('Reports',     Icons.bar_chart_rounded,           '/reports',                Color(0xFF0D47A1)),
-    _MgrAction('Inventory',   Icons.inventory_2_outlined,        '/inventory',              Color(0xFFE64A19)),
+    _MgrAction('Inventory',   Icons.inventory_2_outlined,        '/inventory?dept=all',     Color(0xFFE64A19)),
     _MgrAction('Food',        Icons.restaurant_menu_outlined,    '/food',                   Color(0xFFFFB300)),
     _MgrAction('Activities',  Icons.hiking_outlined,             '/activities',             Color(0xFF558B2F)),
     _MgrAction('Guests',      Icons.person_outline,              '/guests',                 Color(0xFF00796B)),
