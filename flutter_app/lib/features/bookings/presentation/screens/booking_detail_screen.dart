@@ -978,11 +978,25 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
           .select('room_id, rooms(room_number, room_types(name))')
           .eq('booking_id', widget.bookingId);
 
-      final available = await client
-          .from('rooms')
-          .select('id, room_number, status, room_types(name)')
-          .eq('status', 'AVAILABLE')
-          .order('room_number');
+      // Try date-aware availability RPC first; fall back to status filter
+      List<Map<String, dynamic>> available = [];
+      try {
+        final rpcResult = await client.rpc('get_available_rooms', params: {
+          'p_check_in':  widget.checkIn,
+          'p_check_out': widget.checkOut ?? widget.checkIn,
+        });
+        available = List<Map<String, dynamic>>.from(rpcResult ?? []);
+      } catch (_) {
+        available = List<Map<String, dynamic>>.from(
+          await client
+              .from('rooms')
+              .select('id, room_number, status, room_types(name)')
+              .eq('status', 'AVAILABLE')
+              .order('room_number'),
+        );
+      }
+      // Also exclude rooms assigned this session (other bookings)
+      final sessionOccupied = sessionRoomBookings.keys.toSet();
 
       if (mounted) {
         // Merge Supabase assigned rooms with session-assigned ones (deduplicate by room_number)
@@ -1006,13 +1020,14 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
             .map((r) => ((r['rooms'] as Map?)??{})['room_number'] as String? ?? '')
             .toSet();
 
-        // Remove already-assigned rooms from available list
+        // Remove already-assigned + session-occupied rooms from available list
+        final allExcluded = {...assignedNums, ...sessionOccupied};
         final availableList = available.isNotEmpty
             ? List<Map<String, dynamic>>.from(available)
-                .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? ''))
+                .where((r) => !allExcluded.contains(r['room_number']?.toString() ?? ''))
                 .toList()
             : List<Map<String, dynamic>>.from(_demoRooms)
-                .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? ''))
+                .where((r) => !allExcluded.contains(r['room_number']?.toString() ?? ''))
                 .toList();
 
         setState(() {
@@ -1032,10 +1047,12 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
       }).toList();
 
       if (mounted) {
+        final sessionOcc = sessionRoomBookings.keys.toSet();
         setState(() {
           _assignedRooms  = sessionCards;
           _availableRooms = List<Map<String, dynamic>>.from(_demoRooms)
-              .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? ''))
+              .where((r) => !assignedNums.contains(r['room_number']?.toString() ?? '')
+                         && !sessionOcc.contains(r['room_number']?.toString() ?? ''))
               .toList();
           _loading = false;
         });
