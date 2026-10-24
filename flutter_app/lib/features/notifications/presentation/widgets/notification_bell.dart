@@ -10,10 +10,13 @@ class NotificationBell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unread = ref.watch(unreadNotificationCountProvider);
+    final fromDashboard =
+        departmentForLocation(GoRouterState.of(context).matchedLocation);
+    final dept = ref.watch(effectiveDepartmentProvider(fromDashboard));
+    final unread = ref.watch(unreadCountForDepartmentProvider(dept));
     return IconButton(
       tooltip: unread > 0 ? '$unread unread notifications' : 'Notifications',
-      onPressed: () => context.push('/notifications'),
+      onPressed: () => context.push('/notifications?dept=$dept'),
       icon: Stack(
         clipBehavior: Clip.none,
         children: [

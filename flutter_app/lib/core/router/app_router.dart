@@ -319,7 +319,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/help', builder: (_, __) => const HelpCenterScreen()),
 
       // Notifications
-      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/notifications', builder: (_, state) => NotificationsScreen(department: state.uri.queryParameters['dept'])),
 
       // Profile
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),

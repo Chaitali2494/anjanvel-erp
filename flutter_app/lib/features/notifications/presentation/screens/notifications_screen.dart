@@ -9,7 +9,10 @@ import '../../../housekeeping/data/housekeeping_provider.dart';
 import '../../data/notifications_provider.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
-  const NotificationsScreen({super.key});
+  /// Department the screen was opened from ('all', 'kitchen', 'housekeeping',
+  /// 'activity'). A logged-in user's role overrides it.
+  final String? department;
+  const NotificationsScreen({super.key, this.department});
 
   @override
   ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -29,7 +32,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final all = ref.watch(notificationsProvider);
+    final dept = ref.watch(effectiveDepartmentProvider(widget.department));
+    final all = ref.watch(notificationsForDepartmentProvider(dept));
     final read = ref.watch(readNotificationsProvider);
     final unreadCount = all.where((n) => !read.contains(n.id)).length;
 
@@ -45,7 +49,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AnjAppBar(
-        title: 'Notifications',
+        title: dept == 'all'
+            ? 'Notifications'
+            : '${dept[0].toUpperCase()}${dept.substring(1)} Notifications',
         actions: [
           if (unreadCount > 0)
             TextButton.icon(

@@ -258,7 +258,9 @@ final allNotificationsProvider = Provider<List<AppNotification>>((ref) {
         ? NotificationCategory.maintenance
         : type == 'HOUSEKEEPING'
             ? NotificationCategory.housekeeping
-            : NotificationCategory.guest;
+            : type == 'ACTIVITY'
+                ? NotificationCategory.activity
+                : NotificationCategory.guest;
     final note = _str(r['note']);
     out.add(AppNotification(
       id: 'req_${r['id']}_$status',
@@ -272,7 +274,9 @@ final allNotificationsProvider = Provider<List<AppNotification>>((ref) {
           ? '/maintenance'
           : type == 'HOUSEKEEPING'
               ? '/housekeeping'
-              : null,
+              : type == 'ACTIVITY'
+                  ? '/activities/tracker'
+                  : null,
       urgent: status == 'PENDING',
     ));
   }
@@ -350,27 +354,75 @@ final allNotificationsProvider = Provider<List<AppNotification>>((ref) {
   return list;
 });
 
-/// Notifications relevant to the dashboard the user is currently using.
-final notificationsProvider = Provider<List<AppNotification>>((ref) {
-  final all = ref.watch(allNotificationsProvider);
-  final dashboard = ref.watch(activeRoleDashboardProvider);
-  Set<NotificationCategory>? allowed;
-  if (dashboard.contains('kitchen')) {
-    allowed = {NotificationCategory.food, NotificationCategory.system};
-  } else if (dashboard.contains('housekeeping')) {
-    allowed = {
-      NotificationCategory.housekeeping,
-      NotificationCategory.maintenance,
-      NotificationCategory.system,
-    };
-  } else if (dashboard.contains('activity')) {
-    allowed = {NotificationCategory.activity, NotificationCategory.system};
+// ── Who sees what ─────────────────────────────────────────────────────────────
+//
+// Owner & Manager  → every notification
+// Kitchen          → food orders
+// Housekeeping     → cleaning + maintenance
+// Activity / Guide → activity bookings + activity requests
+//
+// Department keys: 'all' | 'kitchen' | 'housekeeping' | 'activity'
+
+const _deptCategories = <String, Set<NotificationCategory>>{
+  'kitchen': {NotificationCategory.food},
+  'housekeeping': {NotificationCategory.housekeeping, NotificationCategory.maintenance},
+  'activity': {NotificationCategory.activity},
+};
+
+/// Department for a staff role. Null for Owner/Manager (= see everything).
+String? departmentForRole(String? role) {
+  switch ((role ?? '').toUpperCase()) {
+    case 'KITCHEN':
+      return 'kitchen';
+    case 'HOUSEKEEPING':
+      return 'housekeeping';
+    case 'ACTIVITY_COORDINATOR':
+    case 'GUIDE':
+      return 'activity';
+    default:
+      return null;
   }
-  if (allowed == null) return all; // owner / manager see everything
-  return all.where((n) => allowed!.contains(n.category) || n.fromServer).toList();
+}
+
+/// Department for a dashboard route, e.g. '/dashboard/kitchen' → 'kitchen'.
+String departmentForLocation(String location) {
+  if (location.contains('kitchen')) return 'kitchen';
+  if (location.contains('housekeeping')) return 'housekeeping';
+  if (location.contains('activity')) return 'activity';
+  return 'all'; // owner / manager dashboards
+}
+
+/// Final department to show, given the dashboard the bell was opened from.
+/// A logged-in user's role always wins:
+///   • Owner/Manager accounts see everything, on any dashboard.
+///   • Department staff only ever see their own department.
+/// Without a login (demo / role-selection mode) the dashboard decides.
+final effectiveDepartmentProvider = Provider.family<String, String?>((ref, fromDashboard) {
+  final user = ref.watch(currentUserProvider);
+  if (user != null) {
+    final role = user.role.toUpperCase();
+    if (role == 'OWNER' || role == 'MANAGER') return 'all';
+    final dept = departmentForRole(role);
+    if (dept != null) return dept;
+  }
+  return fromDashboard ??
+      departmentForLocation(ref.watch(activeRoleDashboardProvider));
 });
 
-final unreadNotificationCountProvider = Provider<int>((ref) {
+/// Notifications for a department key ('all', 'kitchen', 'housekeeping', 'activity').
+final notificationsForDepartmentProvider =
+    Provider.family<List<AppNotification>, String>((ref, dept) {
+  final all = ref.watch(allNotificationsProvider);
+  final allowed = _deptCategories[dept];
+  if (allowed == null) return all; // 'all'
+  // Server notifications are addressed to a specific user, so always show them
+  return all.where((n) => allowed.contains(n.category) || n.fromServer).toList();
+});
+
+final unreadCountForDepartmentProvider = Provider.family<int, String>((ref, dept) {
   final read = ref.watch(readNotificationsProvider);
-  return ref.watch(notificationsProvider).where((n) => !read.contains(n.id)).length;
+  return ref
+      .watch(notificationsForDepartmentProvider(dept))
+      .where((n) => !read.contains(n.id))
+      .length;
 });
