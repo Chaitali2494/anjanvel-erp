@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../data/booking_service.dart';
+import '../../data/session_bookings_provider.dart';
 import '../../models/booking_model.dart';
 
 // Module-level session payments — persists across rebuilds, keyed by booking id
