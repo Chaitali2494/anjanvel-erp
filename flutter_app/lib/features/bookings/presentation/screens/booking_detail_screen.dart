@@ -168,7 +168,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Confirm / Cancel actions — use effectiveStatus so local bookings reflect session state
+                // Action buttons based on status
                 if (effectiveStatus == 'INQUIRY' || effectiveStatus == 'CREATED' || effectiveStatus == 'PENDING') ...[
                   SizedBox(
                     width: double.infinity,
@@ -181,7 +181,22 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                 ],
-                if (effectiveStatus != 'CANCELLED' && effectiveStatus != 'CHECKED_OUT')
+                if (effectiveStatus == 'CONFIRMED' || effectiveStatus == 'ADVANCE_PAID') ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.push('/checkin'),
+                      icon: const Icon(Icons.login_rounded),
+                      label: const Text('Check In Guest'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0288D1),
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (effectiveStatus != 'CANCELLED' && effectiveStatus != 'CHECKED_OUT' && effectiveStatus != 'COMPLETED')
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
