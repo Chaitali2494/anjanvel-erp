@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/guest_sync.dart';
+import '../../../core/services/cloud_store.dart';
+
+const _cloudCollection = 'food_orders';
 
 // ── Session-persistent food orders ─────────────────────────────────────────────
 
@@ -89,12 +92,45 @@ class FoodOrdersNotifier extends StateNotifier<List<Map<String, dynamic>>> {
         state = List.from(_sessionOrders);
       }
     });
+    _initCloud();
   }
+
+  void Function()? _cancelCloud;
+
+  /// Load saved orders from Supabase and listen for changes from other devices.
+  Future<void> _initCloud() async {
+    _applyRemote(await CloudStore.load(_cloudCollection));
+    _cancelCloud = CloudStore.watch(_cloudCollection, (id, data, deleted) {
+      if (deleted) {
+        _sessionOrders.removeWhere((o) => o['id']?.toString() == id);
+        if (mounted) state = List.from(_sessionOrders);
+      } else {
+        _applyRemote([data]);
+      }
+    });
+  }
+
+  void _applyRemote(List<Map<String, dynamic>> remote) {
+    if (remote.isEmpty) return;
+    for (final r in remote) {
+      final idx = _sessionOrders.indexWhere((o) => o['id']?.toString() == r['id']?.toString());
+      if (idx >= 0) {
+        _sessionOrders[idx] = r;
+      } else {
+        _sessionOrders.insert(0, r);
+      }
+    }
+    if (mounted) state = List.from(_sessionOrders);
+  }
+
+  void _save(Map<String, dynamic> order) =>
+      CloudStore.put(_cloudCollection, order['id'].toString(), order);
 
   @override
   void dispose() {
     _cancelOrderListener?.call();
     _cancelStatusListener?.call();
+    _cancelCloud?.call();
     super.dispose();
   }
 
@@ -121,6 +157,7 @@ class FoodOrdersNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     if (_sessionOrders.any((o) => o['id'] == order['id'])) return;
     _sessionOrders.insert(0, order);
     state = List.from(_sessionOrders);
+    _save(order);
     // Persist + broadcast so other tabs (management app) pick it up immediately
     if (order['source'] == 'GUEST_QR') {
       GuestSync.saveOrder(order);
@@ -132,6 +169,7 @@ class FoodOrdersNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     if (idx >= 0) {
       _sessionOrders[idx] = {..._sessionOrders[idx], 'status': newStatus};
       state = List.from(_sessionOrders);
+      _save(_sessionOrders[idx]);
       GuestSync.updateOrderStatus(id, newStatus);
     }
   }

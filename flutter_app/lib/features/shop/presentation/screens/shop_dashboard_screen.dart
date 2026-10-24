@@ -5,6 +5,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../shop/data/shop_room_charges_provider.dart';
 import '../../../shop/data/shop_cart_provider.dart';
+import '../../../../core/services/cloud_store.dart';
+
+const _cloudSales = 'shop_sales';
 
 // ── Session-level sales state ──────────────────────────────────────────────────
 
@@ -13,9 +16,35 @@ class _Sale {
   final double price;
   final int qty;
   final DateTime time;
-  _Sale({required this.product, required this.category, required this.price, required this.qty})
-      : time = DateTime.now();
+  final String id;
+  _Sale({
+    required this.product,
+    required this.category,
+    required this.price,
+    required this.qty,
+    DateTime? time,
+    String? id,
+  })  : time = time ?? DateTime.now(),
+        id = id ?? '${DateTime.now().microsecondsSinceEpoch}';
   double get total => price * qty;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'product': product,
+        'category': category,
+        'price': price,
+        'qty': qty,
+        'time': time.toIso8601String(),
+      };
+
+  factory _Sale.fromJson(Map<String, dynamic> j) => _Sale(
+        id: j['id']?.toString(),
+        product: j['product']?.toString() ?? '',
+        category: j['category']?.toString() ?? '',
+        price: (j['price'] as num?)?.toDouble() ?? 0,
+        qty: (j['qty'] as num?)?.toInt() ?? 1,
+        time: DateTime.tryParse(j['time']?.toString() ?? '')?.toLocal(),
+      );
 }
 
 List<_Sale> _sessionSales = [];
@@ -60,15 +89,61 @@ const _kProducts = [
 // ── Provider ───────────────────────────────────────────────────────────────────
 
 class ShopNotifier extends StateNotifier<List<_Sale>> {
-  ShopNotifier() : super(_sessionSales);
+  ShopNotifier() : super(_sessionSales) {
+    _initCloud();
+  }
+
+  void Function()? _cancelCloud;
+
+  Future<void> _initCloud() async {
+    _applyRemote(await CloudStore.load(_cloudSales));
+    _cancelCloud = CloudStore.watch(_cloudSales, (id, data, deleted) {
+      if (deleted) {
+        _sessionSales = _sessionSales.where((s) => s.id != id).toList();
+        if (mounted) state = List.from(_sessionSales);
+      } else {
+        _applyRemote([data]);
+      }
+    });
+  }
+
+  void _applyRemote(List<Map<String, dynamic>> remote) {
+    if (remote.isEmpty) return;
+    final list = List<_Sale>.from(_sessionSales);
+    for (final r in remote) {
+      final s = _Sale.fromJson(r);
+      final idx = list.indexWhere((x) => x.id == s.id);
+      if (idx >= 0) {
+        list[idx] = s;
+      } else {
+        list.add(s);
+      }
+    }
+    list.sort((a, b) => b.time.compareTo(a.time));
+    _sessionSales = list;
+    if (mounted) state = List.from(_sessionSales);
+  }
+
+  @override
+  void dispose() {
+    _cancelCloud?.call();
+    super.dispose();
+  }
 
   void addSale(_Sale sale) {
     _sessionSales = [sale, ..._sessionSales];
     state = List.from(_sessionSales);
+    CloudStore.put(_cloudSales, sale.id, sale.toJson());
   }
 
-  double get todaySales => state.fold(0.0, (s, e) => s + e.total);
-  int get todayOrders => state.length;
+  // Sales are now saved, so only count today's
+  List<_Sale> get _today {
+    final n = DateTime.now();
+    return state.where((e) => e.time.year == n.year && e.time.month == n.month && e.time.day == n.day).toList();
+  }
+
+  double get todaySales => _today.fold(0.0, (s, e) => s + e.total);
+  int get todayOrders => _today.length;
 }
 
 final shopNotifierProvider = StateNotifierProvider<ShopNotifier, List<_Sale>>((ref) => ShopNotifier());

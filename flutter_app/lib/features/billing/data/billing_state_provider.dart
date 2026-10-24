@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../activities/data/activity_bookings_provider.dart';
 import '../../bookings/data/booking_service.dart';
+import '../../../core/services/cloud_store.dart';
+
+const _cloudBilling = 'billing_payments';
 
 // ── Demo rooms eligible for billing — keyed by DB room number (101–302) ────────
 // Room numbers match v_room_availability + room_service.dart + sessionRoomBookings
@@ -95,18 +98,51 @@ Map<String, Map<String, dynamic>> _sessionBillingState = {};
 
 class BillingStateNotifier
     extends StateNotifier<Map<String, Map<String, dynamic>>> {
-  BillingStateNotifier() : super(_sessionBillingState);
+  BillingStateNotifier() : super(_sessionBillingState) {
+    _initCloud();
+  }
+
+  void Function()? _cancelCloud;
+
+  Future<void> _initCloud() async {
+    final remote = await CloudStore.load(_cloudBilling);
+    if (remote.isNotEmpty) {
+      _sessionBillingState = {
+        ..._sessionBillingState,
+        for (final r in remote) r['id'].toString(): Map<String, dynamic>.from(r)..remove('id'),
+      };
+      if (mounted) state = Map<String, Map<String, dynamic>>.from(_sessionBillingState);
+    }
+    _cancelCloud = CloudStore.watch(_cloudBilling, (id, data, deleted) {
+      final next = Map<String, Map<String, dynamic>>.from(_sessionBillingState);
+      if (deleted) {
+        next.remove(id);
+      } else {
+        next[id] = Map<String, dynamic>.from(data)..remove('id');
+      }
+      _sessionBillingState = next;
+      if (mounted) state = Map<String, Map<String, dynamic>>.from(_sessionBillingState);
+    });
+  }
+
+  @override
+  void dispose() {
+    _cancelCloud?.call();
+    super.dispose();
+  }
 
   void markPaid(String roomNumber, double amount) {
+    final entry = <String, dynamic>{
+      'is_paid': true,
+      'paid_at': DateTime.now().toIso8601String(),
+      'amount': amount,
+    };
     _sessionBillingState = {
       ..._sessionBillingState,
-      roomNumber: {
-        'is_paid': true,
-        'paid_at': DateTime.now().toIso8601String(),
-        'amount': amount,
-      },
+      roomNumber: entry,
     };
     state = Map<String, Map<String, dynamic>>.from(_sessionBillingState);
+    CloudStore.put(_cloudBilling, roomNumber, entry);
   }
 
   bool isPaid(String roomNumber) =>
