@@ -165,7 +165,9 @@ class BookingService {
     final guestIdHint    = data['primary_guest_id'] as String?;
     final cleanData = Map<String, dynamic>.from(data)
       ..remove('_guest_name')
-      ..remove('_guest_phone');
+      ..remove('_guest_phone')
+      ..remove('guest_name')
+      ..remove('guest_phone');
 
     try {
       final response = await _client.from('bookings').insert(cleanData).select().maybeSingle();

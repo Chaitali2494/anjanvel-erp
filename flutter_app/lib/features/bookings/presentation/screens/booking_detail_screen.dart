@@ -1094,6 +1094,19 @@ class _RoomAssignmentCardState extends ConsumerState<_RoomAssignmentCard> {
         .removeWhere((r) => r['room_number'] == roomNumber); // deduplicate
     sessionBookingRoomAssignments[widget.bookingId]!.add(entry);
 
+    // Update sessionBookingsProvider so roadmap card shows the room number immediately
+    final currentBookings = ref.read(sessionBookingsProvider);
+    final existing = currentBookings.firstWhere(
+      (b) => b['id'] == widget.bookingId,
+      orElse: () => <String, dynamic>{},
+    );
+    if (existing.isNotEmpty) {
+      ref.read(sessionBookingsProvider.notifier).addBooking({
+        ...existing,
+        'room_number': roomNumber,
+      });
+    }
+
     // Cache room→guest mapping so room cards and room_detail_screen show the correct guest
     final bookingSnap = ref.read(bookingDetailProvider(widget.bookingId)).valueOrNull;
     if (bookingSnap != null) {
