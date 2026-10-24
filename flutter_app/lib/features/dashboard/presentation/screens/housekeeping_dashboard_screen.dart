@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../housekeeping/data/housekeeping_provider.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 // Uses shared housekeepingTasksProvider from housekeeping_provider.dart
 
@@ -54,10 +55,7 @@ class HousekeepingDashboardScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => context.push('/notifications'),
-                        icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                      ),
+                      const NotificationBell(),
                       IconButton(
                         onPressed: () => context.go('/role-selection'),
                         icon: const Icon(Icons.switch_account_rounded, color: Colors.white),

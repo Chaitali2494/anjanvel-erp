@@ -17,6 +17,7 @@ import '../../../bookings/data/session_bookings_provider.dart';
 import '../../../bookings/data/booking_service.dart';
 import '../../../food/data/food_orders_state_provider.dart';
 import 'package:intl/intl.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class OwnerDashboardScreen extends ConsumerStatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -190,10 +191,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
                               tooltip: 'Switch Role',
                               onPressed: () => context.go('/role-selection'),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                              onPressed: () => context.push(AppRoutes.notifications),
-                            ),
+                            const NotificationBell(),
                             GestureDetector(
                               onTap: () => context.push(AppRoutes.profile),
                               child: CircleAvatar(

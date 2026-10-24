@@ -7,6 +7,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../dashboard/data/dashboard_provider.dart';
 import '../../../housekeeping/presentation/widgets/housekeeping_panel.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class ManagerDashboardScreen extends ConsumerWidget {
   const ManagerDashboardScreen({super.key});
@@ -55,10 +56,7 @@ class ManagerDashboardScreen extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                          onPressed: () => context.push(AppRoutes.notifications),
-                        ),
+                        const NotificationBell(),
                         GestureDetector(
                           onTap: () => context.push(AppRoutes.profile),
                           child: CircleAvatar(

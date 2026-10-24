@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../activities/data/activity_bookings_provider.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
   const ActivityCoordinatorDashboardScreen({super.key});
@@ -55,10 +56,7 @@ class ActivityCoordinatorDashboardScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => context.push('/notifications'),
-                      icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                    ),
+                    const NotificationBell(),
                     IconButton(
                       onPressed: () => context.go('/role-selection'),
                       icon: const Icon(Icons.switch_account_rounded, color: Colors.white),

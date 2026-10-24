@@ -38,7 +38,7 @@ dependencies:
   form_builder_validators: ^10.0.1
 
   # Date/Time
-  intl: ^0.19.0
+  intl: any  # pinned by the Flutter SDK (0.19 on CI 3.24, 0.20 on newer Flutter)
   table_calendar: ^3.1.1
 
   # PDF

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/app_widgets.dart';
 import '../../../../core/providers/supabase_provider.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 final kitchenOrdersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final client = ref.watch(supabaseClientProvider);
@@ -31,6 +32,7 @@ class KitchenDashboardScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         title: const Text('Kitchen Dashboard', style: TextStyle(color: Colors.white)),
         actions: [
+          const NotificationBell(),
           IconButton(
             icon: const Icon(Icons.switch_account_rounded, color: Colors.white),
             tooltip: 'Switch Role',
