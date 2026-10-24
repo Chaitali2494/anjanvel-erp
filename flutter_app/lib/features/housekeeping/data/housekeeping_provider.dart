@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/providers/supabase_provider.dart';
+import '../../../core/services/cloud_store.dart';
 
 // ── Demo seed data ─────────────────────────────────────────────────────────────
 
@@ -20,37 +21,57 @@ final _demoTasks = <Map<String, dynamic>>[
 List<Map<String, dynamic>> _sessionTasks = List<Map<String, dynamic>>.from(
   _demoTasks.map((e) => Map<String, dynamic>.from(e)),
 );
-bool _sessionUseLocal = false;
 
 // ── StateNotifier ──────────────────────────────────────────────────────────────
 
 class HousekeepingTasksNotifier
     extends StateNotifier<AsyncValue<List<Map<String, dynamic>>>> {
-  final SupabaseClient _client;
+  // Tasks are stored in Supabase `app_records` (collection 'housekeeping_tasks')
+  // via CloudStore — the structured housekeeping_tasks table needs room/user
+  // UUIDs the app doesn't have, which caused 400 errors.
+  static const _cloud = 'housekeeping_tasks';
+  void Function()? _cancelCloud;
 
-  HousekeepingTasksNotifier(this._client) : super(const AsyncValue.loading()) {
+  HousekeepingTasksNotifier(SupabaseClient _) : super(const AsyncValue.loading()) {
     _load();
+    _cancelCloud = CloudStore.watch(_cloud, (id, data, deleted) {
+      if (deleted) {
+        _sessionTasks = _sessionTasks.where((t) => t['id']?.toString() != id).toList();
+        _emit();
+      } else {
+        _applyRemote([data]);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _cancelCloud?.call();
+    super.dispose();
+  }
+
+  void _emit() {
+    if (mounted) {
+      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
+    }
+  }
+
+  void _applyRemote(List<Map<String, dynamic>> remote) {
+    for (final r in remote) {
+      final idx = _sessionTasks.indexWhere((t) => t['id']?.toString() == r['id']?.toString());
+      if (idx >= 0) {
+        _sessionTasks[idx] = r;
+      } else {
+        _sessionTasks.insert(0, r);
+      }
+    }
+    _emit();
   }
 
   // ── Load ───────────────────────────────────────────────────────────────────
 
   Future<void> _load() async {
-    try {
-      final data = await _client
-          .from('housekeeping_tasks')
-          .select('*')
-          .order('created_at', ascending: false);
-      _sessionUseLocal = false;
-      final list = (data as List)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
-      _sessionTasks = list;
-      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
-    } catch (_) {
-      // No table yet → use the shared session list (persists across navigations)
-      _sessionUseLocal = true;
-      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
-    }
+    _applyRemote(await CloudStore.load(_cloud));
   }
 
   Future<void> refresh() => _load();
@@ -58,72 +79,38 @@ class HousekeepingTasksNotifier
   // ── Add task (called from Assign Task form) ────────────────────────────────
 
   Future<void> addTask(Map<String, dynamic> task) async {
-    if (_sessionUseLocal) {
-      final newTask = <String, dynamic>{
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-        ...task,
-      };
-      _sessionTasks = <Map<String, dynamic>>[newTask, ..._sessionTasks];
-      state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
-    } else {
-      try {
-        await _client.from('housekeeping_tasks').insert(<String, dynamic>{
-          ...task,
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-        });
-        await _load();
-      } catch (_) {
-        // Live insert failed — fall back to local
-        _sessionUseLocal = true;
-        final newTask = <String, dynamic>{
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-          ...task,
-        };
-        _sessionTasks = <Map<String, dynamic>>[newTask, ..._sessionTasks];
-        state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
-      }
-    }
+    final now = DateTime.now().toIso8601String();
+    final newTask = <String, dynamic>{
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'created_at': now,
+      'updated_at': now,
+      ...task,
+    };
+    _sessionTasks = <Map<String, dynamic>>[newTask, ..._sessionTasks];
+    _emit();
+    await CloudStore.put(_cloud, newTask['id'].toString(), newTask);
   }
 
   // ── Update status (called from HK task list & cleaning checklist) ────────────
 
   Future<void> updateStatus(String id, String status) async {
-    // Always update local state immediately (works for both demo and Supabase tasks)
+    Map<String, dynamic>? changed;
     _sessionTasks = _sessionTasks.map((t) {
-      if (t['id'] == id) {
-        return <String, dynamic>{
+      if (t['id']?.toString() == id) {
+        changed = <String, dynamic>{
           ...t,
           'status': status,
           'updated_at': DateTime.now().toIso8601String(),
         };
+        return changed!;
       }
       return t;
     }).toList();
-    state = AsyncValue.data(List<Map<String, dynamic>>.from(_sessionTasks));
-
-    // Also persist to Supabase — but only if ID is a real UUID (not a local timestamp)
-    if (!_sessionUseLocal && _isUuid(id)) {
-      try {
-        await _client
-            .from('housekeeping_tasks')
-            .update(<String, dynamic>{
-              'status': status,
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('id', id);
-      } catch (_) {}
+    _emit();
+    if (changed != null) {
+      await CloudStore.put(_cloud, id, changed!);
     }
   }
-
-  static bool _isUuid(String id) => RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  ).hasMatch(id);
 }
 
 // ── Provider ──────────────────────────────────────────────────────────────────
