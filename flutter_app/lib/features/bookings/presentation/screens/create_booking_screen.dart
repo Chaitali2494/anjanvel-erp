@@ -122,7 +122,13 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         'status'        : booking.status,
         'num_adults'    : _numAdults,
         'num_children'  : _numChildren,
-        'guests'        : {'full_name': _nameController.text.trim()},
+        'total_amount'  : totalAmount + taxAmount,
+        'guest_name'    : _nameController.text.trim(),
+        'guest_phone'   : _phoneController.text.trim(),
+        'guests'        : {
+          'full_name': _nameController.text.trim(),
+          'phone'    : _phoneController.text.trim(),
+        },
       });
 
       if (mounted) {
