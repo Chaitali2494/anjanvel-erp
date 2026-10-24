@@ -372,7 +372,13 @@ class _JourneyCardState extends ConsumerState<_JourneyCard> {
               onCheckIn:  () => _doCheckIn(id, booking, roomNo,
                   roomInfo['room_type']?.toString() ?? '—', guestName),
               onCheckOut: () => _doCheckOut(id, booking, roomNo),
-              onViewBill: () => context.push('/billing'),
+              onViewBill: () => context.push('/billing/room', extra: {
+                'booking_id':    id,
+                'room_number':   roomNo,
+                'guest_name':    guestName,
+                'check_in_date':  booking['check_in']?.toString() ?? booking['check_in_date']?.toString() ?? '',
+                'check_out_date': booking['check_out']?.toString() ?? booking['check_out_date']?.toString() ?? '',
+              }),
               onCancel: () {
                 setState(() => _localStatus = 'CANCELLED');
                 ref.read(sessionBookingsProvider.notifier).updateStatus(id, 'CANCELLED');
