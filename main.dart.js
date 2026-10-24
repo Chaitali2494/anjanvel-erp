@@ -8709,7 +8709,8 @@ bt6:function bt6(){},
 bt5:function bt5(a){this.a=a},
 btu:function btu(){},
 uo:function uo(){this.a=$},
-c4n(a){switch(a.toUpperCase()){case"KITCHEN":return"kitchen"
+c4n(a){var s=a==null?"":a
+switch(s.toUpperCase()){case"KITCHEN":return"kitchen"
 case"HOUSEKEEPING":return"housekeeping"
 case"ACTIVITY_COORDINATOR":case"GUIDE":return"activity"
 default:return null}},
@@ -60209,11 +60210,9 @@ return A.u(p.aw(0,$.cM(),t.A).ghU().CR(a),$async$Lc)
 case 2:return A.D(null,r)}})
 return A.E($async$Lc,r)}}
 A.btL.prototype={
-$2(a,b){var s,r,q=a.ai($.a_T(),t.ih)
-if(q!=null){s=q.e.toUpperCase()
-if(s==="OWNER"||s==="MANAGER")return"all"
-r=A.c4n(s)
-if(r!=null)return r}return b==null?A.bLM(a.ai($.apg(),t.N)):b},
+$2(a,b){var s=a.ai($.a_T(),t.ih),r=A.c4n(s==null?null:s.e)
+if(r!=null)return r
+return b==null?A.bLM(a.ai($.apg(),t.N)):b},
 $S:1016}
 A.bwF.prototype={
 $1(a){var s=$.oV().b
