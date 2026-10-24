@@ -2,24 +2,38 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/providers/supabase_provider.dart';
 import '../../../../shared/widgets/app_widgets.dart';
+import '../../../../core/services/cloud_store.dart';
+
+const _cloudInventory = 'inventory_items';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-// Local items added offline (persists within session)
-final List<Map<String, dynamic>> _localItems = [];
-
+// Inventory is stored in Supabase `app_records` (collection 'inventory_items')
+// via CloudStore. The structured inventory_items table uses different column
+// names (current_stock, unit_cost, supplier_id…) and an enum category, so
+// reading/writing it from this screen failed with 400.
+//
+// Saved records override the demo items with the same id; new items are added.
 final inventoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
-  try {
-    final result = await client.from('inventory_items').select('id, name, category, unit, quantity, min_quantity, unit_price, supplier').order('category').order('name');
-    final base = result.isEmpty ? List<Map<String, dynamic>>.from(_demoInventory) : List<Map<String, dynamic>>.from(result);
-    // Merge local offline additions
-    return [..._localItems, ...base];
-  } catch (_) {
-    return [..._localItems, ..._demoInventory];
+  // Refresh automatically when another device changes inventory
+  final cancel = CloudStore.watch(_cloudInventory, (_, __, ___) => ref.invalidateSelf());
+  ref.onDispose(cancel);
+
+  final saved = await CloudStore.load(_cloudInventory);
+  final byId = <String, Map<String, dynamic>>{
+    for (final d in _demoInventory) d['id'].toString(): Map<String, dynamic>.from(d),
+  };
+  for (final r in saved) {
+    final id = r['id'].toString();
+    byId[id] = {...?byId[id], ...r};
   }
+  final list = byId.values.where((i) => i['deleted'] != true).toList()
+    ..sort((a, b) {
+      final c = (a['category'] ?? '').toString().compareTo((b['category'] ?? '').toString());
+      return c != 0 ? c : (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString());
+    });
+  return list;
 });
 
 // ── Demo Data ─────────────────────────────────────────────────────────────────
@@ -317,35 +331,15 @@ class _InventoryListScreenState extends ConsumerState<InventoryListScreen> {
                     'min_quantity': double.tryParse(minCtrl.text) ?? 0,
                     'unit_price': double.tryParse(priceCtrl.text) ?? 0,
                   };
-                  try {
-                    final client = ref.read(supabaseClientProvider);
-                    if (existing == null) {
-                      await client.from('inventory_items').insert({...data, 'updated_at': DateTime.now().toIso8601String()});
-                    } else {
-                      await client.from('inventory_items').update({...data, 'updated_at': DateTime.now().toIso8601String()}).eq('id', existing['id']);
-                    }
-                  } catch (_) {
-                    // Offline: save / update locally
-                    if (existing == null) {
-                      _localItems.insert(0, {
-                        'id': 'local_${DateTime.now().millisecondsSinceEpoch}',
-                        ...data,
-                        'supplier': '—',
-                      });
-                    } else {
-                      // First try local overrides list
-                      final localIdx = _localItems.indexWhere((i) => i['id'] == existing['id']);
-                      if (localIdx >= 0) {
-                        _localItems[localIdx] = {..._localItems[localIdx], ...data};
-                      } else {
-                        // Fall back to updating the demo list in-place
-                        final demoIdx = _demoInventory.indexWhere((i) => i['id'] == existing['id']);
-                        if (demoIdx >= 0) {
-                          _demoInventory[demoIdx] = {..._demoInventory[demoIdx], ...data};
-                        }
-                      }
-                    }
-                  }
+                  final id = existing?['id']?.toString() ??
+                      'item_${DateTime.now().millisecondsSinceEpoch}';
+                  await CloudStore.put(_cloudInventory, id, {
+                    ...?existing,
+                    ...data,
+                    'id': id,
+                    'supplier': existing?['supplier'] ?? '—',
+                    'updated_at': DateTime.now().toIso8601String(),
+                  });
                   ref.invalidate(inventoryProvider);
                   // Use a post-frame callback so the sheet is gone before we show the snackbar
                   if (ctx.mounted) Navigator.pop(ctx);
