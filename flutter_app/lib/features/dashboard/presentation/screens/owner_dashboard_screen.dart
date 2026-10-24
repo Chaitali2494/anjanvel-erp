@@ -588,7 +588,9 @@ class _QuickActionsGrid extends StatelessWidget {
       const tileH    = 100.0;
       final maxGridW = (150.0 * cols) + (spacing * (cols - 1)); // 470px max
       final gridW    = box.maxWidth < maxGridW ? box.maxWidth : maxGridW;
-      final tileW    = (gridW - spacing * (cols - 1)) / cols;
+      // Never negative — the panel can be momentarily very narrow (window
+      // resize, DevTools docked, first layout pass)
+      final tileW    = ((gridW - spacing * (cols - 1)) / cols).clamp(0.0, 150.0);
 
       return Center(
         child: SizedBox(
