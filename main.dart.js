@@ -58008,7 +58008,7 @@ if(a4.length===0)a4=null
 a5=t.N
 a6=t.z
 s=10
-return A.w(d.FV(A.A(["primary_guest_id",c,"_guest_name",a9,"_guest_phone",b1,"package_id",null,"check_in_date",a0,"check_out_date",a,"num_adults",a1,"num_children",a2,"base_amount",h,"tax_amount",g,"total_amount",h+g,"source",a3,"special_requests",a4,"status","INQUIRY","payment_status","PENDING"],a5,a6)),$async$tJ)
+return A.w(d.FV(A.A(["primary_guest_id",c,"_guest_name",a9,"_guest_phone",b1,"package_id",null,"check_in_date",a0,"check_out_date",a,"num_adults",a1,"num_children",a2,"base_amount",h,"tax_amount",g,"total_amount",h+g,"source",a3,"special_requests",a4,"status","CONFIRMED","payment_status","PENDING"],a5,a6)),$async$tJ)
 case 10:f=b4
 a4=m.ga9().ap(0,$.pG().gbi(),t.g4)
 a3=f.a
@@ -58022,7 +58022,7 @@ c=m.ax
 c.toString
 c=d.bJ(0,c)
 d=c}else d=null
-c=f.f
+c=f.f.length===0?"CONFIRMED":f.f
 a0=m.ay
 a1=m.ch
 a8=B.q.bz(a8.a.a)
