@@ -32,23 +32,19 @@ String departmentForLocation(String location) {
   return 'all'; // owner / manager dashboards
 }
 
-/// Final department to show, given the dashboard the bell was opened from.
-/// A logged-in user's role always wins:
-///   • Owner/Manager accounts see everything, on any dashboard.
-///   • Department staff only ever see their own department.
-/// Without a login (demo / role-selection mode) the dashboard decides.
+/// Final department to show, given the dashboard the screen was opened from.
+///
+///   • Department staff (Kitchen / Housekeeping / Activity accounts) are
+///     always locked to their own department, whatever page they open.
+///   • Owner & Manager see the department of the dashboard they're on:
+///     from the Housekeeping dashboard → housekeeping only; from the Owner or
+///     Manager dashboard → everything.
 final effectiveDepartmentProvider = Provider.family<String, String?>((ref, fromDashboard) {
-  final user = ref.watch(currentUserProvider);
-  if (user != null) {
-    final role = user.role.toUpperCase();
-    if (role == 'OWNER' || role == 'MANAGER') return 'all';
-    final dept = departmentForRole(role);
-    if (dept != null) return dept;
-  }
+  final staffDept = departmentForRole(ref.watch(currentUserProvider)?.role);
+  if (staffDept != null) return staffDept;
   return fromDashboard ??
       departmentForLocation(ref.watch(activeRoleDashboardProvider));
 });
-
 
 /// Human-readable name, e.g. 'kitchen' → 'Kitchen'.
 String departmentLabel(String dept) => dept == 'all'
