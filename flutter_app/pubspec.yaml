@@ -33,10 +33,6 @@ dependencies:
   lottie: ^3.1.0
   fl_chart: ^0.67.0
 
-  # Forms & Validation
-  flutter_form_builder: ^9.3.0
-  form_builder_validators: ^10.0.1
-
   # Date/Time
   intl: any  # pinned by the Flutter SDK (0.19 on CI 3.24, 0.20 on newer Flutter)
   table_calendar: ^3.1.1

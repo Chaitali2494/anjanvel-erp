@@ -19,8 +19,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
-          channel: 'stable'
+          channel: 'stable'   # latest stable, to match local Flutter (needs CardThemeData / intl 0.20)
 
       - name: Fix pubspec
         working-directory: flutter_app

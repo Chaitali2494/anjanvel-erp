@@ -173,7 +173,7 @@ class AppTheme {
       dropdownMenuTheme: DropdownMenuThemeData(
         textStyle: GoogleFonts.poppins(color: textPrimary, fontSize: 14),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: elevationSM,
         color: surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusLG)),
@@ -223,7 +223,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMD)),
         behavior: SnackBarBehavior.floating,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusXL)),
         backgroundColor: surface,
       ),
