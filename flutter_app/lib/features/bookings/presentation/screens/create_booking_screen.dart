@@ -91,7 +91,8 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       final taxAmount = totalAmount * 0.05; // 5% GST
 
       final booking = await ref.read(bookingServiceProvider).createBooking({
-        'primary_guest_id': guestId,
+        // Only send primary_guest_id if it's a real Supabase UUID (not a local fallback)
+        if (!guestId.startsWith('local_')) 'primary_guest_id': guestId,
         // Extra fields used by local fallback to show guest name/phone in booking detail
         '_guest_name': name,
         '_guest_phone': phone,
