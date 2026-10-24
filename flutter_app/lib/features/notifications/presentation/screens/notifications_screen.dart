@@ -151,7 +151,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppTheme.border, height: 1),
+          child: Container(color: Colors.grey.shade200, height: 1),
         ),
       ),
       body: _notifs.isEmpty
@@ -159,7 +159,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           : ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: _notifs.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: AppTheme.border),
+              separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
               itemBuilder: (context, i) {
                 final n = _notifs[i];
                 return Dismissible(
@@ -233,7 +233,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       children: [
         Container(
           width: 72, height: 72,
-          decoration: BoxDecoration(color: AppTheme.border, shape: BoxShape.circle),
+          decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
           child: const Icon(Icons.notifications_none_rounded, size: 36, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 16),
