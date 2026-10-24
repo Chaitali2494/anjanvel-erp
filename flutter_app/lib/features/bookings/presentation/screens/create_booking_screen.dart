@@ -148,7 +148,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
             ],
           ),
         );
-        if (mounted) context.go('/bookings/${booking.id}');
+        if (mounted) context.go('/bookings/roadmap');
       }
     } catch (e) {
       _showError(e.toString());
