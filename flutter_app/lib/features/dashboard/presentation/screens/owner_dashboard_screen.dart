@@ -1100,11 +1100,9 @@ class _OwnerBottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(Icons.dashboard_outlined, Icons.dashboard_rounded, 'Home', '/dashboard/owner'),
               _NavItem(Icons.calendar_month_outlined, Icons.calendar_month_rounded, 'Bookings', '/bookings'),
               _NavItem(Icons.bed_outlined, Icons.bed_rounded, 'Rooms', '/rooms'),
               _NavItem(Icons.people_outlined, Icons.people_rounded, 'Staff', '/staff'),
-              _NavItem(Icons.inventory_2_outlined, Icons.inventory_2_rounded, 'Inventory', '/inventory'),
             ],
           ),
         ),
