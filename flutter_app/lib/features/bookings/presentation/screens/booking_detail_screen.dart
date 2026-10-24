@@ -169,7 +169,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                 const SizedBox(height: 12),
 
                 // Confirm / Cancel actions — use effectiveStatus so local bookings reflect session state
-                if (effectiveStatus == 'INQUIRY') ...[
+                if (effectiveStatus == 'INQUIRY' || effectiveStatus == 'CREATED' || effectiveStatus == 'PENDING') ...[
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
