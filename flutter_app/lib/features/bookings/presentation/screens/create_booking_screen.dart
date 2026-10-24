@@ -107,7 +107,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         'special_requests': _specialRequestsController.text.trim().isEmpty
             ? null
             : _specialRequestsController.text.trim(),
-        'status': 'INQUIRY',
+        'status': 'CONFIRMED',
         'payment_status': 'PENDING',
       });
 
@@ -119,7 +119,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
         'check_out_date': _checkOutDate != null
             ? DateFormat('yyyy-MM-dd').format(_checkOutDate!)
             : null,
-        'status'        : booking.status,
+        'status'        : booking.status.isEmpty ? 'CONFIRMED' : booking.status,
         'num_adults'    : _numAdults,
         'num_children'  : _numChildren,
         'total_amount'  : totalAmount + taxAmount,
