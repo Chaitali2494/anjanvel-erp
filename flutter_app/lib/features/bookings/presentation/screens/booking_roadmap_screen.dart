@@ -282,7 +282,11 @@ class _JourneyCardState extends ConsumerState<_JourneyCard> {
     final persons        = (roomInfo['persons'] as num?)?.toInt()    ?? 1;
     final roomCharge     = rate * persons * nights;
     final foodCharge     = kDemoFoodCharges[roomNo] ?? 0.0;
+<<<<<<< HEAD
         final activityCharge = widget.allActivities
+=======
+    final activityCharge = widget.allActivities
+>>>>>>> 06a4ee3 (Fix widget prefix)
         .where((a) => a['room_number'] == roomNo && a['status'] != 'CANCELLED')
         .fold(0.0, (s, a) => s + ((a['total_amount'] as num?)?.toDouble() ?? 0.0));
     final shopCharge = 0.0; // placeholder — wire to shop provider when ready
